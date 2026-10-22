@@ -17,6 +17,8 @@ Nút **VI / EN** trên header đổi toàn bộ giao diện giữa Tiếng Việ
 ## Phím tắt
 `1` bốc · `Q` hoặc `C` copy prompt vừa bốc. Trước khi copy phải chọn nhân vật dạng `Name - Source` (ví dụ `Boothill - HSR`): **Chọn cũ** để lọc danh sách đã lưu, hoặc **Tạo mới** để thêm nhân vật. Danh sách nhân vật nằm trong file sao lưu.
 
+Mỗi prompt có **số hàng** cố định (như số dòng Excel), hiện dạng `#12` và tìm được trong ô tìm kiếm. Copy cho một nhân vật sẽ ghi hàng đó vào danh sách đã xong của nhân vật. Prompt đã xong với nhân vật đang chọn được đánh dấu. Xoá prompt không đổi số hàng của prompt còn lại.
+
 ## Dữ liệu
 Lưu trên máy bạn: `%APPDATA%\Prompt Picker\data` (prompts.json + thư mục images). Đổi/mở thư mục trong **Cài đặt**. Nên **Xuất file sao lưu** định kỳ.
 

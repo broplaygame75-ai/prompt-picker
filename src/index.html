@@ -11,8 +11,13 @@ nav button{background:none;border:0;color:var(--mu);font-size:15px;padding:8px 1
 .slot .res{min-height:520px;margin-top:0;border-top:0;padding-top:0;border-left:1px dashed var(--ln);padding-left:28px}
 .slot .pt{font-size:20px;max-height:min(64vh,720px)}
 .chlist{max-height:180px;overflow:auto;border:1px solid var(--ln);border-radius:8px;background:var(--pn2);margin:6px 0 10px}
-.chopt{display:block;width:100%;text-align:left;background:transparent;color:var(--tx);border:0;border-bottom:1px solid var(--ln);padding:8px 10px;cursor:pointer;font:inherit}
-.chopt.on{background:var(--ac2);color:#fff}
+.chopt{display:flex;justify-content:space-between;align-items:baseline;gap:8px;width:100%;text-align:left;background:transparent;color:var(--tx);border:0;border-bottom:1px solid var(--ln);padding:8px 10px;cursor:pointer;font:inherit}
+.chopt .meta{font-size:11px;text-align:right}.chopt.on{background:var(--ac2);color:#fff}.chopt.on .meta{color:#efeaff}
+.rid{display:inline-block;font:600 12px ui-monospace,Consolas,monospace;padding:1px 6px;border-radius:6px;background:#2a2438;color:#d7c7ff;margin-right:6px;vertical-align:middle}
+.donebadge{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:20px;background:#173a2c;color:var(--ok);margin-left:6px;vertical-align:middle}
+.is-done{box-shadow:inset 3px 0 0 var(--ok)}
+#chdone{margin:0 0 10px}.chips{display:flex;flex-wrap:wrap;gap:6px;max-height:140px;overflow:auto;margin-top:6px}
+.chip{font:12px ui-monospace,Consolas,monospace;background:#2a2438;color:var(--tx);border:0;border-radius:6px;padding:3px 7px;cursor:pointer}.chip:hover{background:var(--ac2);color:#fff}
 @media(max-width:980px){.slot-body{grid-template-columns:1fr}.slot .res{min-height:280px;margin-top:8px;border-left:0;padding-left:0;border-top:1px dashed var(--ln);padding-top:14px}}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}label{color:var(--mu);font-size:13px}
 select,input,textarea{background:var(--pn2);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:7px 9px;font:inherit}textarea{width:100%;resize:vertical}
@@ -34,7 +39,7 @@ table{border-collapse:collapse;width:100%}td{padding:6px;border-bottom:1px solid
 <header><h1>✦ Prompt Picker</h1><nav><button data-v="pick" class="on" data-i="navPick">Bốc prompt</button><button data-v="lib" data-i="navLib">Thư viện</button><button data-v="add" data-i="navAdd">Thêm prompt</button><button data-v="set" data-i="navSet">Cài đặt & sao lưu</button></nav><span class="sp"></span><span class="seg" id="langseg"><button type="button" data-l="vi" class="on">VI</button><button type="button" data-l="en">EN</button></span><span class="hint ver" style="margin-right:10px"></span><span class="hint" data-ih="hint"><kbd>1</kbd> bốc · <kbd>Q</kbd>/<kbd>C</kbd> copy</span></header>
 <main>
 <section id="v-pick"><div class="slots" id="slots"></div></section>
-<section id="v-lib" class="hid"><div class="row"><input id="lq" data-ph="libSearch" placeholder="Tìm tên, tag, prompt…" style="width:340px"><select id="lr"><option value="All" data-i="anyRating">Mọi rating</option><option>SFW</option><option>NSFW</option></select><select id="lt"></select><select id="ls"><option value="name" data-i="sortName">Xếp theo tên</option><option value="new" data-i="sortNew">Mới thêm</option><option value="img" data-i="sortImg">Có ảnh trước</option></select><span class="meta" id="lc"></span></div><div class="lib" id="lib"></div></section>
+<section id="v-lib" class="hid"><div class="row"><input id="lq" data-ph="libSearch" placeholder="Tìm tên, tag, prompt, số hàng…" style="width:340px"><select id="lr"><option value="All" data-i="anyRating">Mọi rating</option><option>SFW</option><option>NSFW</option></select><select id="lt"></select><select id="ls"><option value="row" data-i="sortRow">Theo số hàng</option><option value="name" data-i="sortName">Xếp theo tên</option><option value="new" data-i="sortNew">Mới thêm</option><option value="img" data-i="sortImg">Có ảnh trước</option></select><span class="meta" id="lc"></span></div><div class="lib" id="lib"></div></section>
 <section id="v-add" class="hid"><div class="card"><p class="meta" id="addHelp" data-ih="addHelp">Dán một hoặc nhiều prompt theo mẫu <code>[SFW][Tên {New}{Halloween}][prompt…], [NSFW][Tên][prompt]</code>. Phần trong {} hoặc () ở tên sẽ thành tag.</p><textarea id="paste" rows="8"></textarea><div class="row" style="margin-top:10px"><button class="btn" id="prev" data-i="preview">Xem trước</button><button class="btn pri" id="addall" data-i="addAll">Thêm tất cả</button><label class="btn"><span data-i="importFileLong">📂 Nhập file (.json / .txt)</span><input type="file" class="impf hid" accept=".json,.txt"></label><span class="meta" id="pc"></span></div><table id="ptab"></table></div></section>
 <section id="v-set" class="hid"><div class="card"><h3 data-i="holTitle">Tag ngày lễ (cho chế độ Loại trừ)</h3><p class="meta" data-i="holHelp">Mỗi dòng một tag, không phân biệt hoa thường.</p><textarea id="hol" rows="8" style="max-width:400px"></textarea><div class="row"><button class="btn" id="savehol" data-i="save">Lưu</button></div>
 <h3 data-i="backupTitle">Sao lưu</h3><p class="meta" data-i="backupHelp">Xuất toàn bộ prompt, nhân vật và ảnh ra 1 file JSON. Nên xuất định kỳ.</p><div class="row"><button class="btn pri" id="exp" data-i="exportBtn">Xuất file sao lưu</button><label class="btn"><span data-i="importFile">📂 Nhập file</span><input type="file" class="impf hid" accept=".json,.txt"></label></div>
@@ -71,7 +76,7 @@ function lc(t){return String(t).toLowerCase().trim();}
 function parseCharacter(raw){const s=String(raw||'').trim().replace(/\s+/g,' ');const m=s.match(/^(.+?)\s-\s(.+)$/);if(!m)return null;const name=m[1].trim(),source=m[2].trim();if(!name||!source)return null;return {name,source,label:name+' - '+source};}
 function isHoliday(p,hol){return p.tags.some(t=>hol.includes(lc(t)));}
 function matchRating(p,r){return r==='All'||p.rating==='All'||p.rating===r;}
-function matchKw(p,kw){if(!kw)return true;kw=lc(kw);return lc(p.name+' '+p.tags.join(' ')+' '+p.prompt).includes(kw);}
+function matchKw(p,kw){if(!kw)return true;const raw=String(kw).trim();kw=lc(raw);if(lc(p.name+' '+p.tags.join(' ')+' '+p.prompt).includes(kw))return true;const n=raw.replace(/^#/,'');return /^\d+$/.test(n)&&p.row!=null&&String(p.row).includes(n);}
 function weight(p,state,now){
   if(!p.uses)return 1;
   const since=state.pickCounter-p.lastPick, hrs=(now-p.lastUsed)/36e5;
@@ -103,7 +108,7 @@ const I18N={
 vi:{
 navPick:'Bốc prompt',navLib:'Thư viện',navAdd:'Thêm prompt',navSet:'Cài đặt & sao lưu',
 hint:'<kbd>1</kbd> bốc · <kbd>Q</kbd>/<kbd>C</kbd> copy',
-libSearch:'Tìm tên, tag, prompt…',anyRating:'Mọi rating',sortName:'Xếp theo tên',sortNew:'Mới thêm',sortImg:'Có ảnh trước',
+libSearch:'Tìm tên, tag, prompt, số hàng…',anyRating:'Mọi rating',sortRow:'Theo số hàng',sortName:'Xếp theo tên',sortNew:'Mới thêm',sortImg:'Có ảnh trước',
 addHelp:'Dán một hoặc nhiều prompt theo mẫu <code>[SFW][Tên {New}{Halloween}][prompt…], [NSFW][Tên][prompt]</code>. Phần trong {} hoặc () ở tên sẽ thành tag.',
 preview:'Xem trước',addAll:'Thêm tất cả',importFileLong:'📂 Nhập file (.json / .txt)',importFile:'📂 Nhập file',
 holTitle:'Tag ngày lễ (cho chế độ Loại trừ)',holHelp:'Mỗi dòng một tag, không phân biệt hoa thường.',save:'Lưu',
@@ -113,10 +118,14 @@ openFolder:'Mở thư mục',changeFolder:'Đổi thư mục…',versionTitle:'P
 resetTitle:'Đặt lại',deleteAll:'Xoá toàn bộ dữ liệu',later:'Để sau',updateNow:'Cập nhật ngay',
 pickTitle:'Bốc prompt',pickHint:'phím <kbd>1</kbd> bốc · <kbd>Q</kbd> copy',rating:'Rating',all:'Tất cả',theme:'Chủ đề',
 modeNormal:'Bình thường',modeExclude:'Loại trừ lễ',modeTheme:'Theo tag',tag:'Tag',chooseTag:'— chọn tag —',priority:'Ưu tiên',
-kwPh:'Lọc từ khoá (tuỳ chọn)',character:'Nhân vật',charOld:'Chọn cũ',charNew:'Tạo mới',
-charSearch:'Tìm Name - Source…',charNewPh:'Name - Source, ví dụ Boothill - HSR',
+kwPh:'Lọc từ khoá hoặc số hàng (tuỳ chọn)',character:'Nhân vật',charOld:'Chọn cũ',charNew:'Tạo mới',
+charSearch:'Tìm Name - Source hoặc số hàng…',charNewPh:'Name - Source, ví dụ Boothill - HSR',
 pickBtn:'🎲 Bốc',copyBtn:'📋 Copy',copy:'Copy',edit:'Sửa',del:'Xoá',cancel:'Huỷ',
 noCharMatch:'Không có nhân vật khớp. Chuyển sang Tạo mới.',
+doneNeedChar:'Chọn nhân vật để xem các hàng đã xong.',
+doneRowsTitle:(label,n)=>label+' · '+n+' hàng đã xong',
+doneNone:'Chưa xong hàng nào.',doneNoneFilter:'Không có hàng khớp.',
+doneBadge:'Đã xong',doneFor:label=>'Đã xong cho '+label,dupShort:'trùng',
 resEmpty:'Bấm Bốc hoặc phím 1. Copy sẽ hỏi nhân vật (Name - Source).',
 resNone:'Chưa có prompt nào. Vào tab <b>Thêm prompt</b> để dán prompt hoặc bấm <b>Nhập file</b>.',
 dropHere:'Kéo-thả hoặc click rồi Ctrl+V ảnh kết quả vào đây',dropShort:'Thả / dán ảnh kết quả',
@@ -142,7 +151,7 @@ confirmDelPrompt:name=>'Xoá "'+name+'"?',imagesAdded:n=>'Đã thêm '+n+' ảnh
 en:{
 navPick:'Pick prompt',navLib:'Library',navAdd:'Add prompt',navSet:'Settings & backup',
 hint:'<kbd>1</kbd> pick · <kbd>Q</kbd>/<kbd>C</kbd> copy',
-libSearch:'Search name, tag, prompt…',anyRating:'Any rating',sortName:'Sort by name',sortNew:'Newest',sortImg:'With images first',
+libSearch:'Search name, tag, prompt, or row…',anyRating:'Any rating',sortRow:'By row',sortName:'Sort by name',sortNew:'Newest',sortImg:'With images first',
 addHelp:'Paste one or more prompts like <code>[SFW][Name {New}{Halloween}][prompt…], [NSFW][Name][prompt]</code>. Text in {} or () inside the name becomes tags.',
 preview:'Preview',addAll:'Add all',importFileLong:'📂 Import file (.json / .txt)',importFile:'📂 Import file',
 holTitle:'Holiday tags (for Exclude mode)',holHelp:'One tag per line, case-insensitive.',save:'Save',
@@ -152,10 +161,14 @@ openFolder:'Open folder',changeFolder:'Change folder…',versionTitle:'Version',
 resetTitle:'Reset',deleteAll:'Delete all data',later:'Later',updateNow:'Update now',
 pickTitle:'Pick prompt',pickHint:'key <kbd>1</kbd> pick · <kbd>Q</kbd> copy',rating:'Rating',all:'All',theme:'Theme',
 modeNormal:'Normal',modeExclude:'Exclude holidays',modeTheme:'By tag',tag:'Tag',chooseTag:'— choose a tag —',priority:'Priority',
-kwPh:'Keyword filter (optional)',character:'Character',charOld:'Saved',charNew:'New',
-charSearch:'Search Name - Source…',charNewPh:'Name - Source, e.g. Boothill - HSR',
+kwPh:'Keyword or row filter (optional)',character:'Character',charOld:'Saved',charNew:'New',
+charSearch:'Search Name - Source or row…',charNewPh:'Name - Source, e.g. Boothill - HSR',
 pickBtn:'🎲 Pick',copyBtn:'📋 Copy',copy:'Copy',edit:'Edit',del:'Delete',cancel:'Cancel',
 noCharMatch:'No matching character. Switch to New.',
+doneNeedChar:'Select a character to see finished rows.',
+doneRowsTitle:(label,n)=>label+' · '+n+' rows done',
+doneNone:'No rows done yet.',doneNoneFilter:'No matching rows.',
+doneBadge:'Done',doneFor:label=>'Done for '+label,dupShort:'duplicate',
 resEmpty:'Press Pick or the 1 key. Copy asks for a character (Name - Source).',
 resNone:'No prompts yet. Open the <b>Add prompt</b> tab to paste prompts, or click <b>Import file</b>.',
 dropHere:'Drag and drop, or click then Ctrl+V, a result image here',dropShort:'Drop / paste a result image',
@@ -184,11 +197,21 @@ function dispName(name){return name==='(không tên)'||name==='(untitled)'?t('un
 function applyStatic(){document.documentElement.lang=curLang();document.querySelectorAll('[data-i]').forEach(el=>{el.textContent=t(el.dataset.i)});document.querySelectorAll('[data-ih]').forEach(el=>{el.innerHTML=t(el.dataset.ih)});document.querySelectorAll('[data-ph]').forEach(el=>{el.placeholder=t(el.dataset.ph)});document.querySelectorAll('#langseg button').forEach(b=>b.classList.toggle('on',b.dataset.l===curLang()));refreshUpdText()}
 function setLang(l){if(!S)return;const onSet=!$('#v-set').classList.contains('hid');const holDraft=onSet?$('#hol').value:null;S.lang=l==='en'?'en':'vi';save();applyStatic();const v=['pick','lib','add','set'].find(x=>!$('#v-'+x).classList.contains('hid'))||'pick';show(v);if(holDraft!=null)$('#hol').value=holDraft}
 const blankSlot=()=>({rating:'All',mode:'normal',theme:'',pct:50,kw:''});
-let S;const fresh=()=>({prompts:[],images:[],pickCounter:0,holidays:HOLIDAY_DEFAULT.slice(),slots:[blankSlot()],cur:[null],characters:[],used:[],activeCharacter:null,charMode:'old',lang:'vi'});
+let S;const fresh=()=>({prompts:[],images:[],pickCounter:0,holidays:HOLIDAY_DEFAULT.slice(),slots:[blankSlot()],cur:[null],characters:[],used:[],activeCharacter:null,charMode:'old',lang:'vi',nextRow:1});
 function slotInUse(s,id){return !!(id||s&&(s.rating&&s.rating!=='All'||s.mode&&s.mode!=='normal'||s.theme||s.kw||(s.pct!=null&&+s.pct!==50)));}
 function keepOneSlot(){const slots=Array.isArray(S.slots)?S.slots:[],cur=Array.isArray(S.cur)?S.cur:[];let i=0;if(!slotInUse(slots[0],cur[0])&&slotInUse(slots[1],cur[1]))i=1;const s=Object.assign(blankSlot(),slots[i]||{});if(!['All','SFW','NSFW'].includes(s.rating))s.rating='All';if(!['normal','exclude','theme'].includes(s.mode))s.mode='normal';s.pct=Math.max(0,Math.min(100,Number.isFinite(+s.pct)?+s.pct:50));S.slots=[s];S.cur=[cur[i]||null];}
-function normCharacters(){if(!Array.isArray(S.characters))S.characters=[];const seen=new Set();S.characters=S.characters.map(c=>{const parsed=parseCharacter(c&&(c.label||(c.name&&c.source?c.name+' - '+c.source:c)));if(!parsed)return null;const key=lc(parsed.label);if(seen.has(key))return null;seen.add(key);return {id:(c&&c.id)||uid(),label:parsed.label};}).filter(Boolean);if(!Array.isArray(S.used))S.used=[];S.used=S.used.filter(u=>u&&u.promptId&&u.characterId).map(u=>({promptId:u.promptId,characterId:u.characterId,at:u.at||0}));if(!S.characters.some(c=>c.id===S.activeCharacter))S.activeCharacter=null;if(S.charMode!=='new')S.charMode='old';}
-async function load(){S=await api.load();if(!S||!S.prompts)S=fresh();const f=fresh();for(const k in f)if(S[k]==null)S[k]=f[k];if(S.lang!=='en')S.lang='vi';keepOneSlot();normCharacters();}
+function positiveInt(n){n=Math.floor(Number(n));return Number.isInteger(n)&&n>0?n:0}
+function normCharacters(){if(!Array.isArray(S.characters))S.characters=[];const seen=new Set();S.characters=S.characters.map(c=>{const parsed=parseCharacter(c&&(c.label||(c.name&&c.source?c.name+' - '+c.source:c)));if(!parsed)return null;const key=lc(parsed.label);if(seen.has(key))return null;seen.add(key);return {id:(c&&c.id)||uid(),label:parsed.label};}).filter(Boolean);if(!Array.isArray(S.used))S.used=[];S.used=S.used.filter(u=>u&&u.promptId&&u.characterId).map(u=>({promptId:u.promptId,characterId:u.characterId,at:u.at||0,row:positiveInt(u.row)||0}));if(!S.characters.some(c=>c.id===S.activeCharacter))S.activeCharacter=null;if(S.charMode!=='new')S.charMode='old';}
+function normRows(){if(!Array.isArray(S.prompts))S.prompts=[];const used=new Set();let max=0;S.prompts.forEach(p=>{const n=positiveInt(p&&p.row);if(n&&!used.has(n)){p.row=n;used.add(n);if(n>max)max=n}else p.row=0});S.prompts.forEach(p=>{if(p.row>0)return;max+=1;p.row=max;used.add(max)});const stored=positiveInt(S.nextRow);S.nextRow=Math.max(max+1,stored||1)}
+function allocRow(){normRows();const n=S.nextRow;S.nextRow=n+1;return n}
+function syncUsedRows(){const byId=new Map(S.prompts.map(p=>[p.id,p.row]));S.used.forEach(u=>{const row=byId.get(u.promptId);if(row)u.row=row})}
+function doneRows(characterId){const set=new Set();S.used.forEach(u=>{if(u.characterId!==characterId)return;const p=S.prompts.find(x=>x.id===u.promptId);if(p)set.add(p.row)});return [...set].sort((a,b)=>a-b)}
+function rowRanges(rows){if(!rows.length)return '';const parts=[];let a=rows[0],b=rows[0];for(let i=1;i<=rows.length;i++){if(rows[i]===b+1)b=rows[i];else{parts.push(a===b?'#'+a:'#'+a+'–'+b);a=b=rows[i]}}return parts.join(', ')}
+function rowQuery(q){q=String(q||'').trim().replace(/^#/,'');return /^\d+$/.test(q)?q:''}
+function flagCharacter(){if(!S)return null;if(S.charMode==='new'){const parsed=parseCharacter(charDraft);return parsed?S.characters.find(x=>lc(x.label)===lc(parsed.label))||null:null}return S.characters.find(x=>x.id===S.activeCharacter)||null}
+function isDoneFor(p,c){return !!(c&&p&&S.used.some(u=>u.promptId===p.id&&u.characterId===c.id))}
+function nameHtml(p){const c=flagCharacter(),done=isDoneFor(p,c);return `<span class="rid">#${p.row}</span>${esc(dispName(p.name))}`+(done?` <span class="donebadge" title="${esc(t('doneFor',c.label))}">${esc(t('doneBadge'))}</span>`:'')}
+async function load(){S=await api.load();if(!S||!S.prompts)S=fresh();const f=fresh();for(const k in f)if(S[k]==null)S[k]=f[k];if(S.lang!=='en')S.lang='vi';keepOneSlot();normCharacters();normRows();syncUsedRows()}
 let _st;function save(){clearTimeout(_st);_st=setTimeout(()=>api.save(JSON.stringify(S)),150);}
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(tmsg){const e=$('#toast');e.textContent=tmsg;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1400);}
@@ -204,7 +227,8 @@ function allTags(){const m={};S.prompts.forEach(p=>p.tags.forEach(tag=>m[tag]=(m
 const tagsHtml=p=>`<span class="tag r-${p.rating}">${p.rating}</span>`+p.tags.map(tag=>`<span class="tag">${esc(tag)}</span>`).join('');
 // Picker
 let charQuery='',charDraft='';
-function renderCharList(){const box=$('#chlist');if(!box)return;const q=lc(charQuery);const list=S.characters.filter(c=>!q||lc(c.label).includes(q));box.innerHTML=list.length?list.map(c=>`<button type="button" class="chopt${c.id===S.activeCharacter?' on':''}" data-id="${c.id}">${esc(c.label)}</button>`).join(''):'<p class="meta" style="padding:8px 10px">'+esc(t('noCharMatch'))+'</p>';box.querySelectorAll('.chopt').forEach(b=>b.onclick=()=>{S.activeCharacter=b.dataset.id;S.charMode='old';save();renderCharList();});}
+function renderDoneBox(){const el=$('#chdone');if(!el)return;const c=S.charMode==='new'?null:S.characters.find(x=>x.id===S.activeCharacter);if(!c){el.innerHTML='<p class="meta">'+esc(t('doneNeedChar'))+'</p>';return}const rows=doneRows(c.id),nq=rowQuery(charQuery),shown=nq?rows.filter(r=>String(r).includes(nq)):rows;el.innerHTML='<div class="meta">'+esc(t('doneRowsTitle',c.label,rows.length))+'</div>'+(shown.length?'<div class="chips">'+shown.map(n=>'<button type="button" class="chip" data-row="'+n+'">#'+n+'</button>').join('')+'</div>':'<p class="meta">'+esc(t(rows.length?'doneNoneFilter':'doneNone'))+'</p>');el.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{$('#lq').value='#'+b.dataset.row;show('lib')});}
+function renderCharList(){const box=$('#chlist');if(!box)return;const q=lc(charQuery),nq=rowQuery(charQuery);const list=S.characters.filter(c=>!q||lc(c.label).includes(q)||(!!nq&&doneRows(c.id).some(r=>String(r).includes(nq))));box.innerHTML=list.length?list.map(c=>{const rows=doneRows(c.id),shown=nq?rows.filter(r=>String(r).includes(nq)):rows;return `<button type="button" class="chopt${c.id===S.activeCharacter?' on':''}" data-id="${c.id}"><span>${esc(c.label)}</span><span class="meta">${esc(shown.length?rowRanges(shown):'')}</span></button>`}).join(''):'<p class="meta" style="padding:8px 10px">'+esc(t('noCharMatch'))+'</p>';box.querySelectorAll('.chopt').forEach(b=>b.onclick=()=>{S.activeCharacter=b.dataset.id;S.charMode='old';save();renderCharList();if($('#res0'))renderRes(0)});renderDoneBox()}
 function renderSlots(){keepOneSlot();normCharacters();const f=S.slots[0],tags=allTags(),mode=S.charMode==='new'?'new':'old';$('#slots').innerHTML=`<div class="card slot" id="slot0"><div class="row" style="justify-content:space-between"><div class="nm">${t('pickTitle')}</div><span class="meta">${t('pickHint')}</span></div>
 <div class="slot-body"><div>
 <div class="row"><label>${t('rating')}</label><span class="seg" data-k="rating">${['All','SFW','NSFW'].map(r=>`<button data-v="${r}" class="${f.rating===r?'on':''}">${r==='All'?t('all'):r}</button>`).join('')}</span></div>
@@ -212,7 +236,7 @@ function renderSlots(){keepOneSlot();normCharacters();const f=S.slots[0],tags=al
 <div class="row ${f.mode==='theme'?'':'hid'}"><label>${t('tag')}</label><select data-k="theme"><option value="">${esc(t('chooseTag'))}</option>${tags.map(tag=>`<option ${tag===f.theme?'selected':''}>${esc(tag)}</option>`).join('')}</select><label>${t('priority')}</label><input type="range" min="0" max="100" step="5" value="${f.pct}" data-k="pct"><b>${f.pct}%</b></div>
 <div class="row"><input data-k="kw" placeholder="${esc(t('kwPh'))}" value="${esc(f.kw)}" style="flex:1"></div>
 <div class="row"><label>${t('character')}</label><span class="seg" data-k="charMode">${[['old','charOld'],['new','charNew']].map(([v,k])=>`<button data-v="${v}" class="${mode===v?'on':''}">${t(k)}</button>`).join('')}</span></div>
-<div class="${mode==='new'?'hid':''}"><input id="chq" placeholder="${esc(t('charSearch'))}" value="${esc(charQuery)}" style="width:100%"><div id="chlist" class="chlist"></div></div>
+<div class="${mode==='new'?'hid':''}"><input id="chq" placeholder="${esc(t('charSearch'))}" value="${esc(charQuery)}" style="width:100%"><div id="chlist" class="chlist"></div><div id="chdone"></div></div>
 <div class="${mode==='new'?'':'hid'}"><input id="chnew" placeholder="${esc(t('charNewPh'))}" value="${esc(charDraft)}" style="width:100%"></div>
 <div class="row"><button class="btn big pri" data-a="pick">${t('pickBtn')}</button><button class="btn big" data-a="copy">${t('copyBtn')}</button></div>
 </div><div class="res" id="res0"></div></div></div>`;
@@ -222,34 +246,36 @@ function renderSlots(){keepOneSlot();normCharacters();const f=S.slots[0],tags=al
  const chq=$('#chq');if(chq)chq.oninput=e=>{charQuery=e.target.value;renderCharList();};
  const chnew=$('#chnew');if(chnew)chnew.oninput=e=>{charDraft=e.target.value;};
  c.querySelector('[data-a=pick]').onclick=()=>doPick(0);c.querySelector('[data-a=copy]').onclick=()=>doCopy(0);renderCharList();renderRes(0);}
-function renderRes(i){const el=$('#res'+i),p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){el.innerHTML=S.prompts.length?'<p class="meta">'+esc(t('resEmpty'))+'</p>':'<p class="meta">'+t('resNone')+'</p>';return}
- el.innerHTML=`<div class="nm">${esc(dispName(p.name))}</div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">${esc(t('dropHere'))}</div>`;
+function renderRes(i){const el=$('#res'+i),p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){el.classList.remove('is-done');el.innerHTML=S.prompts.length?'<p class="meta">'+esc(t('resEmpty'))+'</p>':'<p class="meta">'+t('resNone')+'</p>';return}
+ el.classList.toggle('is-done',isDoneFor(p,flagCharacter()));
+ el.innerHTML=`<div class="nm">${nameHtml(p)}</div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">${esc(t('dropHere'))}</div>`;
  renderThumbs(el.querySelector('.thumbs'),p.id,true);dropZone(el.querySelector('.drop'),p.id,()=>renderThumbs(el.querySelector('.thumbs'),p.id,true));}
 function characterForLog(){normCharacters();if(S.charMode==='new'){const parsed=parseCharacter(charDraft);if(!parsed){toast(t('needCharFormat'));return null}let c=S.characters.find(x=>lc(x.label)===lc(parsed.label));if(!c){c={id:uid(),label:parsed.label};S.characters.push(c)}S.activeCharacter=c.id;S.charMode='old';charDraft='';if($('#slot0'))renderSlots();return c}const c=S.characters.find(x=>x.id===S.activeCharacter);if(!c){toast(t('needChar'));return null}return c}
-function logUse(p,c){S.used.push({promptId:p.id,characterId:c.id,at:Date.now()});}
+function logUse(p,c){if(S.used.some(u=>u.promptId===p.id&&u.characterId===c.id))return;S.used.push({promptId:p.id,characterId:c.id,at:Date.now(),row:p.row})}
 async function copyPromptText(text){try{await navigator.clipboard.writeText(text)}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}}
 function doPick(i){const f=S.slots[i];if(!f)return;if(f.mode==='theme'&&!f.theme){toast(t('needTheme'));return}const p=pick(S.prompts,f,S,{avoidId:S.cur[i]});if(!p){toast(t('noMatch'));return}S.cur[i]=p.id;save();renderRes(i);}
-async function doCopy(i){let p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){doPick(i);p=S.prompts.find(x=>x.id===S.cur[i]);if(!p)return}const c=characterForLog();if(!c)return;await copyPromptText(p.prompt);logUse(p,c);save();if(S.charMode==='old'&&$('#chlist'))renderCharList();toast(t('copiedFor',c.label));}
+async function doCopy(i){let p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){doPick(i);p=S.prompts.find(x=>x.id===S.cur[i]);if(!p)return}const c=characterForLog();if(!c)return;await copyPromptText(p.prompt);logUse(p,c);save();if($('#chlist'))renderCharList();if($('#res'+i))renderRes(i);toast(t('copiedFor',c.label));}
 document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||e.ctrlKey||e.altKey||e.metaKey||$('#v-pick').classList.contains('hid'))return;const k=e.key.toLowerCase();if(k==='1')doPick(0);else if(k==='q'||k==='c')doCopy(0);});
 // Library
 function renderLib(){const q=$('#lq').value,r=$('#lr').value,tag=$('#lt').value,so=$('#ls').value;
  let L=S.prompts.filter(p=>(r==='All'||p.rating===r)&&(!tag||p.tags.includes(tag))&&matchKw(p,q));
- const cmp={name:(a,b)=>a.name.localeCompare(b.name),new:(a,b)=>b.created-a.created}[so]||((a,b)=>a.name.localeCompare(b.name));
+ const cmp={name:(a,b)=>a.name.localeCompare(b.name),new:(a,b)=>b.created-a.created,row:(a,b)=>a.row-b.row}[so]||((a,b)=>a.row-b.row);
  Promise.resolve(S.images).then(im=>{const has=new Set(im.map(x=>x.pid));L.sort(so==='img'?(a,b)=>has.has(b.id)-has.has(a.id):cmp);$('#lc').textContent=t('promptCount',L.length);
- const box=$('#lib');box.innerHTML='';L.slice(0,300).forEach(p=>{const c=document.createElement('div');c.className='card';
-  c.innerHTML=`<div class="row" style="justify-content:space-between;margin:0"><b>${esc(dispName(p.name))}</b><span><button class="btn" data-a="cp">${t('copy')}</button> <button class="btn" data-a="ed">${t('edit')}</button> <button class="btn danger" data-a="del">${t('del')}</button></span></div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">${esc(t('dropShort'))}</div>`;
+ const box=$('#lib');box.innerHTML='';L.slice(0,300).forEach(p=>{const c=document.createElement('div');c.className='card'+(isDoneFor(p,flagCharacter())?' is-done':'');
+  c.innerHTML=`<div class="row" style="justify-content:space-between;margin:0"><b>${nameHtml(p)}</b><span><button class="btn" data-a="cp">${t('copy')}</button> <button class="btn" data-a="ed">${t('edit')}</button> <button class="btn danger" data-a="del">${t('del')}</button></span></div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">${esc(t('dropShort'))}</div>`;
   const th=c.querySelector('.thumbs');if(has.has(p.id))renderThumbs(th,p.id,true);dropZone(c.querySelector('.drop'),p.id,()=>renderThumbs(th,p.id,true));
-  c.querySelector('[data-a=cp]').onclick=async()=>{const ch=characterForLog();if(!ch)return;await copyPromptText(p.prompt);logUse(p,ch);save();toast(t('copiedFor',ch.label))};
-  c.querySelector('[data-a=del]').onclick=async()=>{if(!confirm(t('confirmDelPrompt',dispName(p.name))))return;S.prompts=S.prompts.filter(x=>x!==p);save();for(const x of S.images.filter(x=>x.pid===p.id))await delImg(x.id);renderLib()};
-  c.querySelector('[data-a=ed]').onclick=()=>{const shown=dispName(p.name);c.innerHTML=`<div class="row"><select data-f="rating">${['SFW','NSFW','All'].map(x=>`<option ${x===p.rating?'selected':''}>${x}</option>`).join('')}</select><input data-f="name" value="${esc(shown)}" style="flex:1"></div><div class="row"><label>${esc(t('tagsComma'))}</label><input data-f="tags" value="${esc(p.tags.join(', '))}" style="flex:1"></div><textarea data-f="prompt" rows="6">${esc(p.prompt)}</textarea><div class="row"><button class="btn pri" data-a="sv">${t('save')}</button><button class="btn" data-a="cn">${t('cancel')}</button></div>`;
+  c.querySelector('[data-a=cp]').onclick=async()=>{const ch=characterForLog();if(!ch)return;await copyPromptText(p.prompt);logUse(p,ch);save();toast(t('copiedFor',ch.label));renderLib()};
+  c.querySelector('[data-a=del]').onclick=async()=>{if(!confirm(t('confirmDelPrompt',dispName(p.name))))return;S.prompts=S.prompts.filter(x=>x!==p);S.used=S.used.filter(u=>u.promptId!==p.id);save();for(const x of S.images.filter(x=>x.pid===p.id))await delImg(x.id);renderLib()};
+  c.querySelector('[data-a=ed]').onclick=()=>{const shown=dispName(p.name);c.innerHTML=`<div class="row"><span class="rid">#${p.row}</span><select data-f="rating">${['SFW','NSFW','All'].map(x=>`<option ${x===p.rating?'selected':''}>${x}</option>`).join('')}</select><input data-f="name" value="${esc(shown)}" style="flex:1"></div><div class="row"><label>${esc(t('tagsComma'))}</label><input data-f="tags" value="${esc(p.tags.join(', '))}" style="flex:1"></div><textarea data-f="prompt" rows="6">${esc(p.prompt)}</textarea><div class="row"><button class="btn pri" data-a="sv">${t('save')}</button><button class="btn" data-a="cn">${t('cancel')}</button></div>`;
    c.querySelector('[data-a=sv]').onclick=()=>{const g=k=>c.querySelector(`[data-f=${k}]`).value;p.rating=g('rating');let name=g('name').trim();if(name===t('unnamed')||name==='(không tên)'||name==='(untitled)')name='(không tên)';p.name=name;p.tags=g('tags').split(',').map(s=>s.trim()).filter(Boolean);p.prompt=g('prompt').trim();save();fillTags();renderLib()};c.querySelector('[data-a=cn]').onclick=renderLib;};
   box.appendChild(c)});if(L.length>300)box.insertAdjacentHTML('beforeend','<p class="meta">'+esc(t('libLimit'))+'</p>');});}
 function fillTags(){const cur=$('#lt').value;$('#lt').innerHTML='<option value="">'+esc(t('anyTag'))+'</option>'+allTags().map(tag=>`<option>${esc(tag)}</option>`).join('');if([...$('#lt').options].some(o=>o.value===cur))$('#lt').value=cur;}
 ['#lq','#lr','#lt','#ls'].forEach(s=>$(s).addEventListener('input',renderLib));
 // Add
 let pending=[];
-$('#prev').onclick=()=>{pending=parsePaste($('#paste').value);$('#pc').textContent=t('parsedCount',pending.length);$('#ptab').innerHTML=pending.map(p=>`<tr><td>${tagsHtml(p)}</td><td><b>${esc(dispName(p.name))}</b></td><td class="meta">${esc(p.prompt)}</td></tr>`).join('');};
-$('#addall').onclick=()=>{if(!pending.length)$('#prev').onclick();if(!pending.length){toast(t('noneParsed'));return}const dup=new Set(S.prompts.map(p=>p.prompt));let n=0,d=0;pending.forEach(p=>{if(dup.has(p.prompt)){d++;return}S.prompts.push({id:uid(),...p,uses:0,lastUsed:0,lastPick:-1e9,created:Date.now()});n++});save();toast(t('addedPrompts',n,d));pending=[];$('#paste').value='';$('#ptab').innerHTML='';$('#pc').textContent='';};
+function previewRows(list){const seen=new Set(S.prompts.map(p=>p.prompt));let n=positiveInt(S.nextRow)||1;S.prompts.forEach(p=>{if(p.row>=n)n=p.row+1});return list.map(p=>{if(seen.has(p.prompt))return 0;seen.add(p.prompt);return n++})}
+$('#prev').onclick=()=>{pending=parsePaste($('#paste').value);const rows=previewRows(pending);$('#pc').textContent=t('parsedCount',pending.length);$('#ptab').innerHTML=pending.map((p,i)=>`<tr><td class="meta">${rows[i]?'#'+rows[i]:esc(t('dupShort'))}</td><td>${tagsHtml(p)}</td><td><b>${esc(dispName(p.name))}</b></td><td class="meta">${esc(p.prompt)}</td></tr>`).join('');};
+$('#addall').onclick=()=>{if(!pending.length)$('#prev').onclick();if(!pending.length){toast(t('noneParsed'));return}const dup=new Set(S.prompts.map(p=>p.prompt));let n=0,d=0;pending.forEach(p=>{if(dup.has(p.prompt)){d++;return}dup.add(p.prompt);S.prompts.push({id:uid(),...p,row:allocRow(),uses:0,lastUsed:0,lastPick:-1e9,created:Date.now()});n++});save();toast(t('addedPrompts',n,d));pending=[];$('#paste').value='';$('#ptab').innerHTML='';$('#pc').textContent='';};
 // Settings
 $('#savehol').onclick=()=>{S.holidays=$('#hol').value.split('\n').map(s=>s.trim().toLowerCase()).filter(Boolean);save();toast(t('saved'))};
 $('#rstall').onclick=async()=>{if(!confirm(t('confirmDeleteAll')))return;const keep=curLang();for(const x of S.images.slice())await api.imgDel(x.id);S=fresh();S.lang=keep;charQuery='';charDraft='';save();toast(t('deleted'));applyStatic();show('pick')};
@@ -257,11 +283,11 @@ $('#exp').onclick=async()=>{const ok=await api.saveFile('PromptPicker-backup-'+n
 async function importText(txt){let o=null;try{o=JSON.parse(txt)}catch(e){}
  if(o&&o.data&&o.data.prompts){const n=o.data.prompts.length,ni=(o.images||[]).length,nc=(o.data.characters||[]).length;const repl=S.prompts.length?confirm(t('confirmImport',n,nc,ni)):true;
   const imgs=o.images||[];if(repl){const keep=curLang();for(const x of S.images.slice())await api.imgDel(x.id);S=Object.assign(fresh(),o.data);S.lang=keep;S.images=[];for(const x of imgs){if(x.data){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid})}}}
-  else{const have=new Set(S.prompts.map(p=>p.prompt));const added=new Set();o.data.prompts.forEach(p=>{if(!have.has(p.prompt)){S.prompts.push(p);added.add(p.id)}});const before=new Map(S.characters.map(c=>[lc(c.label),c.id]));(o.data.characters||[]).forEach(c=>{const parsed=parseCharacter(c&&(c.label||''));if(!parsed)return;if(!before.has(lc(parsed.label))){const id=(c&&c.id)||uid();S.characters.push({id,label:parsed.label});before.set(lc(parsed.label),id)}});const idMap=new Map();(o.data.characters||[]).forEach(c=>{const parsed=parseCharacter(c&&c.label);if(!parsed||!c)return;idMap.set(c.id,before.get(lc(parsed.label)))});(o.data.used||[]).forEach(u=>{if(!u||!u.promptId||!u.characterId)return;const characterId=idMap.get(u.characterId)||u.characterId;if(!S.characters.some(c=>c.id===characterId))return;if(S.used.some(x=>x.promptId===u.promptId&&x.characterId===characterId&&x.at===(u.at||0)))return;S.used.push({promptId:u.promptId,characterId,at:u.at||0})});for(const x of imgs)if(added.has(x.pid)&&x.data){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid})}}
-  keepOneSlot();normCharacters();if(S.lang!=='en')S.lang='vi';save();toast(t('imported'));applyStatic();show('pick');return}
+  else{const have=new Set(S.prompts.map(p=>p.prompt));const added=new Set();o.data.prompts.forEach(p=>{if(!have.has(p.prompt)){S.prompts.push(p);added.add(p.id)}});const before=new Map(S.characters.map(c=>[lc(c.label),c.id]));(o.data.characters||[]).forEach(c=>{const parsed=parseCharacter(c&&(c.label||''));if(!parsed)return;if(!before.has(lc(parsed.label))){const id=(c&&c.id)||uid();S.characters.push({id,label:parsed.label});before.set(lc(parsed.label),id)}});const idMap=new Map();(o.data.characters||[]).forEach(c=>{const parsed=parseCharacter(c&&c.label);if(!parsed||!c)return;idMap.set(c.id,before.get(lc(parsed.label)))});(o.data.used||[]).forEach(u=>{if(!u||!u.promptId||!u.characterId)return;const characterId=idMap.get(u.characterId)||u.characterId;if(!S.characters.some(c=>c.id===characterId))return;if(S.used.some(x=>x.promptId===u.promptId&&x.characterId===characterId&&x.at===(u.at||0)))return;S.used.push({promptId:u.promptId,characterId,at:u.at||0,row:positiveInt(u.row)||0})});for(const x of imgs)if(added.has(x.pid)&&x.data){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid})}}
+  keepOneSlot();normCharacters();normRows();syncUsedRows();if(S.lang!=='en')S.lang='vi';save();toast(t('imported'));applyStatic();show('pick');return}
  let list=Array.isArray(o)?fromImport(o):parsePaste(txt).map(p=>({id:uid(),...p,uses:0,lastUsed:0,lastPick:-1e9,created:Date.now()}));
  if(!list.length){alert(t('noneInFile'));return}
- const have=new Set(S.prompts.map(p=>p.prompt));let n=0;list.forEach(p=>{if(!have.has(p.prompt)){S.prompts.push(p);n++}});save();toast(t('importedN',n));show('pick');}
+ const have=new Set(S.prompts.map(p=>p.prompt));let n=0;list.forEach(p=>{if(!have.has(p.prompt)){have.add(p.prompt);p.row=allocRow();S.prompts.push(p);n++}});save();toast(t('importedN',n));show('pick');}
 document.querySelectorAll('.impf').forEach(i=>i.onchange=async e=>{const f=e.target.files[0];if(f)await importText(await f.text());e.target.value=''});
 // Nav
 function show(v){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));['pick','lib','add','set'].forEach(x=>$('#v-'+x).classList.toggle('hid',x!==v));if(v==='pick')renderSlots();if(v==='lib'){fillTags();renderLib()}if(v==='add')$('#pc').textContent=pending.length?t('parsedCount',pending.length):'';if(v==='set'){$('#hol').value=S.holidays.join('\n');api.dirGet().then(d=>$('#ddir').textContent=d)}}
