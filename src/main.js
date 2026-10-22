@@ -21,7 +21,7 @@ ipcMain.handle('dir-change',async()=>{const r=await dialog.showOpenDialog(win,{t
   const old=dataDir(),nd=path.join(r.filePaths[0],'PromptPickerData');fs.mkdirSync(path.join(nd,'images'),{recursive:true});
   if(!fs.existsSync(path.join(nd,'prompts.json'))&&fs.existsSync(path.join(old,'prompts.json'))){fs.cpSync(old,nd,{recursive:true});}
   const c=cfg();c.dataDir=nd;fs.writeFileSync(cfgPath(),JSON.stringify(c));return nd;});
-ipcMain.handle('save-file',async(e,name,text)=>{const r=await dialog.showSaveDialog(win,{title:uiLang()==='en'?'Save backup':'Lưu file sao lưu',defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
+ipcMain.handle('save-file',async(e,name,text,title)=>{const fallback=uiLang()==='en'?'Save backup':'Lưu file sao lưu';const r=await dialog.showSaveDialog(win,{title:typeof title==='string'&&title.trim()?title.trim():fallback,defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
 // updates
 autoUpdater.autoDownload=false;
 autoUpdater.autoInstallOnAppQuit=false;

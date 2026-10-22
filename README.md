@@ -10,6 +10,7 @@
 ## Nhập prompt
 - Tab **Thêm prompt**: dán `[SFW][Tên {Tag}][prompt], [NSFW][Tên][prompt]` → Xem trước → Thêm tất cả.
 - Hoặc bấm **📂 Nhập file** để chọn file sao lưu `.json` (hoặc file `.txt` theo mẫu trên).
+- **Xuất JSON** / **Nhập JSON** (tab Thêm prompt hoặc Cài đặt): file JSON thụt dòng, sửa được. Mỗi prompt có `row`, `rating`, `name`, `themes`, `prompt`. Có thể kèm `characters` với `name`, `source`, `doneRows`. Nhập hỏi trước khi ghi đè, cập nhật prompt theo số hàng, thêm hàng mới, rồi báo số dòng đã thêm và đã cập nhật.
 
 ## Ngôn ngữ
 Nút **VI / EN** trên header đổi toàn bộ giao diện giữa Tiếng Việt và English, kể cả hộp cập nhật. Mặc định là Tiếng Việt. Lựa chọn được nhớ trên máy, trong cùng file dữ liệu với prompt.
