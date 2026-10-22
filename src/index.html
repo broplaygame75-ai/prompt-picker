@@ -19,6 +19,8 @@ select,input,textarea{background:var(--pn2);color:var(--tx);border:1px solid var
 .drop{border:1px dashed var(--ln);border-radius:8px;padding:6px;color:var(--mu);font-size:12px;text-align:center;margin-top:6px}.drop.ov{border-color:var(--ac)}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ok);color:#06210f;padding:10px 20px;border-radius:30px;font-weight:600;opacity:0;transition:.25s;pointer-events:none}#toast.on{opacity:1}
 kbd{background:var(--pn2);border:1px solid var(--ln);border-radius:4px;padding:0 5px;font-size:12px}.hid{display:none}
+#upd{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:20}#upd.on{display:flex}
+#updp{height:12px;background:var(--pn2);border-radius:6px;overflow:hidden;margin:10px 0}#updb{height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2))}
 #zoom{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:9}#zoom img{max-width:92vw;max-height:92vh}
 table{border-collapse:collapse;width:100%}td{padding:6px;border-bottom:1px solid var(--ln);vertical-align:top}
 </style></head><body>
@@ -30,7 +32,7 @@ table{border-collapse:collapse;width:100%}td{padding:6px;border-bottom:1px solid
 <section id="v-set" class="hid"><div class="card"><h3>Tag ngày lễ (cho chế độ Loại trừ)</h3><p class="meta">Mỗi dòng một tag, không phân biệt hoa thường.</p><textarea id="hol" rows="8" style="max-width:400px"></textarea><div class="row"><button class="btn" id="savehol">Lưu</button></div>
 <h3>Sao lưu</h3><p class="meta">Xuất toàn bộ prompt, lịch sử dùng và ảnh ra 1 file JSON. Nên xuất định kỳ, phòng khi Chrome xoá dữ liệu.</p><div class="row"><button class="btn pri" id="exp">Xuất file sao lưu</button><label class="btn">📂 Nhập file<input type="file" class="impf hid" accept=".json,.txt"></label></div>
 <h3>Thư mục dữ liệu</h3><p class="meta">Prompt lưu ở <code id="ddir"></code> (file prompts.json + thư mục images).</p><div class="row"><button class="btn" id="dopen">Mở thư mục</button><button class="btn" id="dchg">Đổi thư mục…</button></div><h3>Phiên bản</h3><div class="row"><span>Prompt Picker <b class="ver"></b></span><button class="btn" id="updchk">Kiểm tra cập nhật</button></div><h3>Đặt lại</h3><div class="row"><button class="btn" id="rstw">Reset độ ưu tiên (xoá lịch sử dùng)</button><button class="btn danger" id="rstall">Xoá toàn bộ dữ liệu</button></div></div></section>
-</main><div id="toast"></div><div id="upd" class="hid" style="position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:20"><div class="card" style="width:520px"><h2 id="updt" style="margin-top:0"></h2><div class="pt" id="updn" style="font-size:14px;max-height:220px"></div><div id="updp" class="hid" style="height:12px;background:var(--pn2);border-radius:6px;overflow:hidden;margin:10px 0"><div id="updb" style="height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2))"></div></div><div class="row" style="justify-content:flex-end"><button class="btn" id="updl">Để sau</button><button class="btn pri" id="updy">Cập nhật ngay</button></div></div></div>
+</main><div id="toast"></div><div id="upd"><div class="card" style="width:520px"><h2 id="updt" style="margin-top:0"></h2><div class="pt" id="updn" style="font-size:14px;max-height:220px"></div><div id="updp" class="hid"><div id="updb"></div></div><div class="row" style="justify-content:flex-end"><button class="btn" id="updl">Để sau</button><button class="btn pri" id="updy">Cập nhật ngay</button></div></div></div>
 <script>
 // ==CORE== (pure logic, tested in node)
 const HOLIDAY_DEFAULT=['halloween','christmas','valentine','easter','new year','lunar new year','tet','thanksgiving'];
@@ -160,12 +162,14 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.
 $('#dopen').onclick=()=>api.dirOpen();
 $('#dchg').onclick=async()=>{const d=await api.dirChange();if(d){await load();toast('Đã đổi thư mục');show('set')}};
 api.version().then(v=>document.querySelectorAll('.ver').forEach(e=>e.textContent='v'+v));
-let manual=false;$('#updchk').onclick=()=>{manual=true;toast('Đang kiểm tra…');api.updCheck()};
-$('#updl').onclick=()=>$('#upd').classList.add('hid');
-$('#updy').onclick=()=>{$('#updy').disabled=true;$('#updl').disabled=true;$('#updp').classList.remove('hid');$('#updy').textContent='Đang tải…';api.updDownload()};
-api.onUpd((t,a)=>{if(t==='available'){$('#updt').textContent='Có bản cập nhật mới v'+a.version;$('#updn').innerHTML=a.notes||'(không có ghi chú)';$('#upd').classList.remove('hid')}
- else if(t==='progress'){$('#updb').style.width=a+'%';$('#updy').textContent='Đang tải '+Math.round(a)+'%'}
- else if(t==='none'&&manual){toast('Bạn đang dùng bản mới nhất');manual=false}
- else if(t==='error'&&manual){alert('Không kiểm tra được cập nhật: '+a);manual=false}});
+let manual=false;function showUpd(on){const el=$('#upd');el.classList.toggle('on',!!on);el.style.display=on?'flex':'none'}
+function resetUpdButtons(){$('#updy').disabled=false;$('#updl').disabled=false;$('#updy').textContent='Cập nhật ngay';$('#updp').classList.add('hid');$('#updb').style.width='0'}
+$('#updchk').onclick=()=>{manual=true;toast('Đang kiểm tra…');api.updCheck()};
+$('#updl').onclick=()=>showUpd(false);
+$('#updy').onclick=async()=>{if(!$('#upd').classList.contains('on')||!$('#updt').textContent)return;$('#updy').disabled=true;$('#updl').disabled=true;$('#updp').classList.remove('hid');$('#updy').textContent='Đang tải…';try{const ok=await api.updDownload();if(ok===false){$('#updn').textContent='Không tải được bản cập nhật. Thử lại sau.';resetUpdButtons()}}catch(e){$('#updn').textContent='Không tải được bản cập nhật. Thử lại sau.';resetUpdButtons()}};
+api.onUpd(msg=>{const t=msg&&msg.type;if(t==='available'&&msg.version){$('#updt').textContent='Có bản cập nhật mới';$('#updn').textContent='Phiên bản '+msg.version+' đã sẵn sàng';resetUpdButtons();showUpd(true)}
+ else if(t==='progress'&&$('#upd').classList.contains('on')){const pct=Math.max(0,Math.min(100,Number(msg.percent)||0));$('#updp').classList.remove('hid');$('#updb').style.width=pct+'%';$('#updy').textContent='Đang tải '+Math.round(pct)+'%'}
+ else if(t==='none'){showUpd(false);if(manual){toast('Bạn đang dùng bản mới nhất');manual=false}}
+ else if(t==='error'){const m=String(msg&&msg.message||'Không rõ lỗi');if($('#upd').classList.contains('on')){$('#updn').textContent='Không tải được bản cập nhật. '+m;resetUpdButtons()}else if(manual)alert('Không kiểm tra được cập nhật: '+m);manual=false}});
 load().then(()=>show('pick'));
 </script></body></html>

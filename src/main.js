@@ -23,13 +23,16 @@ ipcMain.handle('dir-change',async()=>{const r=await dialog.showOpenDialog(win,{t
 ipcMain.handle('save-file',async(e,name,text)=>{const r=await dialog.showSaveDialog(win,{defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
 // updates
 autoUpdater.autoDownload=false;
-const send=(...a)=>win&&win.webContents.send('upd',...a);
-autoUpdater.on('update-available',i=>send('available',{version:i.version,notes:typeof i.releaseNotes==='string'?i.releaseNotes:(i.releaseNotes||[]).map(n=>n.note).join('\n')}));
-autoUpdater.on('update-not-available',()=>send('none'));
-autoUpdater.on('download-progress',p=>send('progress',p.percent));
-autoUpdater.on('update-downloaded',()=>autoUpdater.quitAndInstall(false,true));
-autoUpdater.on('error',e=>send('error',String(e&&e.message||e)));
-ipcMain.handle('upd-check',()=>app.isPackaged?autoUpdater.checkForUpdates().then(()=>true).catch(e=>{send('error',String(e.message));return false}):(send('error','Bản chạy thử (chưa cài) không kiểm tra cập nhật'),false));
-ipcMain.handle('upd-download',()=>autoUpdater.downloadUpdate());
+autoUpdater.autoInstallOnAppQuit=false;
+function parseVer(v){return String(v||'').replace(/^v/i,'').split('.').map(n=>parseInt(n,10)||0)}
+function isNewerVersion(next,current){const a=parseVer(next),b=parseVer(current),n=Math.max(a.length,b.length);for(let i=0;i<n;i++){const d=(a[i]||0)-(b[i]||0);if(d)return d>0}return false}
+const send=msg=>{if(win&&!win.isDestroyed())win.webContents.send('upd',msg)};
+autoUpdater.on('update-available',i=>{const version=i&&i.version;if(!version||!isNewerVersion(version,app.getVersion()))return;send({type:'available',version})});
+autoUpdater.on('update-not-available',()=>send({type:'none'}));
+autoUpdater.on('download-progress',p=>send({type:'progress',percent:p&&p.percent||0}));
+autoUpdater.on('update-downloaded',()=>{send({type:'progress',percent:100});autoUpdater.quitAndInstall(false,true)});
+autoUpdater.on('error',e=>send({type:'error',message:String(e&&e.message||e)}));
+ipcMain.handle('upd-check',()=>app.isPackaged?autoUpdater.checkForUpdates().then(()=>true).catch(e=>{send({type:'error',message:String(e.message)});return false}):(send({type:'error',message:'Bản chạy thử (chưa cài) không kiểm tra cập nhật'}),false));
+ipcMain.handle('upd-download',async()=>{if(!app.isPackaged){send({type:'error',message:'Bản chạy thử (chưa cài) không tải cập nhật'});return false}try{await autoUpdater.downloadUpdate();return true}catch(e){send({type:'error',message:String(e&&e.message||e)});return false}});
 app.whenReady().then(()=>{create();if(app.isPackaged){setTimeout(()=>autoUpdater.checkForUpdates().catch(()=>{}),5000);setInterval(()=>autoUpdater.checkForUpdates().catch(()=>{}),4*36e5);}});
 app.on('window-all-closed',()=>app.quit());
