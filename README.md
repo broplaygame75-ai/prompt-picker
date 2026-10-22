@@ -12,7 +12,7 @@
 - Hoặc bấm **📂 Nhập file** để chọn file sao lưu `.json` (hoặc file `.txt` theo mẫu trên).
 
 ## Phím tắt
-`1` bốc · `Q` hoặc `C` copy prompt vừa bốc.
+`1` bốc · `Q` hoặc `C` copy prompt vừa bốc. Trước khi copy phải chọn nhân vật dạng `Name - Source` (ví dụ `Boothill - HSR`): **Chọn cũ** để lọc danh sách đã lưu, hoặc **Tạo mới** để thêm nhân vật. Danh sách nhân vật nằm trong file sao lưu.
 
 ## Dữ liệu
 Lưu trên máy bạn: `%APPDATA%\Prompt Picker\data` (prompts.json + thư mục images). Đổi/mở thư mục trong **Cài đặt**. Nên **Xuất file sao lưu** định kỳ.
