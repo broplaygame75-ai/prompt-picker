@@ -16,11 +16,12 @@ ipcMain.handle('img-read',(e,id)=>{try{return 'data:image/webp;base64,'+fs.readF
 ipcMain.handle('img-del',(e,id)=>{try{fs.unlinkSync(path.join(dataDir(),'images',id+'.webp'))}catch(x){}return true});
 ipcMain.handle('dir-get',()=>dataDir());
 ipcMain.handle('dir-open',()=>shell.openPath(dataDir()));
-ipcMain.handle('dir-change',async()=>{const r=await dialog.showOpenDialog(win,{title:'Chọn thư mục dữ liệu',properties:['openDirectory','createDirectory']});if(r.canceled)return null;
+function uiLang(){try{const s=JSON.parse(fs.readFileSync(dataFile(),'utf8'));return s.lang==='en'?'en':'vi'}catch(e){return 'vi'}}
+ipcMain.handle('dir-change',async()=>{const r=await dialog.showOpenDialog(win,{title:uiLang()==='en'?'Choose data folder':'Chọn thư mục dữ liệu',properties:['openDirectory','createDirectory']});if(r.canceled)return null;
   const old=dataDir(),nd=path.join(r.filePaths[0],'PromptPickerData');fs.mkdirSync(path.join(nd,'images'),{recursive:true});
   if(!fs.existsSync(path.join(nd,'prompts.json'))&&fs.existsSync(path.join(old,'prompts.json'))){fs.cpSync(old,nd,{recursive:true});}
   const c=cfg();c.dataDir=nd;fs.writeFileSync(cfgPath(),JSON.stringify(c));return nd;});
-ipcMain.handle('save-file',async(e,name,text)=>{const r=await dialog.showSaveDialog(win,{defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
+ipcMain.handle('save-file',async(e,name,text)=>{const r=await dialog.showSaveDialog(win,{title:uiLang()==='en'?'Save backup':'Lưu file sao lưu',defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
 // updates
 autoUpdater.autoDownload=false;
 autoUpdater.autoInstallOnAppQuit=false;
@@ -32,7 +33,7 @@ autoUpdater.on('update-not-available',()=>send({type:'none'}));
 autoUpdater.on('download-progress',p=>send({type:'progress',percent:p&&p.percent||0}));
 autoUpdater.on('update-downloaded',()=>{send({type:'progress',percent:100});autoUpdater.quitAndInstall(false,true)});
 autoUpdater.on('error',e=>send({type:'error',message:String(e&&e.message||e)}));
-ipcMain.handle('upd-check',()=>app.isPackaged?autoUpdater.checkForUpdates().then(()=>true).catch(e=>{send({type:'error',message:String(e.message)});return false}):(send({type:'error',message:'Bản chạy thử (chưa cài) không kiểm tra cập nhật'}),false));
-ipcMain.handle('upd-download',async()=>{if(!app.isPackaged){send({type:'error',message:'Bản chạy thử (chưa cài) không tải cập nhật'});return false}try{await autoUpdater.downloadUpdate();return true}catch(e){send({type:'error',message:String(e&&e.message||e)});return false}});
+ipcMain.handle('upd-check',()=>app.isPackaged?autoUpdater.checkForUpdates().then(()=>true).catch(e=>{send({type:'error',message:String(e.message)});return false}):(send({type:'error',code:'unpackaged-check'}),false));
+ipcMain.handle('upd-download',async()=>{if(!app.isPackaged){send({type:'error',code:'unpackaged-download'});return false}try{await autoUpdater.downloadUpdate();return true}catch(e){send({type:'error',message:String(e&&e.message||e)});return false}});
 app.whenReady().then(()=>{create();if(app.isPackaged){setTimeout(()=>autoUpdater.checkForUpdates().catch(()=>{}),5000);setInterval(()=>autoUpdater.checkForUpdates().catch(()=>{}),4*36e5);}});
 app.on('window-all-closed',()=>app.quit());

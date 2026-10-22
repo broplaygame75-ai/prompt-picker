@@ -31,15 +31,15 @@ kbd{background:var(--pn2);border:1px solid var(--ln);border-radius:4px;padding:0
 #zoom{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:9}#zoom img{max-width:92vw;max-height:92vh}
 table{border-collapse:collapse;width:100%}td{padding:6px;border-bottom:1px solid var(--ln);vertical-align:top}
 </style></head><body>
-<header><h1>✦ Prompt Picker</h1><nav><button data-v="pick" class="on">Bốc prompt</button><button data-v="lib">Thư viện</button><button data-v="add">Thêm prompt</button><button data-v="set">Cài đặt & sao lưu</button></nav><span class="sp"></span><span class="hint ver" style="margin-right:10px"></span><span class="hint"><kbd>1</kbd> bốc · <kbd>Q</kbd>/<kbd>C</kbd> copy</span></header>
+<header><h1>✦ Prompt Picker</h1><nav><button data-v="pick" class="on" data-i="navPick">Bốc prompt</button><button data-v="lib" data-i="navLib">Thư viện</button><button data-v="add" data-i="navAdd">Thêm prompt</button><button data-v="set" data-i="navSet">Cài đặt & sao lưu</button></nav><span class="sp"></span><span class="seg" id="langseg"><button type="button" data-l="vi" class="on">VI</button><button type="button" data-l="en">EN</button></span><span class="hint ver" style="margin-right:10px"></span><span class="hint" data-ih="hint"><kbd>1</kbd> bốc · <kbd>Q</kbd>/<kbd>C</kbd> copy</span></header>
 <main>
 <section id="v-pick"><div class="slots" id="slots"></div></section>
-<section id="v-lib" class="hid"><div class="row"><input id="lq" placeholder="Tìm tên, tag, prompt…" style="width:340px"><select id="lr"><option value="All">Mọi rating</option><option>SFW</option><option>NSFW</option></select><select id="lt"></select><select id="ls"><option value="name">Xếp theo tên</option><option value="new">Mới thêm</option><option value="img">Có ảnh trước</option></select><span class="meta" id="lc"></span></div><div class="lib" id="lib"></div></section>
-<section id="v-add" class="hid"><div class="card"><p class="meta">Dán một hoặc nhiều prompt theo mẫu <code>[SFW][Tên {New}{Halloween}][prompt…], [NSFW][Tên][prompt]</code>. Phần trong {} hoặc () ở tên sẽ thành tag.</p><textarea id="paste" rows="8"></textarea><div class="row" style="margin-top:10px"><button class="btn" id="prev">Xem trước</button><button class="btn pri" id="addall">Thêm tất cả</button><label class="btn">📂 Nhập file (.json / .txt)<input type="file" class="impf hid" accept=".json,.txt"></label><span class="meta" id="pc"></span></div><table id="ptab"></table></div></section>
-<section id="v-set" class="hid"><div class="card"><h3>Tag ngày lễ (cho chế độ Loại trừ)</h3><p class="meta">Mỗi dòng một tag, không phân biệt hoa thường.</p><textarea id="hol" rows="8" style="max-width:400px"></textarea><div class="row"><button class="btn" id="savehol">Lưu</button></div>
-<h3>Sao lưu</h3><p class="meta">Xuất toàn bộ prompt, nhân vật và ảnh ra 1 file JSON. Nên xuất định kỳ.</p><div class="row"><button class="btn pri" id="exp">Xuất file sao lưu</button><label class="btn">📂 Nhập file<input type="file" class="impf hid" accept=".json,.txt"></label></div>
-<h3>Thư mục dữ liệu</h3><p class="meta">Prompt lưu ở <code id="ddir"></code> (file prompts.json + thư mục images).</p><div class="row"><button class="btn" id="dopen">Mở thư mục</button><button class="btn" id="dchg">Đổi thư mục…</button></div><h3>Phiên bản</h3><div class="row"><span>Prompt Picker <b class="ver"></b></span><button class="btn" id="updchk">Kiểm tra cập nhật</button></div><h3>Đặt lại</h3><div class="row"><button class="btn danger" id="rstall">Xoá toàn bộ dữ liệu</button></div></div></section>
-</main><div id="toast"></div><div id="upd"><div class="card" style="width:520px"><h2 id="updt" style="margin-top:0"></h2><div class="pt" id="updn" style="font-size:14px;max-height:220px"></div><div id="updp" class="hid"><div id="updb"></div></div><div class="row" style="justify-content:flex-end"><button class="btn" id="updl">Để sau</button><button class="btn pri" id="updy">Cập nhật ngay</button></div></div></div>
+<section id="v-lib" class="hid"><div class="row"><input id="lq" data-ph="libSearch" placeholder="Tìm tên, tag, prompt…" style="width:340px"><select id="lr"><option value="All" data-i="anyRating">Mọi rating</option><option>SFW</option><option>NSFW</option></select><select id="lt"></select><select id="ls"><option value="name" data-i="sortName">Xếp theo tên</option><option value="new" data-i="sortNew">Mới thêm</option><option value="img" data-i="sortImg">Có ảnh trước</option></select><span class="meta" id="lc"></span></div><div class="lib" id="lib"></div></section>
+<section id="v-add" class="hid"><div class="card"><p class="meta" id="addHelp" data-ih="addHelp">Dán một hoặc nhiều prompt theo mẫu <code>[SFW][Tên {New}{Halloween}][prompt…], [NSFW][Tên][prompt]</code>. Phần trong {} hoặc () ở tên sẽ thành tag.</p><textarea id="paste" rows="8"></textarea><div class="row" style="margin-top:10px"><button class="btn" id="prev" data-i="preview">Xem trước</button><button class="btn pri" id="addall" data-i="addAll">Thêm tất cả</button><label class="btn"><span data-i="importFileLong">📂 Nhập file (.json / .txt)</span><input type="file" class="impf hid" accept=".json,.txt"></label><span class="meta" id="pc"></span></div><table id="ptab"></table></div></section>
+<section id="v-set" class="hid"><div class="card"><h3 data-i="holTitle">Tag ngày lễ (cho chế độ Loại trừ)</h3><p class="meta" data-i="holHelp">Mỗi dòng một tag, không phân biệt hoa thường.</p><textarea id="hol" rows="8" style="max-width:400px"></textarea><div class="row"><button class="btn" id="savehol" data-i="save">Lưu</button></div>
+<h3 data-i="backupTitle">Sao lưu</h3><p class="meta" data-i="backupHelp">Xuất toàn bộ prompt, nhân vật và ảnh ra 1 file JSON. Nên xuất định kỳ.</p><div class="row"><button class="btn pri" id="exp" data-i="exportBtn">Xuất file sao lưu</button><label class="btn"><span data-i="importFile">📂 Nhập file</span><input type="file" class="impf hid" accept=".json,.txt"></label></div>
+<h3 data-i="dataTitle">Thư mục dữ liệu</h3><p class="meta"><span data-i="dataHelp">Prompt lưu ở</span> <code id="ddir"></code> <span data-i="dataFiles">(file prompts.json + thư mục images).</span></p><div class="row"><button class="btn" id="dopen" data-i="openFolder">Mở thư mục</button><button class="btn" id="dchg" data-i="changeFolder">Đổi thư mục…</button></div><h3 data-i="versionTitle">Phiên bản</h3><div class="row"><span>Prompt Picker <b class="ver"></b></span><button class="btn" id="updchk" data-i="checkUpdate">Kiểm tra cập nhật</button></div><h3 data-i="resetTitle">Đặt lại</h3><div class="row"><button class="btn danger" id="rstall" data-i="deleteAll">Xoá toàn bộ dữ liệu</button></div></div></section>
+</main><div id="toast"></div><div id="upd"><div class="card" style="width:520px"><h2 id="updt" style="margin-top:0"></h2><div class="pt" id="updn" style="font-size:14px;max-height:220px"></div><div id="updp" class="hid"><div id="updb"></div></div><div class="row" style="justify-content:flex-end"><button class="btn" id="updl" data-i="later">Để sau</button><button class="btn pri" id="updy" data-i="updateNow">Cập nhật ngay</button></div></div></div>
 <script>
 // ==CORE== (pure logic, tested in node)
 const HOLIDAY_DEFAULT=['halloween','christmas','valentine','easter','new year','lunar new year','tet','thanksgiving'];
@@ -99,38 +99,122 @@ function markUsed(p,state,now){state.pickCounter=(state.pickCounter||0)+1;p.uses
 if(typeof module!=='undefined')module.exports={splitName,parsePaste,fromImport,pick,markUsed,weight,parseCharacter,HOLIDAY_DEFAULT};
 
 // ==UI==
+const I18N={
+vi:{
+navPick:'Bốc prompt',navLib:'Thư viện',navAdd:'Thêm prompt',navSet:'Cài đặt & sao lưu',
+hint:'<kbd>1</kbd> bốc · <kbd>Q</kbd>/<kbd>C</kbd> copy',
+libSearch:'Tìm tên, tag, prompt…',anyRating:'Mọi rating',sortName:'Xếp theo tên',sortNew:'Mới thêm',sortImg:'Có ảnh trước',
+addHelp:'Dán một hoặc nhiều prompt theo mẫu <code>[SFW][Tên {New}{Halloween}][prompt…], [NSFW][Tên][prompt]</code>. Phần trong {} hoặc () ở tên sẽ thành tag.',
+preview:'Xem trước',addAll:'Thêm tất cả',importFileLong:'📂 Nhập file (.json / .txt)',importFile:'📂 Nhập file',
+holTitle:'Tag ngày lễ (cho chế độ Loại trừ)',holHelp:'Mỗi dòng một tag, không phân biệt hoa thường.',save:'Lưu',
+backupTitle:'Sao lưu',backupHelp:'Xuất toàn bộ prompt, nhân vật và ảnh ra 1 file JSON. Nên xuất định kỳ.',exportBtn:'Xuất file sao lưu',
+dataTitle:'Thư mục dữ liệu',dataHelp:'Prompt lưu ở',dataFiles:'(file prompts.json + thư mục images).',
+openFolder:'Mở thư mục',changeFolder:'Đổi thư mục…',versionTitle:'Phiên bản',checkUpdate:'Kiểm tra cập nhật',
+resetTitle:'Đặt lại',deleteAll:'Xoá toàn bộ dữ liệu',later:'Để sau',updateNow:'Cập nhật ngay',
+pickTitle:'Bốc prompt',pickHint:'phím <kbd>1</kbd> bốc · <kbd>Q</kbd> copy',rating:'Rating',all:'Tất cả',theme:'Chủ đề',
+modeNormal:'Bình thường',modeExclude:'Loại trừ lễ',modeTheme:'Theo tag',tag:'Tag',chooseTag:'— chọn tag —',priority:'Ưu tiên',
+kwPh:'Lọc từ khoá (tuỳ chọn)',character:'Nhân vật',charOld:'Chọn cũ',charNew:'Tạo mới',
+charSearch:'Tìm Name - Source…',charNewPh:'Name - Source, ví dụ Boothill - HSR',
+pickBtn:'🎲 Bốc',copyBtn:'📋 Copy',copy:'Copy',edit:'Sửa',del:'Xoá',cancel:'Huỷ',
+noCharMatch:'Không có nhân vật khớp. Chuyển sang Tạo mới.',
+resEmpty:'Bấm Bốc hoặc phím 1. Copy sẽ hỏi nhân vật (Name - Source).',
+resNone:'Chưa có prompt nào. Vào tab <b>Thêm prompt</b> để dán prompt hoặc bấm <b>Nhập file</b>.',
+dropHere:'Kéo-thả hoặc click rồi Ctrl+V ảnh kết quả vào đây',dropShort:'Thả / dán ảnh kết quả',
+imgTitle:'Click: phóng to · Chuột phải: xoá',confirmDelImg:'Xoá ảnh này?',
+needCharFormat:'Nhập nhân vật theo mẫu Name - Source',needChar:'Chọn nhân vật (Name - Source) trước khi copy',
+needTheme:'Chọn tag chủ đề trước nha',noMatch:'Không có prompt nào khớp bộ lọc',
+copiedFor:label=>'Đã copy cho '+label,unnamed:'(không tên)',tagsComma:'Tag (cách nhau bởi dấu phẩy)',
+libLimit:'Chỉ hiện 300 kết quả đầu, hãy lọc thêm.',anyTag:'Mọi tag',
+promptCount:n=>n+' prompt',parsedCount:n=>n+' prompt đọc được',noneParsed:'Không đọc được prompt nào',
+addedPrompts:(n,d)=>'Đã thêm '+n+' prompt'+(d?' (bỏ '+d+' trùng)':''),
+saved:'Đã lưu',confirmDeleteAll:'Xoá HẾT prompt, nhân vật và ảnh? Nên xuất sao lưu trước!',deleted:'Đã xoá',
+backupSaved:'Đã lưu file sao lưu',
+confirmImport:(n,nc,ni)=>'File sao lưu: '+n+' prompt, '+nc+' nhân vật, '+ni+' ảnh.\nOK = THAY toàn bộ dữ liệu hiện tại\nHuỷ = GỘP thêm vào (bỏ prompt trùng)',
+imported:'Đã nhập xong',noneInFile:'Không đọc được prompt nào trong file',importedN:n=>'Đã nhập '+n+' prompt',
+folderChanged:'Đã đổi thư mục',checking:'Đang kiểm tra…',updTitle:'Có bản cập nhật mới',
+updReady:v=>'Phiên bản '+v+' đã sẵn sàng',downloading:'Đang tải…',downloadingPct:p=>'Đang tải '+p+'%',
+downloadFail:'Không tải được bản cập nhật. Thử lại sau.',latest:'Bạn đang dùng bản mới nhất',
+errUnknown:'Không rõ lỗi',errUnpackagedCheck:'Chỉ bản đã cài mới kiểm tra được cập nhật.',
+errUnpackagedDownload:'Chỉ bản đã cài mới tải được bản cập nhật.',errInvalidUpdate:'Cập nhật không hợp lệ',
+checkFail:m=>'Không kiểm tra được cập nhật: '+m,downloadFailMsg:m=>'Không tải được bản cập nhật. '+m,
+confirmDelPrompt:name=>'Xoá "'+name+'"?',imagesAdded:n=>'Đã thêm '+n+' ảnh'
+},
+en:{
+navPick:'Pick prompt',navLib:'Library',navAdd:'Add prompt',navSet:'Settings & backup',
+hint:'<kbd>1</kbd> pick · <kbd>Q</kbd>/<kbd>C</kbd> copy',
+libSearch:'Search name, tag, prompt…',anyRating:'Any rating',sortName:'Sort by name',sortNew:'Newest',sortImg:'With images first',
+addHelp:'Paste one or more prompts like <code>[SFW][Name {New}{Halloween}][prompt…], [NSFW][Name][prompt]</code>. Text in {} or () inside the name becomes tags.',
+preview:'Preview',addAll:'Add all',importFileLong:'📂 Import file (.json / .txt)',importFile:'📂 Import file',
+holTitle:'Holiday tags (for Exclude mode)',holHelp:'One tag per line, case-insensitive.',save:'Save',
+backupTitle:'Backup',backupHelp:'Export every prompt, character, and image to one JSON file. Export regularly.',exportBtn:'Export backup',
+dataTitle:'Data folder',dataHelp:'Prompts are stored in',dataFiles:'(prompts.json + images folder).',
+openFolder:'Open folder',changeFolder:'Change folder…',versionTitle:'Version',checkUpdate:'Check for updates',
+resetTitle:'Reset',deleteAll:'Delete all data',later:'Later',updateNow:'Update now',
+pickTitle:'Pick prompt',pickHint:'key <kbd>1</kbd> pick · <kbd>Q</kbd> copy',rating:'Rating',all:'All',theme:'Theme',
+modeNormal:'Normal',modeExclude:'Exclude holidays',modeTheme:'By tag',tag:'Tag',chooseTag:'— choose a tag —',priority:'Priority',
+kwPh:'Keyword filter (optional)',character:'Character',charOld:'Saved',charNew:'New',
+charSearch:'Search Name - Source…',charNewPh:'Name - Source, e.g. Boothill - HSR',
+pickBtn:'🎲 Pick',copyBtn:'📋 Copy',copy:'Copy',edit:'Edit',del:'Delete',cancel:'Cancel',
+noCharMatch:'No matching character. Switch to New.',
+resEmpty:'Press Pick or the 1 key. Copy asks for a character (Name - Source).',
+resNone:'No prompts yet. Open the <b>Add prompt</b> tab to paste prompts, or click <b>Import file</b>.',
+dropHere:'Drag and drop, or click then Ctrl+V, a result image here',dropShort:'Drop / paste a result image',
+imgTitle:'Click: zoom · Right-click: delete',confirmDelImg:'Delete this image?',
+needCharFormat:'Enter a character as Name - Source',needChar:'Choose a character (Name - Source) before copying',
+needTheme:'Choose a theme tag first',noMatch:'No prompts match the filter',
+copiedFor:label=>'Copied for '+label,unnamed:'(untitled)',tagsComma:'Tags (comma-separated)',
+libLimit:'Showing the first 300. Narrow the filter.',anyTag:'Any tag',
+promptCount:n=>n+' prompts',parsedCount:n=>n+' prompts read',noneParsed:'Could not read any prompts',
+addedPrompts:(n,d)=>'Added '+n+' prompts'+(d?' (skipped '+d+' duplicates)':''),
+saved:'Saved',confirmDeleteAll:'Delete ALL prompts, characters, and images? Export a backup first!',deleted:'Deleted',
+backupSaved:'Backup file saved',
+confirmImport:(n,nc,ni)=>'Backup file: '+n+' prompts, '+nc+' characters, '+ni+' images.\nOK = REPLACE all current data\nCancel = MERGE in (skip duplicate prompts)',
+imported:'Import finished',noneInFile:'Could not read any prompts in the file',importedN:n=>'Imported '+n+' prompts',
+folderChanged:'Folder changed',checking:'Checking…',updTitle:'Update available',
+updReady:v=>'Version '+v+' is ready',downloading:'Downloading…',downloadingPct:p=>'Downloading '+p+'%',
+downloadFail:'Could not download the update. Try again later.',latest:'You are on the latest version',
+errUnknown:'Unknown error',errUnpackagedCheck:'Update checks only work in the installed app.',
+errUnpackagedDownload:'Updates can only be downloaded from the installed app.',errInvalidUpdate:'Invalid update',
+checkFail:m=>'Could not check for updates: '+m,downloadFailMsg:m=>'Could not download the update. '+m,
+confirmDelPrompt:name=>'Delete "'+name+'"?',imagesAdded:n=>'Added '+n+' images'
+}};
+function curLang(){return S&&S.lang==='en'?'en':'vi'}
+function t(key,...a){const pack=I18N[curLang()]||I18N.vi;const v=pack[key]!=null?pack[key]:I18N.vi[key];if(typeof v==='function')return v(...a);return v==null?key:String(v)}
+function dispName(name){return name==='(không tên)'||name==='(untitled)'?t('unnamed'):name}
+function applyStatic(){document.documentElement.lang=curLang();document.querySelectorAll('[data-i]').forEach(el=>{el.textContent=t(el.dataset.i)});document.querySelectorAll('[data-ih]').forEach(el=>{el.innerHTML=t(el.dataset.ih)});document.querySelectorAll('[data-ph]').forEach(el=>{el.placeholder=t(el.dataset.ph)});document.querySelectorAll('#langseg button').forEach(b=>b.classList.toggle('on',b.dataset.l===curLang()));refreshUpdText()}
+function setLang(l){if(!S)return;const onSet=!$('#v-set').classList.contains('hid');const holDraft=onSet?$('#hol').value:null;S.lang=l==='en'?'en':'vi';save();applyStatic();const v=['pick','lib','add','set'].find(x=>!$('#v-'+x).classList.contains('hid'))||'pick';show(v);if(holDraft!=null)$('#hol').value=holDraft}
 const blankSlot=()=>({rating:'All',mode:'normal',theme:'',pct:50,kw:''});
-let S;const fresh=()=>({prompts:[],images:[],pickCounter:0,holidays:HOLIDAY_DEFAULT.slice(),slots:[blankSlot()],cur:[null],characters:[],used:[],activeCharacter:null,charMode:'old'});
+let S;const fresh=()=>({prompts:[],images:[],pickCounter:0,holidays:HOLIDAY_DEFAULT.slice(),slots:[blankSlot()],cur:[null],characters:[],used:[],activeCharacter:null,charMode:'old',lang:'vi'});
 function slotInUse(s,id){return !!(id||s&&(s.rating&&s.rating!=='All'||s.mode&&s.mode!=='normal'||s.theme||s.kw||(s.pct!=null&&+s.pct!==50)));}
 function keepOneSlot(){const slots=Array.isArray(S.slots)?S.slots:[],cur=Array.isArray(S.cur)?S.cur:[];let i=0;if(!slotInUse(slots[0],cur[0])&&slotInUse(slots[1],cur[1]))i=1;const s=Object.assign(blankSlot(),slots[i]||{});if(!['All','SFW','NSFW'].includes(s.rating))s.rating='All';if(!['normal','exclude','theme'].includes(s.mode))s.mode='normal';s.pct=Math.max(0,Math.min(100,Number.isFinite(+s.pct)?+s.pct:50));S.slots=[s];S.cur=[cur[i]||null];}
 function normCharacters(){if(!Array.isArray(S.characters))S.characters=[];const seen=new Set();S.characters=S.characters.map(c=>{const parsed=parseCharacter(c&&(c.label||(c.name&&c.source?c.name+' - '+c.source:c)));if(!parsed)return null;const key=lc(parsed.label);if(seen.has(key))return null;seen.add(key);return {id:(c&&c.id)||uid(),label:parsed.label};}).filter(Boolean);if(!Array.isArray(S.used))S.used=[];S.used=S.used.filter(u=>u&&u.promptId&&u.characterId).map(u=>({promptId:u.promptId,characterId:u.characterId,at:u.at||0}));if(!S.characters.some(c=>c.id===S.activeCharacter))S.activeCharacter=null;if(S.charMode!=='new')S.charMode='old';}
-async function load(){S=await api.load();if(!S||!S.prompts)S=fresh();const f=fresh();for(const k in f)if(S[k]==null)S[k]=f[k];keepOneSlot();normCharacters();}
+async function load(){S=await api.load();if(!S||!S.prompts)S=fresh();const f=fresh();for(const k in f)if(S[k]==null)S[k]=f[k];if(S.lang!=='en')S.lang='vi';keepOneSlot();normCharacters();}
 let _st;function save(){clearTimeout(_st);_st=setTimeout(()=>api.save(JSON.stringify(S)),150);}
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1400);}
+function toast(tmsg){const e=$('#toast');e.textContent=tmsg;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1400);}
 // images: files on disk, metadata in S.images
 async function imgsFor(pid){const a=S.images.filter(x=>x.pid===pid);return Promise.all(a.map(async x=>({...x,data:await api.imgRead(x.id)})));}
 async function allImgs(){return Promise.all(S.images.map(async x=>({...x,data:await api.imgRead(x.id)})));}
 async function delImg(id){await api.imgDel(id);S.images=S.images.filter(x=>x.id!==id);save();}
 function thumb(file){return new Promise(r=>{const im=new Image();im.onload=()=>{const m=480,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);r(c.toDataURL('image/webp',.8));URL.revokeObjectURL(im.src)};im.src=URL.createObjectURL(file);});}
-async function addImages(pid,files){const list=[];for(const f of files)if(f&&f.type.startsWith('image/'))list.push({id:uid(),pid,data:await thumb(f)});for(const x of list){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid});}save();toast('Đã thêm '+list.length+' ảnh');}
-async function renderThumbs(el,pid,del){const a=await imgsFor(pid);el.innerHTML='';a.forEach(x=>{const i=document.createElement('img');i.src=x.data;i.title=del?'Click: phóng to · Chuột phải: xoá':'';i.onclick=()=>{const z=document.createElement('div');z.id='zoom';z.innerHTML='<img src="'+x.data+'">';z.onclick=()=>z.remove();document.body.appendChild(z)};if(del)i.oncontextmenu=async e=>{e.preventDefault();if(confirm('Xoá ảnh này?')){await delImg(x.id);renderThumbs(el,pid,del)}};el.appendChild(i)});}
+async function addImages(pid,files){const list=[];for(const f of files)if(f&&f.type.startsWith('image/'))list.push({id:uid(),pid,data:await thumb(f)});for(const x of list){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid});}save();toast(t('imagesAdded',list.length));}
+async function renderThumbs(el,pid,del){const a=await imgsFor(pid);el.innerHTML='';a.forEach(x=>{const i=document.createElement('img');i.src=x.data;i.title=del?t('imgTitle'):'';i.onclick=()=>{const z=document.createElement('div');z.id='zoom';z.innerHTML='<img src="'+x.data+'">';z.onclick=()=>z.remove();document.body.appendChild(z)};if(del)i.oncontextmenu=async e=>{e.preventDefault();if(confirm(t('confirmDelImg'))){await delImg(x.id);renderThumbs(el,pid,del)}};el.appendChild(i)});}
 function dropZone(el,pid,after){el.ondragover=e=>{e.preventDefault();el.classList.add('ov')};el.ondragleave=()=>el.classList.remove('ov');el.ondrop=async e=>{e.preventDefault();el.classList.remove('ov');await addImages(pid,[...e.dataTransfer.files]);after()};el.tabIndex=0;el.onpaste=async e=>{const fs=[...e.clipboardData.items].filter(i=>i.kind==='file').map(i=>i.getAsFile());if(fs.length){e.preventDefault();await addImages(pid,fs);after()}};}
-function allTags(){const m={};S.prompts.forEach(p=>p.tags.forEach(t=>m[t]=(m[t]||0)+1));return Object.keys(m).sort((a,b)=>m[b]-m[a]);}
-const tagsHtml=p=>`<span class="tag r-${p.rating}">${p.rating}</span>`+p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+function allTags(){const m={};S.prompts.forEach(p=>p.tags.forEach(tag=>m[tag]=(m[tag]||0)+1));return Object.keys(m).sort((a,b)=>m[b]-m[a]);}
+const tagsHtml=p=>`<span class="tag r-${p.rating}">${p.rating}</span>`+p.tags.map(tag=>`<span class="tag">${esc(tag)}</span>`).join('');
 // Picker
 let charQuery='',charDraft='';
-function renderCharList(){const box=$('#chlist');if(!box)return;const q=lc(charQuery);const list=S.characters.filter(c=>!q||lc(c.label).includes(q));box.innerHTML=list.length?list.map(c=>`<button type="button" class="chopt${c.id===S.activeCharacter?' on':''}" data-id="${c.id}">${esc(c.label)}</button>`).join(''):'<p class="meta" style="padding:8px 10px">Không có nhân vật khớp. Chuyển sang Tạo mới.</p>';box.querySelectorAll('.chopt').forEach(b=>b.onclick=()=>{S.activeCharacter=b.dataset.id;S.charMode='old';save();renderCharList();});}
-function renderSlots(){keepOneSlot();normCharacters();const f=S.slots[0],tags=allTags(),mode=S.charMode==='new'?'new':'old';$('#slots').innerHTML=`<div class="card slot" id="slot0"><div class="row" style="justify-content:space-between"><div class="nm">Bốc prompt</div><span class="meta">phím <kbd>1</kbd> bốc · <kbd>Q</kbd> copy</span></div>
+function renderCharList(){const box=$('#chlist');if(!box)return;const q=lc(charQuery);const list=S.characters.filter(c=>!q||lc(c.label).includes(q));box.innerHTML=list.length?list.map(c=>`<button type="button" class="chopt${c.id===S.activeCharacter?' on':''}" data-id="${c.id}">${esc(c.label)}</button>`).join(''):'<p class="meta" style="padding:8px 10px">'+esc(t('noCharMatch'))+'</p>';box.querySelectorAll('.chopt').forEach(b=>b.onclick=()=>{S.activeCharacter=b.dataset.id;S.charMode='old';save();renderCharList();});}
+function renderSlots(){keepOneSlot();normCharacters();const f=S.slots[0],tags=allTags(),mode=S.charMode==='new'?'new':'old';$('#slots').innerHTML=`<div class="card slot" id="slot0"><div class="row" style="justify-content:space-between"><div class="nm">${t('pickTitle')}</div><span class="meta">${t('pickHint')}</span></div>
 <div class="slot-body"><div>
-<div class="row"><label>Rating</label><span class="seg" data-k="rating">${['All','SFW','NSFW'].map(r=>`<button data-v="${r}" class="${f.rating===r?'on':''}">${r==='All'?'Tất cả':r}</button>`).join('')}</span></div>
-<div class="row"><label>Chủ đề</label><span class="seg" data-k="mode">${[['normal','Bình thường'],['exclude','Loại trừ lễ'],['theme','Theo tag']].map(([v,t])=>`<button data-v="${v}" class="${f.mode===v?'on':''}">${t}</button>`).join('')}</span></div>
-<div class="row ${f.mode==='theme'?'':'hid'}"><label>Tag</label><select data-k="theme"><option value="">— chọn tag —</option>${tags.map(t=>`<option ${t===f.theme?'selected':''}>${esc(t)}</option>`).join('')}</select><label>Ưu tiên</label><input type="range" min="0" max="100" step="5" value="${f.pct}" data-k="pct"><b>${f.pct}%</b></div>
-<div class="row"><input data-k="kw" placeholder="Lọc từ khoá (tuỳ chọn)" value="${esc(f.kw)}" style="flex:1"></div>
-<div class="row"><label>Nhân vật</label><span class="seg" data-k="charMode">${[['old','Chọn cũ'],['new','Tạo mới']].map(([v,t])=>`<button data-v="${v}" class="${mode===v?'on':''}">${t}</button>`).join('')}</span></div>
-<div class="${mode==='new'?'hid':''}"><input id="chq" placeholder="Tìm Name - Source…" value="${esc(charQuery)}" style="width:100%"><div id="chlist" class="chlist"></div></div>
-<div class="${mode==='new'?'':'hid'}"><input id="chnew" placeholder="Name - Source, ví dụ Boothill - HSR" value="${esc(charDraft)}" style="width:100%"></div>
-<div class="row"><button class="btn big pri" data-a="pick">🎲 Bốc</button><button class="btn big" data-a="copy">📋 Copy</button></div>
+<div class="row"><label>${t('rating')}</label><span class="seg" data-k="rating">${['All','SFW','NSFW'].map(r=>`<button data-v="${r}" class="${f.rating===r?'on':''}">${r==='All'?t('all'):r}</button>`).join('')}</span></div>
+<div class="row"><label>${t('theme')}</label><span class="seg" data-k="mode">${[['normal','modeNormal'],['exclude','modeExclude'],['theme','modeTheme']].map(([v,k])=>`<button data-v="${v}" class="${f.mode===v?'on':''}">${t(k)}</button>`).join('')}</span></div>
+<div class="row ${f.mode==='theme'?'':'hid'}"><label>${t('tag')}</label><select data-k="theme"><option value="">${esc(t('chooseTag'))}</option>${tags.map(tag=>`<option ${tag===f.theme?'selected':''}>${esc(tag)}</option>`).join('')}</select><label>${t('priority')}</label><input type="range" min="0" max="100" step="5" value="${f.pct}" data-k="pct"><b>${f.pct}%</b></div>
+<div class="row"><input data-k="kw" placeholder="${esc(t('kwPh'))}" value="${esc(f.kw)}" style="flex:1"></div>
+<div class="row"><label>${t('character')}</label><span class="seg" data-k="charMode">${[['old','charOld'],['new','charNew']].map(([v,k])=>`<button data-v="${v}" class="${mode===v?'on':''}">${t(k)}</button>`).join('')}</span></div>
+<div class="${mode==='new'?'hid':''}"><input id="chq" placeholder="${esc(t('charSearch'))}" value="${esc(charQuery)}" style="width:100%"><div id="chlist" class="chlist"></div></div>
+<div class="${mode==='new'?'':'hid'}"><input id="chnew" placeholder="${esc(t('charNewPh'))}" value="${esc(charDraft)}" style="width:100%"></div>
+<div class="row"><button class="btn big pri" data-a="pick">${t('pickBtn')}</button><button class="btn big" data-a="copy">${t('copyBtn')}</button></div>
 </div><div class="res" id="res0"></div></div></div>`;
  const c=$('#slot0');c.querySelectorAll('.seg').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(sg.dataset.k==='charMode'){S.charMode=b.dataset.v;save();renderSlots();return}f[sg.dataset.k]=b.dataset.v;save();renderSlots()}));
  c.querySelector('[data-k=theme]').onchange=e=>{f.theme=e.target.value;save()};const rg=c.querySelector('[data-k=pct]');rg.oninput=()=>{f.pct=+rg.value;rg.nextElementSibling.textContent=f.pct+'%';save()};
@@ -138,61 +222,65 @@ function renderSlots(){keepOneSlot();normCharacters();const f=S.slots[0],tags=al
  const chq=$('#chq');if(chq)chq.oninput=e=>{charQuery=e.target.value;renderCharList();};
  const chnew=$('#chnew');if(chnew)chnew.oninput=e=>{charDraft=e.target.value;};
  c.querySelector('[data-a=pick]').onclick=()=>doPick(0);c.querySelector('[data-a=copy]').onclick=()=>doCopy(0);renderCharList();renderRes(0);}
-function renderRes(i){const el=$('#res'+i),p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){el.innerHTML=S.prompts.length?'<p class="meta">Bấm Bốc hoặc phím 1. Copy sẽ hỏi nhân vật (Name - Source).</p>':'<p class="meta">Chưa có prompt nào. Vào tab <b>Thêm prompt</b> để dán prompt hoặc bấm <b>Nhập file</b>.</p>';return}
- el.innerHTML=`<div class="nm">${esc(p.name)}</div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">Kéo-thả hoặc click rồi Ctrl+V ảnh kết quả vào đây</div>`;
+function renderRes(i){const el=$('#res'+i),p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){el.innerHTML=S.prompts.length?'<p class="meta">'+esc(t('resEmpty'))+'</p>':'<p class="meta">'+t('resNone')+'</p>';return}
+ el.innerHTML=`<div class="nm">${esc(dispName(p.name))}</div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">${esc(t('dropHere'))}</div>`;
  renderThumbs(el.querySelector('.thumbs'),p.id,true);dropZone(el.querySelector('.drop'),p.id,()=>renderThumbs(el.querySelector('.thumbs'),p.id,true));}
-function characterForLog(){normCharacters();if(S.charMode==='new'){const parsed=parseCharacter(charDraft);if(!parsed){toast('Nhập nhân vật theo mẫu Name - Source');return null}let c=S.characters.find(x=>lc(x.label)===lc(parsed.label));if(!c){c={id:uid(),label:parsed.label};S.characters.push(c)}S.activeCharacter=c.id;S.charMode='old';charDraft='';if($('#slot0'))renderSlots();return c}const c=S.characters.find(x=>x.id===S.activeCharacter);if(!c){toast('Chọn nhân vật (Name - Source) trước khi copy');return null}return c}
+function characterForLog(){normCharacters();if(S.charMode==='new'){const parsed=parseCharacter(charDraft);if(!parsed){toast(t('needCharFormat'));return null}let c=S.characters.find(x=>lc(x.label)===lc(parsed.label));if(!c){c={id:uid(),label:parsed.label};S.characters.push(c)}S.activeCharacter=c.id;S.charMode='old';charDraft='';if($('#slot0'))renderSlots();return c}const c=S.characters.find(x=>x.id===S.activeCharacter);if(!c){toast(t('needChar'));return null}return c}
 function logUse(p,c){S.used.push({promptId:p.id,characterId:c.id,at:Date.now()});}
-async function copyPromptText(text){try{await navigator.clipboard.writeText(text)}catch(e){const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}}
-function doPick(i){const f=S.slots[i];if(!f)return;if(f.mode==='theme'&&!f.theme){toast('Chọn tag chủ đề trước nha');return}const p=pick(S.prompts,f,S,{avoidId:S.cur[i]});if(!p){toast('Không có prompt nào khớp bộ lọc');return}S.cur[i]=p.id;save();renderRes(i);}
-async function doCopy(i){let p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){doPick(i);p=S.prompts.find(x=>x.id===S.cur[i]);if(!p)return}const c=characterForLog();if(!c)return;await copyPromptText(p.prompt);logUse(p,c);save();if(S.charMode==='old'&&$('#chlist'))renderCharList();toast('Đã copy cho '+c.label);}
+async function copyPromptText(text){try{await navigator.clipboard.writeText(text)}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}}
+function doPick(i){const f=S.slots[i];if(!f)return;if(f.mode==='theme'&&!f.theme){toast(t('needTheme'));return}const p=pick(S.prompts,f,S,{avoidId:S.cur[i]});if(!p){toast(t('noMatch'));return}S.cur[i]=p.id;save();renderRes(i);}
+async function doCopy(i){let p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){doPick(i);p=S.prompts.find(x=>x.id===S.cur[i]);if(!p)return}const c=characterForLog();if(!c)return;await copyPromptText(p.prompt);logUse(p,c);save();if(S.charMode==='old'&&$('#chlist'))renderCharList();toast(t('copiedFor',c.label));}
 document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||e.ctrlKey||e.altKey||e.metaKey||$('#v-pick').classList.contains('hid'))return;const k=e.key.toLowerCase();if(k==='1')doPick(0);else if(k==='q'||k==='c')doCopy(0);});
 // Library
-function renderLib(){const q=$('#lq').value,r=$('#lr').value,t=$('#lt').value,so=$('#ls').value;
- let L=S.prompts.filter(p=>(r==='All'||p.rating===r)&&(!t||p.tags.includes(t))&&matchKw(p,q));
+function renderLib(){const q=$('#lq').value,r=$('#lr').value,tag=$('#lt').value,so=$('#ls').value;
+ let L=S.prompts.filter(p=>(r==='All'||p.rating===r)&&(!tag||p.tags.includes(tag))&&matchKw(p,q));
  const cmp={name:(a,b)=>a.name.localeCompare(b.name),new:(a,b)=>b.created-a.created}[so]||((a,b)=>a.name.localeCompare(b.name));
- Promise.resolve(S.images).then(im=>{const has=new Set(im.map(x=>x.pid));L.sort(so==='img'?(a,b)=>has.has(b.id)-has.has(a.id):cmp);$('#lc').textContent=L.length+' prompt';
+ Promise.resolve(S.images).then(im=>{const has=new Set(im.map(x=>x.pid));L.sort(so==='img'?(a,b)=>has.has(b.id)-has.has(a.id):cmp);$('#lc').textContent=t('promptCount',L.length);
  const box=$('#lib');box.innerHTML='';L.slice(0,300).forEach(p=>{const c=document.createElement('div');c.className='card';
-  c.innerHTML=`<div class="row" style="justify-content:space-between;margin:0"><b>${esc(p.name)}</b><span><button class="btn" data-a="cp">Copy</button> <button class="btn" data-a="ed">Sửa</button> <button class="btn danger" data-a="del">Xoá</button></span></div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">Thả / dán ảnh kết quả</div>`;
+  c.innerHTML=`<div class="row" style="justify-content:space-between;margin:0"><b>${esc(dispName(p.name))}</b><span><button class="btn" data-a="cp">${t('copy')}</button> <button class="btn" data-a="ed">${t('edit')}</button> <button class="btn danger" data-a="del">${t('del')}</button></span></div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">${esc(t('dropShort'))}</div>`;
   const th=c.querySelector('.thumbs');if(has.has(p.id))renderThumbs(th,p.id,true);dropZone(c.querySelector('.drop'),p.id,()=>renderThumbs(th,p.id,true));
-  c.querySelector('[data-a=cp]').onclick=async()=>{const ch=characterForLog();if(!ch)return;await copyPromptText(p.prompt);logUse(p,ch);save();toast('Đã copy cho '+ch.label)};
-  c.querySelector('[data-a=del]').onclick=async()=>{if(!confirm('Xoá "'+p.name+'"?'))return;S.prompts=S.prompts.filter(x=>x!==p);save();for(const x of S.images.filter(x=>x.pid===p.id))await delImg(x.id);renderLib()};
-  c.querySelector('[data-a=ed]').onclick=()=>{c.innerHTML=`<div class="row"><select data-f="rating">${['SFW','NSFW','All'].map(x=>`<option ${x===p.rating?'selected':''}>${x}</option>`).join('')}</select><input data-f="name" value="${esc(p.name)}" style="flex:1"></div><div class="row"><label>Tag (cách nhau bởi dấu phẩy)</label><input data-f="tags" value="${esc(p.tags.join(', '))}" style="flex:1"></div><textarea data-f="prompt" rows="6">${esc(p.prompt)}</textarea><div class="row"><button class="btn pri" data-a="sv">Lưu</button><button class="btn" data-a="cn">Huỷ</button></div>`;
-   c.querySelector('[data-a=sv]').onclick=()=>{const g=k=>c.querySelector(`[data-f=${k}]`).value;p.rating=g('rating');p.name=g('name').trim();p.tags=g('tags').split(',').map(s=>s.trim()).filter(Boolean);p.prompt=g('prompt').trim();save();fillTags();renderLib()};c.querySelector('[data-a=cn]').onclick=renderLib;};
-  box.appendChild(c)});if(L.length>300)box.insertAdjacentHTML('beforeend','<p class="meta">Chỉ hiện 300 kết quả đầu, hãy lọc thêm.</p>');});}
-function fillTags(){$('#lt').innerHTML='<option value="">Mọi tag</option>'+allTags().map(t=>`<option>${esc(t)}</option>`).join('');}
+  c.querySelector('[data-a=cp]').onclick=async()=>{const ch=characterForLog();if(!ch)return;await copyPromptText(p.prompt);logUse(p,ch);save();toast(t('copiedFor',ch.label))};
+  c.querySelector('[data-a=del]').onclick=async()=>{if(!confirm(t('confirmDelPrompt',dispName(p.name))))return;S.prompts=S.prompts.filter(x=>x!==p);save();for(const x of S.images.filter(x=>x.pid===p.id))await delImg(x.id);renderLib()};
+  c.querySelector('[data-a=ed]').onclick=()=>{const shown=dispName(p.name);c.innerHTML=`<div class="row"><select data-f="rating">${['SFW','NSFW','All'].map(x=>`<option ${x===p.rating?'selected':''}>${x}</option>`).join('')}</select><input data-f="name" value="${esc(shown)}" style="flex:1"></div><div class="row"><label>${esc(t('tagsComma'))}</label><input data-f="tags" value="${esc(p.tags.join(', '))}" style="flex:1"></div><textarea data-f="prompt" rows="6">${esc(p.prompt)}</textarea><div class="row"><button class="btn pri" data-a="sv">${t('save')}</button><button class="btn" data-a="cn">${t('cancel')}</button></div>`;
+   c.querySelector('[data-a=sv]').onclick=()=>{const g=k=>c.querySelector(`[data-f=${k}]`).value;p.rating=g('rating');let name=g('name').trim();if(name===t('unnamed')||name==='(không tên)'||name==='(untitled)')name='(không tên)';p.name=name;p.tags=g('tags').split(',').map(s=>s.trim()).filter(Boolean);p.prompt=g('prompt').trim();save();fillTags();renderLib()};c.querySelector('[data-a=cn]').onclick=renderLib;};
+  box.appendChild(c)});if(L.length>300)box.insertAdjacentHTML('beforeend','<p class="meta">'+esc(t('libLimit'))+'</p>');});}
+function fillTags(){const cur=$('#lt').value;$('#lt').innerHTML='<option value="">'+esc(t('anyTag'))+'</option>'+allTags().map(tag=>`<option>${esc(tag)}</option>`).join('');if([...$('#lt').options].some(o=>o.value===cur))$('#lt').value=cur;}
 ['#lq','#lr','#lt','#ls'].forEach(s=>$(s).addEventListener('input',renderLib));
 // Add
 let pending=[];
-$('#prev').onclick=()=>{pending=parsePaste($('#paste').value);$('#pc').textContent=pending.length+' prompt đọc được';$('#ptab').innerHTML=pending.map(p=>`<tr><td>${tagsHtml(p)}</td><td><b>${esc(p.name)}</b></td><td class="meta">${esc(p.prompt)}</td></tr>`).join('');};
-$('#addall').onclick=()=>{if(!pending.length)$('#prev').onclick();if(!pending.length){toast('Không đọc được prompt nào');return}const dup=new Set(S.prompts.map(p=>p.prompt));let n=0,d=0;pending.forEach(p=>{if(dup.has(p.prompt)){d++;return}S.prompts.push({id:uid(),...p,uses:0,lastUsed:0,lastPick:-1e9,created:Date.now()});n++});save();toast('Đã thêm '+n+' prompt'+(d?' (bỏ '+d+' trùng)':''));pending=[];$('#paste').value='';$('#ptab').innerHTML='';$('#pc').textContent='';};
+$('#prev').onclick=()=>{pending=parsePaste($('#paste').value);$('#pc').textContent=t('parsedCount',pending.length);$('#ptab').innerHTML=pending.map(p=>`<tr><td>${tagsHtml(p)}</td><td><b>${esc(dispName(p.name))}</b></td><td class="meta">${esc(p.prompt)}</td></tr>`).join('');};
+$('#addall').onclick=()=>{if(!pending.length)$('#prev').onclick();if(!pending.length){toast(t('noneParsed'));return}const dup=new Set(S.prompts.map(p=>p.prompt));let n=0,d=0;pending.forEach(p=>{if(dup.has(p.prompt)){d++;return}S.prompts.push({id:uid(),...p,uses:0,lastUsed:0,lastPick:-1e9,created:Date.now()});n++});save();toast(t('addedPrompts',n,d));pending=[];$('#paste').value='';$('#ptab').innerHTML='';$('#pc').textContent='';};
 // Settings
-$('#savehol').onclick=()=>{S.holidays=$('#hol').value.split('\n').map(s=>s.trim().toLowerCase()).filter(Boolean);save();toast('Đã lưu')};
-$('#rstall').onclick=async()=>{if(!confirm('Xoá HẾT prompt, nhân vật và ảnh? Nên xuất sao lưu trước!'))return;for(const x of S.images.slice())await api.imgDel(x.id);S=fresh();charQuery='';charDraft='';save();toast('Đã xoá');show('pick')};
-$('#exp').onclick=async()=>{const ok=await api.saveFile('PromptPicker-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'PromptPicker',v:1,date:new Date().toISOString(),data:S,images:await allImgs()}));if(ok)toast('Đã lưu file sao lưu')};
+$('#savehol').onclick=()=>{S.holidays=$('#hol').value.split('\n').map(s=>s.trim().toLowerCase()).filter(Boolean);save();toast(t('saved'))};
+$('#rstall').onclick=async()=>{if(!confirm(t('confirmDeleteAll')))return;const keep=curLang();for(const x of S.images.slice())await api.imgDel(x.id);S=fresh();S.lang=keep;charQuery='';charDraft='';save();toast(t('deleted'));applyStatic();show('pick')};
+$('#exp').onclick=async()=>{const ok=await api.saveFile('PromptPicker-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'PromptPicker',v:1,date:new Date().toISOString(),data:S,images:await allImgs()}));if(ok)toast(t('backupSaved'))};
 async function importText(txt){let o=null;try{o=JSON.parse(txt)}catch(e){}
- if(o&&o.data&&o.data.prompts){const n=o.data.prompts.length,ni=(o.images||[]).length,nc=(o.data.characters||[]).length;const repl=S.prompts.length?confirm('File sao lưu: '+n+' prompt, '+nc+' nhân vật, '+ni+' ảnh.\nOK = THAY toàn bộ dữ liệu hiện tại\nHuỷ = GỘP thêm vào (bỏ prompt trùng)'):true;
-  const imgs=o.images||[];if(repl){for(const x of S.images.slice())await api.imgDel(x.id);S=Object.assign(fresh(),o.data);S.images=[];for(const x of imgs){if(x.data){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid})}}}
+ if(o&&o.data&&o.data.prompts){const n=o.data.prompts.length,ni=(o.images||[]).length,nc=(o.data.characters||[]).length;const repl=S.prompts.length?confirm(t('confirmImport',n,nc,ni)):true;
+  const imgs=o.images||[];if(repl){const keep=curLang();for(const x of S.images.slice())await api.imgDel(x.id);S=Object.assign(fresh(),o.data);S.lang=keep;S.images=[];for(const x of imgs){if(x.data){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid})}}}
   else{const have=new Set(S.prompts.map(p=>p.prompt));const added=new Set();o.data.prompts.forEach(p=>{if(!have.has(p.prompt)){S.prompts.push(p);added.add(p.id)}});const before=new Map(S.characters.map(c=>[lc(c.label),c.id]));(o.data.characters||[]).forEach(c=>{const parsed=parseCharacter(c&&(c.label||''));if(!parsed)return;if(!before.has(lc(parsed.label))){const id=(c&&c.id)||uid();S.characters.push({id,label:parsed.label});before.set(lc(parsed.label),id)}});const idMap=new Map();(o.data.characters||[]).forEach(c=>{const parsed=parseCharacter(c&&c.label);if(!parsed||!c)return;idMap.set(c.id,before.get(lc(parsed.label)))});(o.data.used||[]).forEach(u=>{if(!u||!u.promptId||!u.characterId)return;const characterId=idMap.get(u.characterId)||u.characterId;if(!S.characters.some(c=>c.id===characterId))return;if(S.used.some(x=>x.promptId===u.promptId&&x.characterId===characterId&&x.at===(u.at||0)))return;S.used.push({promptId:u.promptId,characterId,at:u.at||0})});for(const x of imgs)if(added.has(x.pid)&&x.data){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid})}}
-  keepOneSlot();normCharacters();save();toast('Đã nhập xong');show('pick');return}
+  keepOneSlot();normCharacters();if(S.lang!=='en')S.lang='vi';save();toast(t('imported'));applyStatic();show('pick');return}
  let list=Array.isArray(o)?fromImport(o):parsePaste(txt).map(p=>({id:uid(),...p,uses:0,lastUsed:0,lastPick:-1e9,created:Date.now()}));
- if(!list.length){alert('Không đọc được prompt nào trong file');return}
- const have=new Set(S.prompts.map(p=>p.prompt));let n=0;list.forEach(p=>{if(!have.has(p.prompt)){S.prompts.push(p);n++}});save();toast('Đã nhập '+n+' prompt');show('pick');}
+ if(!list.length){alert(t('noneInFile'));return}
+ const have=new Set(S.prompts.map(p=>p.prompt));let n=0;list.forEach(p=>{if(!have.has(p.prompt)){S.prompts.push(p);n++}});save();toast(t('importedN',n));show('pick');}
 document.querySelectorAll('.impf').forEach(i=>i.onchange=async e=>{const f=e.target.files[0];if(f)await importText(await f.text());e.target.value=''});
 // Nav
-function show(v){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));['pick','lib','add','set'].forEach(x=>$('#v-'+x).classList.toggle('hid',x!==v));if(v==='pick')renderSlots();if(v==='lib'){fillTags();renderLib()}if(v==='set'){$('#hol').value=S.holidays.join('\n');api.dirGet().then(d=>$('#ddir').textContent=d)}}
+function show(v){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));['pick','lib','add','set'].forEach(x=>$('#v-'+x).classList.toggle('hid',x!==v));if(v==='pick')renderSlots();if(v==='lib'){fillTags();renderLib()}if(v==='add')$('#pc').textContent=pending.length?t('parsedCount',pending.length):'';if(v==='set'){$('#hol').value=S.holidays.join('\n');api.dirGet().then(d=>$('#ddir').textContent=d)}}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+document.querySelectorAll('#langseg button').forEach(b=>b.onclick=()=>setLang(b.dataset.l));
 $('#dopen').onclick=()=>api.dirOpen();
-$('#dchg').onclick=async()=>{const d=await api.dirChange();if(d){await load();toast('Đã đổi thư mục');show('set')}};
+$('#dchg').onclick=async()=>{const d=await api.dirChange();if(d){await load();applyStatic();toast(t('folderChanged'));show('set')}};
 api.version().then(v=>document.querySelectorAll('.ver').forEach(e=>e.textContent='v'+v));
-let manual=false;function showUpd(on){const el=$('#upd');el.classList.toggle('on',!!on);el.style.display=on?'flex':'none'}
-function resetUpdButtons(){$('#updy').disabled=false;$('#updl').disabled=false;$('#updy').textContent='Cập nhật ngay';$('#updp').classList.add('hid');$('#updb').style.width='0'}
-$('#updchk').onclick=()=>{manual=true;toast('Đang kiểm tra…');api.updCheck()};
+let manual=false,pendingVer=null,updPct=null,updErr=null,updBusy=false;
+function showUpd(on){const el=$('#upd');el.classList.toggle('on',!!on);el.style.display=on?'flex':'none'}
+function errorDetail(msg){const code=msg&&msg.code;if(code==='unpackaged-check')return t('errUnpackagedCheck');if(code==='unpackaged-download')return t('errUnpackagedDownload');if(code==='invalid')return t('errInvalidUpdate');return String(msg&&msg.message||t('errUnknown'))}
+function refreshUpdText(){if(!$('#upd').classList.contains('on'))return;$('#updt').textContent=t('updTitle');if(updErr)$('#updn').textContent=t('downloadFailMsg',errorDetail(updErr));else if(pendingVer)$('#updn').textContent=t('updReady',pendingVer);$('#updy').textContent=updBusy?(updPct==null?t('downloading'):t('downloadingPct',Math.round(updPct))):t('updateNow')}
+function resetUpdButtons(){updBusy=false;updPct=null;updErr=null;$('#updy').disabled=false;$('#updl').disabled=false;$('#updy').textContent=t('updateNow');$('#updp').classList.add('hid');$('#updb').style.width='0'}
+$('#updchk').onclick=()=>{manual=true;toast(t('checking'));api.updCheck()};
 $('#updl').onclick=()=>showUpd(false);
-$('#updy').onclick=async()=>{if(!$('#upd').classList.contains('on')||!$('#updt').textContent)return;$('#updy').disabled=true;$('#updl').disabled=true;$('#updp').classList.remove('hid');$('#updy').textContent='Đang tải…';try{const ok=await api.updDownload();if(ok===false){$('#updn').textContent='Không tải được bản cập nhật. Thử lại sau.';resetUpdButtons()}}catch(e){$('#updn').textContent='Không tải được bản cập nhật. Thử lại sau.';resetUpdButtons()}};
-api.onUpd(msg=>{const t=msg&&msg.type;if(t==='available'&&msg.version){$('#updt').textContent='Có bản cập nhật mới';$('#updn').textContent='Phiên bản '+msg.version+' đã sẵn sàng';resetUpdButtons();showUpd(true)}
- else if(t==='progress'&&$('#upd').classList.contains('on')){const pct=Math.max(0,Math.min(100,Number(msg.percent)||0));$('#updp').classList.remove('hid');$('#updb').style.width=pct+'%';$('#updy').textContent='Đang tải '+Math.round(pct)+'%'}
- else if(t==='none'){showUpd(false);if(manual){toast('Bạn đang dùng bản mới nhất');manual=false}}
- else if(t==='error'){const m=String(msg&&msg.message||'Không rõ lỗi');if($('#upd').classList.contains('on')){$('#updn').textContent='Không tải được bản cập nhật. '+m;resetUpdButtons()}else if(manual)alert('Không kiểm tra được cập nhật: '+m);manual=false}});
-load().then(()=>show('pick'));
+$('#updy').onclick=async()=>{if(!$('#upd').classList.contains('on')||!pendingVer)return;updBusy=true;updErr=null;updPct=null;$('#updy').disabled=true;$('#updl').disabled=true;$('#updp').classList.remove('hid');$('#updy').textContent=t('downloading');try{const ok=await api.updDownload();if(ok===false&&!updErr){updBusy=false;$('#updn').textContent=t('downloadFail');$('#updy').disabled=false;$('#updl').disabled=false;$('#updy').textContent=t('updateNow');$('#updp').classList.add('hid')}}catch(e){if(!updErr){updErr={message:String(e&&e.message||e)};updBusy=false;$('#updn').textContent=t('downloadFailMsg',errorDetail(updErr));$('#updy').disabled=false;$('#updl').disabled=false;$('#updy').textContent=t('updateNow');$('#updp').classList.add('hid')}}};
+api.onUpd(msg=>{const kind=msg&&msg.type;if(kind==='available'&&msg.version){pendingVer=msg.version;updErr=null;resetUpdButtons();$('#updt').textContent=t('updTitle');$('#updn').textContent=t('updReady',pendingVer);showUpd(true)}
+ else if(kind==='progress'&&$('#upd').classList.contains('on')){updBusy=true;updErr=null;updPct=Math.max(0,Math.min(100,Number(msg.percent)||0));$('#updy').disabled=true;$('#updl').disabled=true;$('#updp').classList.remove('hid');$('#updb').style.width=updPct+'%';$('#updy').textContent=t('downloadingPct',Math.round(updPct))}
+ else if(kind==='none'){showUpd(false);if(manual){toast(t('latest'));manual=false}}
+ else if(kind==='error'){const detail=errorDetail(msg);if($('#upd').classList.contains('on')){updErr=msg;updBusy=false;updPct=null;$('#updn').textContent=t('downloadFailMsg',detail);$('#updy').disabled=false;$('#updl').disabled=false;$('#updy').textContent=t('updateNow');$('#updp').classList.add('hid');$('#updb').style.width='0'}else if(manual)alert(t('checkFail',detail));manual=false}});
+load().then(()=>{applyStatic();show('pick')});
 </script></body></html>

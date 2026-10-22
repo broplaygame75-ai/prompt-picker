@@ -11,6 +11,9 @@
 - Tab **Thêm prompt**: dán `[SFW][Tên {Tag}][prompt], [NSFW][Tên][prompt]` → Xem trước → Thêm tất cả.
 - Hoặc bấm **📂 Nhập file** để chọn file sao lưu `.json` (hoặc file `.txt` theo mẫu trên).
 
+## Ngôn ngữ
+Nút **VI / EN** trên header đổi toàn bộ giao diện giữa Tiếng Việt và English, kể cả hộp cập nhật. Mặc định là Tiếng Việt. Lựa chọn được nhớ trên máy, trong cùng file dữ liệu với prompt.
+
 ## Phím tắt
 `1` bốc · `Q` hoặc `C` copy prompt vừa bốc. Trước khi copy phải chọn nhân vật dạng `Name - Source` (ví dụ `Boothill - HSR`): **Chọn cũ** để lọc danh sách đã lưu, hoặc **Tạo mới** để thêm nhân vật. Danh sách nhân vật nằm trong file sao lưu.
 
