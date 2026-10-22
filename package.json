@@ -1,7 +1,7 @@
 {
   "name": "prompt-picker",
-  "version": "0.1.0",
-  "description": "Prompt Picker - b\u1ed1c v\u00e0 qu\u1ea3n l\u00fd prompt",
+  "version": "0.1.1",
+  "description": "Prompt Picker - bốc và quản lý prompt",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",

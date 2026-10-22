@@ -10,12 +10,27 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Ensure public releases repository
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="broplaygame75-ai/prompt-picker-releases"
+          echo "Token user: $(gh api user --jq .login)"
+          if gh repo view "$REPO" --json name >/dev/null 2>&1; then
+            echo "Releases repository already exists"
+          else
+            echo "Creating public repository $REPO"
+            gh repo create "$REPO" --public --description "Public Windows installers for Prompt Picker" --add-readme
+          fi
+          gh repo view "$REPO" --json name,visibility,url
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
       - run: npm ci
       - name: Set release repo owner
         shell: bash
-        run: node -e "const p=require('./package.json');p.build.publish[0].owner=process.env.GITHUB_REPOSITORY_OWNER;require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))"
+        run: node -e "const p=require('./package.json');p.build.publish[0].owner='broplaygame75-ai';require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))"
       - name: Build and publish to public releases repo
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
