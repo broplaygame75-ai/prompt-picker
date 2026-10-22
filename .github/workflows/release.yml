@@ -18,10 +18,15 @@ jobs:
           set -euo pipefail
           REPO="broplaygame75-ai/prompt-picker-releases"
           echo "Token user: $(gh api user --jq .login)"
-          if gh repo view "$REPO" --json name >/dev/null 2>&1; then
-            echo "Releases repository already exists"
+          echo "Repositories visible to RELEASES_TOKEN:"
+          gh repo list broplaygame75-ai --limit 100 --json name,visibility || echo "repo list failed"
+          if vis=$(gh repo view "$REPO" --json visibility --jq .visibility 2>/dev/null); then
+            echo "Found $REPO visibility=$vis"
+            if [ "$vis" != "PUBLIC" ]; then
+              gh repo edit "$REPO" --visibility public --accept-visibility-change-consequences
+            fi
           else
-            echo "Creating public repository $REPO"
+            echo "Repository $REPO is not visible; creating it as public"
             gh repo create "$REPO" --public --description "Public Windows installers for Prompt Picker" --add-readme
           fi
           gh repo view "$REPO" --json name,visibility,url
