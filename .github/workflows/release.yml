@@ -10,26 +10,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure public releases repository
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        run: |
-          set -euo pipefail
-          REPO="broplaygame75-ai/prompt-picker-releases"
-          echo "Token user: $(gh api user --jq .login)"
-          echo "Repositories visible to RELEASES_TOKEN:"
-          gh repo list broplaygame75-ai --limit 100 --json name,visibility || echo "repo list failed"
-          if vis=$(gh repo view "$REPO" --json visibility --jq .visibility 2>/dev/null); then
-            echo "Found $REPO visibility=$vis"
-            if [ "$vis" != "PUBLIC" ]; then
-              gh repo edit "$REPO" --visibility public --accept-visibility-change-consequences
-            fi
-          else
-            echo "Repository $REPO is not visible; creating it as public"
-            gh repo create "$REPO" --public --description "Public Windows installers for Prompt Picker" --add-readme
-          fi
-          gh repo view "$REPO" --json name,visibility,url
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
       - run: npm ci
