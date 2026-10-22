@@ -1,0 +1,63 @@
+{
+  "name": "prompt-picker",
+  "version": "0.1.0",
+  "description": "Prompt Picker - b\u1ed1c v\u00e0 qu\u1ea3n l\u00fd prompt",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "release": "electron-builder --win nsis --publish always"
+  },
+  "keywords": [],
+  "author": "Lineko",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "productName": "Prompt Picker",
+  "build": {
+    "appId": "com.lineko.promptpicker",
+    "productName": "Prompt Picker",
+    "files": [
+      "src/**",
+      "build/icon.png",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "PromptPicker-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Prompt Picker",
+      "uninstallDisplayName": "Prompt Picker",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "include": "build/installer.nsh",
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "broplaygame75-ai",
+        "repo": "prompt-picker-releases",
+        "releaseType": "release"
+      }
+    ]
+  }
+}

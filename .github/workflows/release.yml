@@ -1,0 +1,28 @@
+name: Build Windows installer
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Set release repo owner
+        shell: bash
+        run: node -e "const p=require('./package.json');p.build.publish[0].owner=process.env.GITHUB_REPOSITORY_OWNER;require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))"
+      - name: Build and publish to public releases repo
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: npx electron-builder --win nsis --publish always
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: |
+            dist/*.exe
+            dist/latest.yml
