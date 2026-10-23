@@ -31,6 +31,9 @@ Mỗi prompt có **số hàng** cố định (như số dòng Excel), hiện d�
 ## Dữ liệu
 Lưu cố định ở `%APPDATA%\Prompt Picker\data` (prompts.json + thư mục images). Thư mục đã có thì dùng lại, chưa có thì tạo mới. Cài đè và cập nhật tự động không xoá thư mục này. Mở thư mục trong **Cài đặt → Dữ liệu**. Nên **Xuất** bản sao lưu đầy đủ định kỳ (tab Sao lưu & Nhập dữ liệu).
 
+## Gỡ cài đặt
+Bộ gỡ hỏi bạn xuất bản sao lưu JSON (Cài đặt > Sao lưu & Nhập dữ liệu) trước khi xoá chương trình. Ngôn ngữ của trang này là ngôn ngữ đã chọn lúc cài (English, Tiếng Việt, 中文, 한국어). Chương trình được xoá đúng thư mục đã cài, kể cả ổ khác C:, và chỉ xoá file của app. File khác bạn để trong thư mục đó được giữ lại. Dữ liệu prompt được giữ, trừ khi bạn tick ô xoá. Ô đó mặc định không tick, và trang liệt kê thư mục dữ liệu tìm thấy.
+
 ## Cập nhật
 App tự kiểm tra khi mở và khoảng mỗi 30 phút. Có bản mới thì hiện thông báo một lần cho phiên bản đó, và nút **Cập nhật ngay** được tô sáng cạnh **Kiểm tra cập nhật**, kèm số phiên bản. Bấm nút đó sẽ đóng Cài đặt (nếu đang mở) và hỏi ở cửa sổ chính: cài bản này ngay, ứng dụng sẽ khởi động lại. Có thì hiện tiến trình tải, rồi ứng dụng tự đóng, cài và mở lại. Không hỏi thư mục và không xoá dữ liệu. **Cài đặt → Cập nhật** hiện phiên bản hiện tại, bản mới nhất, và ghi chú phát hành lấy từ GitHub.
 

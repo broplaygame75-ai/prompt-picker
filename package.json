@@ -51,6 +51,8 @@
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "include": "build/installer.nsh",
+      "installerLanguages": ["en_US", "vi_VN", "zh_CN", "ko_KR"],
+      "displayLanguageSelector": true,
       "deleteAppDataOnUninstall": false
     },
     "publish": [

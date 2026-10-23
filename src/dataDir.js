@@ -24,4 +24,35 @@ function adoptExistingData(dest,sources){
   return dest;
 }
 
-module.exports={fixedDataDir,adoptExistingData};
+// electron-builder's per-user install key: UUID v5 of appId com.lineko.promptpicker.
+const INSTALL_GUID='05ae8bdf-b478-52b5-acc4-ac809166ef4d';
+const DATA_REG_KEY='HKCU\\Software\\Prompt Picker';
+const INSTALL_REG_KEY='HKCU\\Software\\'+INSTALL_GUID;
+
+function normalizeDataPath(dir){
+  const s=String(dir||'').trim();
+  if(/^[A-Za-z]:[\\/]/.test(s)||s.startsWith('\\\\'))return s.replace(/\//g,'\\').replace(/\\+$/,'');
+  return path.resolve(s);
+}
+
+function withActiveDataDir(config,dir){
+  const rest=Object.assign({},config||{});
+  delete rest.activeDataDir;
+  return Object.assign({activeDataDir:normalizeDataPath(dir)},rest);
+}
+
+function windowsRememberCommands(dir,installDir){
+  const data=normalizeDataPath(dir);
+  const cmds=[
+    ['add',DATA_REG_KEY,'/v','DataDir','/t','REG_SZ','/d',data,'/f'],
+    ['add',INSTALL_REG_KEY,'/v','DataDir','/t','REG_SZ','/d',data,'/f']
+  ];
+  if(installDir){
+    const loc=normalizeDataPath(installDir);
+    cmds.push(['add',DATA_REG_KEY,'/v','InstallLocation','/t','REG_SZ','/d',loc,'/f']);
+    cmds.push(['add',INSTALL_REG_KEY,'/v','InstallLocation','/t','REG_SZ','/d',loc,'/f']);
+  }
+  return cmds;
+}
+
+module.exports={fixedDataDir,adoptExistingData,INSTALL_GUID,DATA_REG_KEY,INSTALL_REG_KEY,normalizeDataPath,withActiveDataDir,windowsRememberCommands};
