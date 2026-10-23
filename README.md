@@ -9,12 +9,12 @@
 4. Gỡ trong *Settings → Apps*. Ô xoá dữ liệu mặc định không được tick. Chỉ khi tự tick thì `%APPDATA%\Prompt Picker\data` mới bị xoá.
 
 ## Nhập prompt
-- Tab **Dữ liệu prompt**: dán `[SFW][Tên {Tag}][prompt], [NSFW][Tên][prompt]` → Xem trước → Thêm tất cả.
+- Tab **Dữ liệu prompt**: dán `[SFW][Tên &New&&Halloween& "ghi chú"][prompt], [NSFW][Tên][prompt]` → Xem trước → Thêm tất cả. Trong tên, `&tag&` là tag (dùng để lọc), chữ trong dấu nháy kép là ghi chú nhỏ màu xám, không vào danh sách tag. Ngoặc `()` `[]` `{}` là cú pháp TensorArt và được giữ nguyên trong prompt. Tên cũ dạng `{New}` hoặc `(JJK)` vẫn nhập được: New và tên ngày lễ thành tag, phần còn lại thành ghi chú.
 - Hoặc bấm **📂 Nhập file** để chọn file sao lưu `.json` (hoặc file `.txt` theo mẫu trên).
-- **Xuất JSON** / **Nhập JSON** (cùng tab Dữ liệu prompt): file JSON thụt dòng, sửa được. Mỗi prompt có `row`, `rating`, `name`, `themes`, `prompt`. Có thể kèm `characters` với `name`, `source`, `doneRows`. Nhập hỏi trước khi ghi đè, cập nhật prompt theo số hàng, thêm hàng mới, rồi báo số dòng đã thêm và đã cập nhật.
+- **Xuất JSON** / **Nhập JSON** (cùng tab Dữ liệu prompt): file JSON thụt dòng, sửa được. Mỗi prompt có `row`, `rating`, `name`, `themes`, `notes`, `prompt`. Có thể kèm `characters` với `name`, `source`, `doneRows`. Nhập hỏi trước khi ghi đè, cập nhật prompt theo số hàng, thêm hàng mới, rồi báo số dòng đã thêm và đã cập nhật.
 
 ## Ngôn ngữ
-Nút **VI / EN** trên header đổi toàn bộ giao diện giữa Tiếng Việt và English, kể cả hộp cập nhật. Mặc định là Tiếng Việt. Lựa chọn được nhớ trên máy, trong cùng file dữ liệu với prompt.
+Nút **VI / EN** trên header đổi toàn bộ giao diện giữa Tiếng Việt và English, kể cả hộp cập nhật. Mặc định là Tiếng Việt. Lựa chọn được nhớ trên máy, trong cùng file dữ liệu với prompt. Chữ trên app dùng font Be Vietnam Pro để dấu tiếng Việt không bị tách.
 
 ## Ba tab
 - **Bốc prompt**: một ô bốc ngẫu nhiên và copy. Trước khi copy phải chọn nhân vật `Name - Source`.
