@@ -31,6 +31,7 @@ function otherWindows(sender){return BrowserWindow.getAllWindows().filter(w=>!w.
 ipcMain.handle('version',()=>app.getVersion());
 ipcMain.handle('load',()=>{try{return JSON.parse(fs.readFileSync(dataFile(),'utf8'))}catch(e){return null}});
 ipcMain.handle('save',(e,s)=>{writeAtomic(dataFile(),s);return true});
+ipcMain.on('save-sync',(e,s)=>{if(typeof s==='string'&&s.length<20000000)writeAtomic(dataFile(),s);e.returnValue=true});
 ipcMain.handle('settings-open',(e,tab)=>{openSettings(tab);return true});
 ipcMain.on('update-request',(e,version)=>{const sender=BrowserWindow.fromWebContents(e.sender);if(settingsWin&&!settingsWin.isDestroyed()&&sender===settingsWin)settingsWin.close();if(win&&!win.isDestroyed()){if(win.isMinimized())win.restore();win.show();win.focus();win.webContents.send('update-request',typeof version==='string'?version:'')}});
 ipcMain.on('state-push',(e,text)=>{if(typeof text!=='string'||text.length>20000000)return;otherWindows(e.sender).forEach(w=>w.webContents.send('state-push',text))});

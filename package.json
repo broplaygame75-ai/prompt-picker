@@ -25,6 +25,7 @@
     "productName": "Prompt Picker",
     "files": [
       "src/**",
+      "install-guide/**/*.png",
       "build/icon.png",
       "package.json"
     ],

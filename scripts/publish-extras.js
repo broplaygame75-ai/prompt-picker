@@ -130,8 +130,9 @@ function guideBody() {
   const langs = ['en', 'vi', 'zh', 'ko'];
   return langs.map(code => {
     const file = path.join(stage, `HOW-TO-INSTALL.${code}.md`);
-    const text = fs.readFileSync(file, 'utf8');
-    return text.replace(/\]\(([a-z]{2}\/[^)]+)\)/g, '](https://github.com/' + owner + '/' + repo + '/raw/main/guide/$1)');
+    const text = fs.readFileSync(file, 'utf8').trim();
+    const body = text.replace(/\]\(([a-z]{2}\/[^)]+)\)/g, '](https://github.com/' + owner + '/' + repo + '/raw/main/guide/$1)');
+    return '<!-- lang:' + code + ' -->\n' + body + '\n<!-- /lang:' + code + ' -->';
   }).join('\n\n');
 }
 
@@ -177,13 +178,7 @@ async function pushReadme() {
     '',
     rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.md'), 'utf8').trim()),
     '',
-    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.en.md'), 'utf8').trim()),
-    '',
-    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.vi.md'), 'utf8').trim()),
-    '',
-    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.zh.md'), 'utf8').trim()),
-    '',
-    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.ko.md'), 'utf8').trim()),
+    'The pictures in each guide use paths next to that file, so they display on this site and inside the app for the language you selected.',
     ''
   ].join('\n');
   files.push({rel: 'README.md', buf: Buffer.from(readme, 'utf8')});
