@@ -10,6 +10,8 @@ OutFile "/tmp/pp-un-test.exe"
 !define PP_UNINSTALL_EXE "Uninstall Prompt Picker.exe"
 !define PP_SHORTCUT_NAME "Prompt Picker"
 !define INSTALL_REGISTRY_KEY "Software\05ae8bdf-b478-52b5-acc4-ac809166ef4d"
+!define VERSION "0.1.8"
+!define APP_ID "com.lineko.promptpicker"
 !define PP_LOGIC_TEST
 !include /CHARSET=UTF8 "../build/uninstall-logic.nsh"
 
@@ -203,6 +205,61 @@ Section
   !insertmacro assertExists "W:\AI Work\Prompt Picker\data\prompts.json" "inst-data-kept"
   !insertmacro assertExists "$APPDATA\Prompt Picker\data\prompts.json" "appdata-kept"
   !insertmacro assertExists "W:\CustomPrompts\prompts.json" "custom-kept"
+  !insertmacro assertExists "W:\AI Work\Prompt Picker\PromptPickerData\images\a.webp" "instdata-img"
+
+  !insertmacro ppWriteKeepPointers
+  !insertmacro assertExists "W:\AI Work\Prompt Picker\prompt-picker.install.json" "marker"
+  !insertmacro assertExists "$APPDATA\Prompt Picker\prompt-picker.install.json" "pointer"
+  !insertmacro assertDir "W:\AI Work\Prompt Picker" "kept-folder"
+  ReadRegStr $0 HKCU "Software\Prompt Picker" InstallLocation
+  !insertmacro assertEq $0 "W:\AI Work\Prompt Picker" "kept-reg"
+  ReadRegStr $0 HKCU "Software\Prompt Picker" DataDir
+  !insertmacro assertEq $0 "W:\AI Work\Prompt Picker\PromptPickerData" "kept-data-reg"
+  ReadRegStr $0 HKCU "Software\Prompt Picker" AppId
+  !insertmacro assertEq $0 "com.lineko.promptpicker" "kept-appid"
+  !insertmacro ppReadTextLine "W:\AI Work\Prompt Picker\prompt-picker.install.json" $R8
+  StrCpy $R2 '"appId":"'
+  !insertmacro ppJsonField $R8 $R2 $R3
+  !insertmacro assertEq $R3 "com.lineko.promptpicker" "marker-id"
+  StrCpy $R2 '"version":"'
+  !insertmacro ppJsonField $R8 $R2 $R3
+  !insertmacro assertEq $R3 "0.1.8" "marker-ver"
+  StrCpy $R2 '"installDir":"'
+  !insertmacro ppJsonField $R8 $R2 $R3
+  !insertmacro assertEq $R3 "W:\AI Work\Prompt Picker" "marker-dir"
+  StrCpy $R2 '"dataPath":"'
+  !insertmacro ppJsonField $R8 $R2 $R3
+  !insertmacro assertEq $R3 "W:\AI Work\Prompt Picker\PromptPickerData" "marker-data"
+  !insertmacro ppMarkerAccepts "W:\AI Work\Prompt Picker" $R9
+  !insertmacro assertEq $R9 "1" "marker-ok"
+  !insertmacro ppMarkerAccepts "C:\DecoyPromptPicker" $R9
+  !insertmacro assertEq $R9 "0" "decoy-not-ours"
+  CreateDirectory "W:\Not Ours"
+  ClearErrors
+  FileOpen $R1 "W:\Not Ours\prompt-picker.install.json" w
+  FileWrite $R1 '{"appId":"other.app","version":"0.1.8","installDir":"W:\\Not Ours","dataPath":"W:\\Not Ours"}$\r$\n'
+  FileClose $R1
+  !insertmacro ppMarkerAccepts "W:\Not Ours" $R9
+  !insertmacro assertEq $R9 "0" "foreign-app"
+  !insertmacro ppApplyKeptInstall
+  !insertmacro assertEq $INSTDIR "W:\AI Work\Prompt Picker" "apply-kept"
+
+  ; A checked uninstall of some other copy must not remove this folder's data.
+  StrCpy $0 $InstallDir
+  StrCpy $1 $INSTDIR
+  StrCpy $InstallDir "C:\DecoyPromptPicker"
+  StrCpy $INSTDIR "C:\DecoyPromptPicker"
+  !insertmacro ppDeleteOneData "W:\AI Work\Prompt Picker\PromptPickerData"
+  StrCpy $InstallDir $0
+  StrCpy $INSTDIR $1
+  !insertmacro assertExists "W:\AI Work\Prompt Picker\PromptPickerData\prompts.json" "foreign-data-kept"
+  !insertmacro assertExists "W:\AI Work\Prompt Picker\PromptPickerData\images\a.webp" "foreign-img-kept"
+  !insertmacro ppSkipForeignData "$APPDATA\Prompt Picker\data" $R9
+  !insertmacro assertEq $R9 "0" "appdata-not-foreign"
+  !insertmacro ppSkipForeignData "W:\CustomPrompts" $R9
+  !insertmacro assertEq $R9 "0" "custom-not-foreign"
+  !insertmacro ppSkipForeignData "W:\AI Work\Prompt Picker\PromptPickerData" $R9
+  !insertmacro assertEq $R9 "0" "own-data-not-skipped"
 
   StrCpy $DeleteData "1"
   !insertmacro ppDeleteDetectedData
@@ -218,7 +275,21 @@ Section
   !insertmacro assertExists "$APPDATA\Prompt Picker\config.json" "config-kept"
   !insertmacro assertDir "W:\AI Work\Prompt Picker" "install-folder-after"
 
+  StrCpy $0 $InstallDir
+  StrCpy $1 $INSTDIR
+  StrCpy $InstallDir "C:\DecoyPromptPicker"
+  StrCpy $INSTDIR "C:\DecoyPromptPicker"
+  !insertmacro ppDeletePointers
+  StrCpy $InstallDir $0
+  StrCpy $INSTDIR $1
+  !insertmacro assertExists "W:\AI Work\Prompt Picker\prompt-picker.install.json" "foreign-marker-kept"
+  !insertmacro assertExists "$APPDATA\Prompt Picker\prompt-picker.install.json" "foreign-pointer-kept"
+  ReadRegStr $0 HKCU "Software\Prompt Picker" InstallLocation
+  !insertmacro assertEq $0 "W:\AI Work\Prompt Picker" "foreign-reg-kept"
+
   !insertmacro ppCleanExtras
+  !insertmacro assertGone "W:\AI Work\Prompt Picker\prompt-picker.install.json" "marker-removed"
+  !insertmacro assertGone "$APPDATA\Prompt Picker\prompt-picker.install.json" "pointer-removed"
   !insertmacro assertDirGone "$LOCALAPPDATA\prompt-picker-updater" "updater-cache"
   !insertmacro assertGone "$DESKTOP\Prompt Picker.lnk" "shortcut"
   !insertmacro assertGone "$APPDATA\Prompt Picker\data.path" "data-path-file"

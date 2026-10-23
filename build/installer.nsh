@@ -16,12 +16,24 @@
 
 !macro customInit
   WriteRegStr HKCU "Software\Prompt Picker" "Installer Language" "$LANGUAGE"
+  ; /D= is an explicit folder. A real electron-builder install key is an
+  ; in-place upgrade. Otherwise reopen a folder left behind only when its
+  ; marker app id is Prompt Picker.
+  ${StdUtils.GetParameter} $0 "D" ""
+  ${If} $0 == ""
+    !ifndef ONE_CLICK
+      ${If} $hasPerUserInstallation == "0"
+      ${AndIf} $hasPerMachineInstallation == "0"
+        !insertmacro ppApplyKeptInstall
+      ${EndIf}
+    !endif
+  ${EndIf}
 !macroend
 
 !ifdef BUILD_UNINSTALLER
 
 !macro customUnInit
-  StrCpy $DeleteData ${BST_UNCHECKED}
+  StrCpy $DeleteData ${BST_CHECKED}
   ReadRegStr $0 HKCU "Software\Prompt Picker" "Installer Language"
   ${If} $0 != ""
     StrCpy $LANGUAGE $0
@@ -48,8 +60,8 @@ Function un.promptDataPage
   !insertmacro ppText "delete" $R9
   ${NSD_CreateCheckbox} 0 56u 100% 18u "$R9"
   Pop $DeleteDataCheckbox
-  ${NSD_SetState} $DeleteDataCheckbox ${BST_UNCHECKED}
-  StrCpy $DeleteData ${BST_UNCHECKED}
+  ${NSD_SetState} $DeleteDataCheckbox ${BST_CHECKED}
+  StrCpy $DeleteData ${BST_CHECKED}
   !insertmacro ppText "paths" $R9
   ${If} $DataList == ""
     !insertmacro ppText "none" $R8
@@ -66,30 +78,34 @@ Function un.promptDataLeave
   ${NSD_GetState} $DeleteDataCheckbox $DeleteData
 FunctionEnd
 
-; Replaces electron-builder's RMDir /r $INSTDIR. Updates delete the shipped
-; files in place and leave anything else. A real uninstall then removes the
-; folder only when nothing the user added is still inside it.
+; Replaces electron-builder's RMDir /r $INSTDIR. Known program files are
+; removed in place. The folder itself is removed only when data deletion
+; was requested and nothing the user added is still inside it.
 !macro customRemoveFiles
   !insertmacro ppResolveInstallDir
   !insertmacro ppInstallDirOk $R9
   ${If} $R9 == "1"
     !insertmacro ppDeleteKnownAppFiles
-    ${ifNot} ${isUpdated}
-      SetOutPath $TEMP
-      RMDir "$InstallDir"
-    ${endIf}
   ${EndIf}
 !macroend
 
 !macro customUnInstall
   ${ifNot} ${isUpdated}
-    !insertmacro ppCleanExtras
+    !insertmacro ppCleanShortcuts
     DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_GUID}"
     !ifdef UNINSTALL_APP_KEY
       DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTALL_APP_KEY}"
     !endif
     ${if} $DeleteData == ${BST_CHECKED}
       !insertmacro ppDeleteDetectedData
+      !insertmacro ppDeletePointers
+      !insertmacro ppInstallDirOk $R9
+      ${If} $R9 == "1"
+        SetOutPath $TEMP
+        RMDir "$InstallDir"
+      ${EndIf}
+    ${else}
+      !insertmacro ppWriteKeepPointers
     ${endIf}
   ${endIf}
 !macroend

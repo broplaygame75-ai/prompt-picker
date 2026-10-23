@@ -2,10 +2,24 @@ const {app,BrowserWindow,ipcMain,dialog,shell}=require('electron');
 const path=require('path'),fs=require('fs'),https=require('https');
 const {autoUpdater}=require('electron-updater');
 const {execFile}=require('child_process');
-const {fixedDataDir,adoptExistingData,withActiveDataDir,windowsRememberCommands}=require('./dataDir');
+const {fixedDataDir,adoptExistingData,withActiveDataDir,windowsRememberCommands,APP_ID,MARKER_NAME,normalizeDataPath,reuseSources}=require('./dataDir');
 const cfgPath=()=>path.join(app.getPath('userData'),'config.json');
 function cfg(){try{return JSON.parse(fs.readFileSync(cfgPath()))}catch(e){return{}}}
-function dataSources(){const sources=[];try{const userData=app.getPath('userData');sources.push(path.join(userData,'data'));const custom=cfg().dataDir;if(typeof custom==='string'&&custom.trim())sources.push(custom.trim())}catch(e){}return sources}
+function readText(f){try{return fs.readFileSync(f,'utf8')}catch(e){return ''}}
+function dataSources(){
+  const sources=[];
+  try{
+    const userData=app.getPath('userData');
+    sources.push(path.join(userData,'data'));
+    const custom=cfg().dataDir;
+    if(typeof custom==='string'&&custom.trim())sources.push(custom.trim());
+    const exeDir=app.isPackaged?path.dirname(process.execPath):'';
+    const pointer=readText(path.join(app.getPath('appData'),'Prompt Picker',MARKER_NAME));
+    const local=exeDir?readText(path.join(exeDir,MARKER_NAME)):'';
+    for(const s of reuseSources(exeDir,pointer,local))sources.push(s);
+  }catch(e){}
+  return sources;
+}
 function dataDir(){return adoptExistingData(fixedDataDir(app.getPath('appData')),dataSources())}
 const dataFile=()=>path.join(dataDir(),'prompts.json');
 function writeAtomic(f,s){fs.writeFileSync(f+'.tmp',s);fs.renameSync(f+'.tmp',f);}
@@ -47,12 +61,22 @@ ipcMain.handle('upd-download',async()=>{if(!app.isPackaged){send({type:'error',c
 function fetchJson(url){return new Promise((resolve,reject)=>{const req=https.get(url,{headers:{'User-Agent':'PromptPicker','Accept':'application/vnd.github+json'}},res=>{let d='';res.on('data',c=>{d+=c;if(d.length>2000000)req.destroy()});res.on('end',()=>{const code=res.statusCode||0;if(code>=300&&code<400&&res.headers.location)return fetchJson(res.headers.location).then(resolve,reject);if(code!==200)return reject(new Error('HTTP '+code));try{resolve(JSON.parse(d))}catch(e){reject(e)}})});req.on('error',reject);req.setTimeout(20000,()=>{req.destroy();reject(new Error('timeout'))})})}
 ipcMain.handle('releases',async()=>{const list=await fetchJson('https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases?per_page=20');if(!Array.isArray(list))return [];return list.filter(r=>r&&!r.draft&&!r.prerelease).slice(0,20).map(r=>({version:String(r.tag_name||r.name||'').replace(/^v/i,''),body:String(r.body||''),published:r.published_at||''}))});
 ipcMain.handle('quit',()=>{app.quit();return true});
+function writeInstallMarker(installDir,dataPath){
+  const body=JSON.stringify({appId:APP_ID,version:app.getVersion(),installDir:normalizeDataPath(installDir),dataPath:normalizeDataPath(dataPath)});
+  try{fs.writeFileSync(path.join(installDir,MARKER_NAME),body);}catch(e){}
+  try{
+    const parent=path.join(app.getPath('appData'),'Prompt Picker');
+    fs.mkdirSync(parent,{recursive:true});
+    fs.writeFileSync(path.join(parent,MARKER_NAME),body);
+  }catch(e){}
+}
 function rememberDataLocation(dir){
   const next=withActiveDataDir(cfg(),dir);
   try{if(JSON.stringify(cfg())!==JSON.stringify(next))writeAtomic(cfgPath(),JSON.stringify(next));}catch(e){}
   try{fs.writeFileSync(path.join(path.dirname(cfgPath()),'data.path'),next.activeDataDir+'\n');}catch(e){}
   if(process.platform!=='win32')return;
   const installDir=app.isPackaged?path.dirname(process.execPath):'';
+  if(installDir)writeInstallMarker(installDir,next.activeDataDir);
   for(const args of windowsRememberCommands(dir,installDir))execFile('reg',args,{windowsHide:true},()=>{});
 }
 app.whenReady().then(()=>{try{rememberDataLocation(dataDir());}catch(e){}if(app.isPackaged)autoUpdater.installDirectory=path.dirname(process.execPath);create();if(app.isPackaged){setTimeout(()=>autoUpdater.checkForUpdates().catch(()=>{}),5000);setInterval(()=>autoUpdater.checkForUpdates().catch(()=>{}),30*60*1000);}});

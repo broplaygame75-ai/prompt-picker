@@ -1,6 +1,6 @@
 {
   "name": "prompt-picker",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Prompt Picker - bốc và quản lý prompt",
   "main": "src/main.js",
   "scripts": {

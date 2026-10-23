@@ -18,6 +18,19 @@
 !ifndef INSTALL_REGISTRY_KEY
   !define INSTALL_REGISTRY_KEY "Software\05ae8bdf-b478-52b5-acc4-ac809166ef4d"
 !endif
+!ifndef PP_MARKER_NAME
+  !define PP_MARKER_NAME "prompt-picker.install.json"
+!endif
+!ifndef PP_APP_ID
+  !ifdef APP_ID
+    !define PP_APP_ID "${APP_ID}"
+  !else
+    !define PP_APP_ID "com.lineko.promptpicker"
+  !endif
+!endif
+!ifndef VERSION
+  !define VERSION "0.0.0"
+!endif
 
 !ifdef BUILD_UNINSTALLER
   !define PP_DECLARE_VARS
@@ -363,31 +376,276 @@ Var DeleteDataCheckbox
   !undef ppdel
 !macroend
 
+; 1 when PATH sits inside a different verified Prompt Picker install.
+; The folder being removed still loses its own data. AppData and a custom
+; folder with no matching marker are not protected by this check.
+!macro ppSkipForeignData PATH RESULT
+  !define ppsf ${__COUNTER__}
+  StrCpy ${RESULT} "0"
+  StrCmp "${PATH}" "" pp_sf_end_${ppsf}
+  StrLen $R8 "${PATH}"
+  StrCpy $R5 $R8
+  pp_sf_scan_${ppsf}:
+    IntOp $R5 $R5 - 1
+    IntCmp $R5 0 pp_sf_end_${ppsf} pp_sf_end_${ppsf}
+    StrCpy $R7 "${PATH}" 1 $R5
+    StrCmp $R7 "\" pp_sf_parent_${ppsf}
+    Goto pp_sf_scan_${ppsf}
+  pp_sf_parent_${ppsf}:
+    StrCpy $R1 "${PATH}" $R5
+    StrCmp $R1 "$InstallDir" pp_sf_end_${ppsf}
+    StrCmp $R1 "$INSTDIR" pp_sf_end_${ppsf}
+    !insertmacro ppMarkerAccepts $R1 $R9
+    StrCmp $R9 "1" 0 pp_sf_end_${ppsf}
+    StrCpy ${RESULT} "1"
+  pp_sf_end_${ppsf}:
+  !undef ppsf
+!macroend
+
+!macro ppDeleteOneData PATH
+  !define ppdd ${__COUNTER__}
+  !insertmacro ppPathBasicOk "${PATH}"
+  StrCmp $R9 "1" 0 pp_dd_end_${ppdd}
+  !insertmacro ppSkipForeignData "${PATH}" $R9
+  StrCmp $R9 "1" pp_dd_end_${ppdd}
+  RMDir /r "${PATH}"
+  pp_dd_end_${ppdd}:
+  !undef ppdd
+!macroend
+
 !macro ppDeleteDetectedData
-  !insertmacro ppPathBasicOk $DataPath1
-  StrCmp $R9 "1" 0 +2
-    RMDir /r "$DataPath1"
-  !insertmacro ppPathBasicOk $DataPath2
-  StrCmp $R9 "1" 0 +2
-    RMDir /r "$DataPath2"
-  !insertmacro ppPathBasicOk $DataPath3
-  StrCmp $R9 "1" 0 +2
-    RMDir /r "$DataPath3"
-  !insertmacro ppPathBasicOk $DataPath4
-  StrCmp $R9 "1" 0 +2
-    RMDir /r "$DataPath4"
+  !insertmacro ppDeleteOneData $DataPath1
+  !insertmacro ppDeleteOneData $DataPath2
+  !insertmacro ppDeleteOneData $DataPath3
+  !insertmacro ppDeleteOneData $DataPath4
   RMDir "$APPDATA\Prompt Picker"
 !macroend
 
-!macro ppCleanExtras
+!macro ppCleanShortcuts
   SetOutPath $TEMP
   RMDir /r "$LOCALAPPDATA\prompt-picker-updater"
   Delete "$DESKTOP\${PP_SHORTCUT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PP_SHORTCUT_NAME}.lnk"
+!macroend
+
+; A folder we may record or reopen. Never a drive root or a shell folder.
+!macro ppFolderOk PATH RESULT
+  !define ppfo ${__COUNTER__}
+  StrCpy ${RESULT} "0"
+  StrCmp "${PATH}" "" pp_fo_end_${ppfo}
+  StrLen $R8 "${PATH}"
+  IntCmp $R8 4 pp_fo_len_${ppfo} pp_fo_end_${ppfo} pp_fo_len_${ppfo}
+  pp_fo_len_${ppfo}:
+  StrCpy $R7 "${PATH}" "" -2
+  ${If} $R7 == ":\"
+    Goto pp_fo_end_${ppfo}
+  ${EndIf}
+  ${If} "${PATH}" == "$APPDATA"
+  ${OrIf} "${PATH}" == "$LOCALAPPDATA"
+  ${OrIf} "${PATH}" == "$PROFILE"
+  ${OrIf} "${PATH}" == "$DESKTOP"
+  ${OrIf} "${PATH}" == "$PROGRAMFILES"
+  ${OrIf} "${PATH}" == "$PROGRAMFILES64"
+  ${OrIf} "${PATH}" == "$WINDIR"
+  ${OrIf} "${PATH}" == "$SYSDIR"
+  ${OrIf} "${PATH}" == "$TEMP"
+  ${OrIf} "${PATH}" == "$LOCALAPPDATA\Programs"
+    Goto pp_fo_end_${ppfo}
+  ${EndIf}
+  IfFileExists "${PATH}\*.*" 0 pp_fo_end_${ppfo}
+  StrCpy ${RESULT} "1"
+  pp_fo_end_${ppfo}:
+  !undef ppfo
+!macroend
+
+!macro ppReadTextLine FILE OUT
+  !define pprl ${__COUNTER__}
+  StrCpy ${OUT} ""
+  ClearErrors
+  FileOpen $R4 "${FILE}" r
+  IfErrors pp_rl_end_${pprl}
+  FileRead $R4 ${OUT}
+  FileClose $R4
+  pp_rl_end_${pprl}:
+  !undef pprl
+!macroend
+
+; 1 only when DIR contains our marker and its app id is Prompt Picker.
+; The installDir field must name this same folder. Anything else is ignored.
+!macro ppMarkerAccepts DIR RESULT
+  !define ppma ${__COUNTER__}
+  !insertmacro ppFolderOk "${DIR}" $R9
+  StrCmp $R9 "1" 0 pp_ma_end_${ppma}
+  StrCpy ${RESULT} "0"
+  !insertmacro ppReadTextLine "${DIR}\${PP_MARKER_NAME}" $R8
+  StrCmp $R8 "" pp_ma_end_${ppma}
+  StrCpy $R2 '"appId":"'
+  !insertmacro ppJsonField $R8 $R2 $R3
+  StrCmp $R3 "${PP_APP_ID}" 0 pp_ma_end_${ppma}
+  StrCpy $R2 '"installDir":"'
+  !insertmacro ppJsonField $R8 $R2 $R3
+  StrCmp $R3 "${DIR}" 0 pp_ma_end_${ppma}
+  StrCpy ${RESULT} "1"
+  pp_ma_end_${ppma}:
+  !undef ppma
+!macroend
+
+!macro ppReadPointerInstallDir OUT
+  !define pppi ${__COUNTER__}
+  StrCpy ${OUT} ""
+  !insertmacro ppReadTextLine "$APPDATA\Prompt Picker\${PP_MARKER_NAME}" $R8
+  StrCmp $R8 "" pp_pi_end_${pppi}
+  StrCpy $R2 '"installDir":"'
+  !insertmacro ppJsonField $R8 $R2 ${OUT}
+  pp_pi_end_${pppi}:
+  !undef pppi
+!macroend
+
+; Used by the installer when no electron-builder install key exists.
+; A verified marker becomes $INSTDIR. A mismatch leaves $INSTDIR alone.
+!macro ppApplyKeptInstall
+  !define ppap ${__COUNTER__}
+  ReadRegStr $R1 HKCU "Software\Prompt Picker" InstallLocation
+  !insertmacro ppMarkerAccepts $R1 $R9
+  StrCmp $R9 "1" pp_ap_use_${ppap}
+  !insertmacro ppReadPointerInstallDir $R1
+  !insertmacro ppMarkerAccepts $R1 $R9
+  StrCmp $R9 "1" 0 pp_ap_end_${ppap}
+  pp_ap_use_${ppap}:
+    StrCpy $INSTDIR $R1
+  pp_ap_end_${ppap}:
+  !undef ppap
+!macroend
+
+!macro ppJsonEscape SRC OUT
+  !define pje ${__COUNTER__}
+  StrCpy ${OUT} ""
+  StrCpy $R5 0
+  pp_je_${pje}:
+    StrCpy $R7 "${SRC}" 1 $R5
+    StrCmp $R7 "" pp_je_end_${pje}
+    StrCmp $R7 "\" 0 pp_je_plain_${pje}
+      StrCpy $R6 "\"
+      StrCpy ${OUT} "${OUT}$R6$R6"
+      Goto pp_je_next_${pje}
+    pp_je_plain_${pje}:
+      StrCpy ${OUT} "${OUT}$R7"
+    pp_je_next_${pje}:
+      IntOp $R5 $R5 + 1
+      Goto pp_je_${pje}
+  pp_je_end_${pje}:
+  !undef pje
+!macroend
+
+; Prefer prompts kept inside the install folder. Otherwise the first detected path.
+!macro ppKeptDataPath OUT
+  !define ppkd ${__COUNTER__}
+  StrCpy ${OUT} ""
+  StrCmp $InstallDir "" pp_kd_fallback_${ppkd}
+  IfFileExists "$InstallDir\PromptPickerData\prompts.json" 0 pp_kd_img_${ppkd}
+    StrCpy ${OUT} "$InstallDir\PromptPickerData"
+    Goto pp_kd_end_${ppkd}
+  pp_kd_img_${ppkd}:
+  IfFileExists "$InstallDir\PromptPickerData\images\*.*" 0 pp_kd_data_${ppkd}
+    StrCpy ${OUT} "$InstallDir\PromptPickerData"
+    Goto pp_kd_end_${ppkd}
+  pp_kd_data_${ppkd}:
+  IfFileExists "$InstallDir\data\prompts.json" 0 pp_kd_fallback_${ppkd}
+    StrCpy ${OUT} "$InstallDir\data"
+    Goto pp_kd_end_${ppkd}
+  pp_kd_fallback_${ppkd}:
+  StrCmp $DataPath1 "" pp_kd_inst_${ppkd}
+    StrCpy ${OUT} $DataPath1
+    Goto pp_kd_end_${ppkd}
+  pp_kd_inst_${ppkd}:
+  StrCmp $InstallDir "" pp_kd_end_${ppkd}
+    StrCpy ${OUT} "$InstallDir\PromptPickerData"
+  pp_kd_end_${ppkd}:
+  !undef ppkd
+!macroend
+
+!macro ppWriteMarkerFile DEST
+  !define ppwm ${__COUNTER__}
+  ClearErrors
+  FileOpen $R4 "${DEST}" w
+  IfErrors pp_wm_end_${ppwm}
+  FileWrite $R4 '{"appId":"${PP_APP_ID}","version":"${VERSION}","installDir":"'
+  FileWrite $R4 $R1
+  FileWrite $R4 '","dataPath":"'
+  FileWrite $R4 $R2
+  FileWrite $R4 '"}$\r$\n'
+  FileClose $R4
+  pp_wm_end_${ppwm}:
+  !undef ppwm
+!macroend
+
+; Leave the install folder in place and remember it for the next setup.
+!macro ppWriteKeepPointers
+  !define ppwk ${__COUNTER__}
+  !insertmacro ppInstallDirOk $R9
+  StrCmp $R9 "1" 0 pp_wk_end_${ppwk}
+  !insertmacro ppKeptDataPath $R3
+  !insertmacro ppJsonEscape $InstallDir $R1
+  !insertmacro ppJsonEscape $R3 $R2
+  CreateDirectory "$APPDATA\Prompt Picker"
+  !insertmacro ppWriteMarkerFile "$InstallDir\${PP_MARKER_NAME}"
+  !insertmacro ppWriteMarkerFile "$APPDATA\Prompt Picker\${PP_MARKER_NAME}"
+  WriteRegStr HKCU "Software\Prompt Picker" InstallLocation "$InstallDir"
+  WriteRegStr HKCU "Software\Prompt Picker" DataDir "$R3"
+  WriteRegStr HKCU "Software\Prompt Picker" AppId "${PP_APP_ID}"
+  ClearErrors
+  FileOpen $R4 "$APPDATA\Prompt Picker\data.path" w
+  IfErrors pp_wk_end_${ppwk}
+  FileWrite $R4 "$R3$\r$\n"
+  FileClose $R4
+  pp_wk_end_${ppwk}:
+  !undef ppwk
+!macroend
+
+; 1 when the saved pointer names a different verified Prompt Picker folder.
+!macro ppPointerIsForeign RESULT
+  !define pppf ${__COUNTER__}
+  StrCpy ${RESULT} "0"
+  ReadRegStr $R1 HKCU "Software\Prompt Picker" InstallLocation
+  !insertmacro ppMarkerAccepts $R1 $R9
+  StrCmp $R9 "1" 0 pp_pf_file_${pppf}
+  StrCmp $R1 "$InstallDir" pp_pf_ours_${pppf}
+  StrCmp $R1 "$INSTDIR" pp_pf_ours_${pppf}
+  StrCpy ${RESULT} "1"
+  Goto pp_pf_end_${pppf}
+  pp_pf_file_${pppf}:
+  !insertmacro ppReadPointerInstallDir $R1
+  !insertmacro ppMarkerAccepts $R1 $R9
+  StrCmp $R9 "1" 0 pp_pf_end_${pppf}
+  StrCmp $R1 "$InstallDir" pp_pf_ours_${pppf}
+  StrCmp $R1 "$INSTDIR" pp_pf_ours_${pppf}
+  StrCpy ${RESULT} "1"
+  Goto pp_pf_end_${pppf}
+  pp_pf_ours_${pppf}:
+  StrCpy ${RESULT} "0"
+  pp_pf_end_${pppf}:
+  !undef pppf
+!macroend
+
+!macro ppDeletePointers
+  !define ppdp ${__COUNTER__}
+  StrCmp $InstallDir "" pp_dp_own_${ppdp}
+    Delete "$InstallDir\${PP_MARKER_NAME}"
+  pp_dp_own_${ppdp}:
+  !insertmacro ppPointerIsForeign $R9
+  StrCmp $R9 "1" pp_dp_end_${ppdp}
+  Delete "$APPDATA\Prompt Picker\${PP_MARKER_NAME}"
   Delete "$APPDATA\Prompt Picker\data.path"
   DeleteRegKey HKCU "Software\Prompt Picker"
   DeleteRegKey HKCU "${INSTALL_REGISTRY_KEY}"
   DeleteRegKey HKLM "${INSTALL_REGISTRY_KEY}"
+  pp_dp_end_${ppdp}:
+  !undef ppdp
+!macroend
+
+!macro ppCleanExtras
+  !insertmacro ppCleanShortcuts
+  !insertmacro ppDeletePointers
 !macroend
 
 !macro ppText ID OUT

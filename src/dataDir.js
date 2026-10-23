@@ -28,6 +28,8 @@ function adoptExistingData(dest,sources){
 const INSTALL_GUID='05ae8bdf-b478-52b5-acc4-ac809166ef4d';
 const DATA_REG_KEY='HKCU\\Software\\Prompt Picker';
 const INSTALL_REG_KEY='HKCU\\Software\\'+INSTALL_GUID;
+const APP_ID='com.lineko.promptpicker';
+const MARKER_NAME='prompt-picker.install.json';
 
 function normalizeDataPath(dir){
   const s=String(dir||'').trim();
@@ -39,6 +41,55 @@ function withActiveDataDir(config,dir){
   const rest=Object.assign({},config||{});
   delete rest.activeDataDir;
   return Object.assign({activeDataDir:normalizeDataPath(dir)},rest);
+}
+
+function markerFromText(text){
+  try{
+    const j=JSON.parse(String(text||''));
+    if(!j||j.appId!==APP_ID)return null;
+    const installDir=typeof j.installDir==='string'?normalizeDataPath(j.installDir):'';
+    if(!installDir)return null;
+    const dataPath=typeof j.dataPath==='string'&&j.dataPath.trim()?normalizeDataPath(j.dataPath):'';
+    return {appId:APP_ID,version:String(j.version||''),installDir,dataPath};
+  }catch(e){return null;}
+}
+
+function isWinPath(s){return /^[A-Za-z]:[\\/]/.test(s)||String(s||'').startsWith('\\\\');}
+
+function joinDir(base,name){
+  if(isWinPath(base))return String(base).replace(/[\\/]+$/,'')+'\\'+name;
+  return path.join(base,name);
+}
+
+function sameDir(a,b){
+  if(!a||!b)return false;
+  const na=normalizeDataPath(a),nb=normalizeDataPath(b);
+  if(isWinPath(na)||isWinPath(nb))return na.toLowerCase()===nb.toLowerCase();
+  return na===nb;
+}
+
+// Data folders to adopt only when this executable is running inside the
+// verified install folder. A marker for some other folder is ignored.
+function sourcesFromMarker(marker,exeDir){
+  if(!marker||!exeDir||!sameDir(marker.installDir,exeDir))return [];
+  const sources=[];
+  if(marker.dataPath)sources.push(marker.dataPath);
+  sources.push(joinDir(marker.installDir,'PromptPickerData'));
+  sources.push(joinDir(marker.installDir,'data'));
+  return sources;
+}
+
+function reuseSources(exeDir,pointerText,installMarkerText){
+  const sources=[],seen=new Set();
+  for(const marker of [markerFromText(installMarkerText),markerFromText(pointerText)]){
+    for(const s of sourcesFromMarker(marker,exeDir)){
+      const key=s.toLowerCase();
+      if(seen.has(key))continue;
+      seen.add(key);
+      sources.push(s);
+    }
+  }
+  return sources;
 }
 
 function windowsRememberCommands(dir,installDir){
@@ -55,4 +106,4 @@ function windowsRememberCommands(dir,installDir){
   return cmds;
 }
 
-module.exports={fixedDataDir,adoptExistingData,INSTALL_GUID,DATA_REG_KEY,INSTALL_REG_KEY,normalizeDataPath,withActiveDataDir,windowsRememberCommands};
+module.exports={fixedDataDir,adoptExistingData,INSTALL_GUID,DATA_REG_KEY,INSTALL_REG_KEY,APP_ID,MARKER_NAME,normalizeDataPath,withActiveDataDir,windowsRememberCommands,markerFromText,sourcesFromMarker,reuseSources};
