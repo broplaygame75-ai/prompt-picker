@@ -19,6 +19,8 @@ ipcMain.handle('save',(e,s)=>{writeAtomic(dataFile(),s);return true});
 ipcMain.handle('settings-open',(e,tab)=>{openSettings(tab);return true});
 ipcMain.on('state-push',(e,text)=>{if(typeof text!=='string'||text.length>20000000)return;otherWindows(e.sender).forEach(w=>w.webContents.send('state-push',text))});
 ipcMain.on('theme-preview',(e,colors)=>{if(!colors||typeof colors!=='object')return;otherWindows(e.sender).forEach(w=>w.webContents.send('theme-preview',colors))});
+const FONT_STEPS=[0.9,1,1.15,1.3,1.5];
+ipcMain.on('font-scale',(e,scale)=>{const x=Number(scale);const n=FONT_STEPS.reduce((best,s)=>Math.abs(s-x)<Math.abs(best-x)?s:best,1);BrowserWindow.getAllWindows().forEach(w=>{if(!w.isDestroyed())w.webContents.setZoomFactor(Number.isFinite(x)?n:1)})});
 ipcMain.handle('img-save',(e,id,dataUrl)=>{const b=Buffer.from(dataUrl.split(',')[1],'base64');fs.writeFileSync(path.join(dataDir(),'images',id+'.webp'),b);return true});
 ipcMain.handle('img-read',(e,id)=>{try{return 'data:image/webp;base64,'+fs.readFileSync(path.join(dataDir(),'images',id+'.webp')).toString('base64')}catch(x){return null}});
 ipcMain.handle('img-del',(e,id)=>{try{fs.unlinkSync(path.join(dataDir(),'images',id+'.webp'))}catch(x){}return true});
