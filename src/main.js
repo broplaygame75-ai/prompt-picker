@@ -18,9 +18,9 @@ ipcMain.handle('img-read',(e,id)=>{try{return 'data:image/webp;base64,'+fs.readF
 ipcMain.handle('img-del',(e,id)=>{try{fs.unlinkSync(path.join(dataDir(),'images',id+'.webp'))}catch(x){}return true});
 ipcMain.handle('dir-get',()=>dataDir());
 ipcMain.handle('dir-open',()=>shell.openPath(dataDir()));
-function uiLang(){try{const s=JSON.parse(fs.readFileSync(dataFile(),'utf8'));if(s.langChosen===true&&s.lang==='vi')return 'vi';return 'en'}catch(e){return 'en'}}
+function uiLang(){try{const s=JSON.parse(fs.readFileSync(dataFile(),'utf8'));if(s.langChosen===true&&['en','vi','zh','ko'].includes(s.lang))return s.lang}catch(e){}return 'en'}
 ipcMain.handle('dir-change',()=>dataDir());
-ipcMain.handle('save-file',async(e,name,text,title)=>{const fallback=uiLang()==='en'?'Save backup':'Lưu file sao lưu';const r=await dialog.showSaveDialog(win,{title:typeof title==='string'&&title.trim()?title.trim():fallback,defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
+ipcMain.handle('save-file',async(e,name,text,title)=>{const fallback={en:'Save backup',vi:'Lưu file sao lưu',zh:'保存备份',ko:'백업 저장'}[uiLang()]||'Save backup';const r=await dialog.showSaveDialog(win,{title:typeof title==='string'&&title.trim()?title.trim():fallback,defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
 // updates
 autoUpdater.autoDownload=false;
 autoUpdater.autoInstallOnAppQuit=false;

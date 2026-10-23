@@ -14,7 +14,7 @@
 - **Xuất JSON** / **Nhập JSON** (cùng tab Dữ liệu prompt): file JSON thụt dòng, sửa được. Mỗi prompt có `row`, `rating`, `name`, `themes`, `notes`, `prompt`. Có thể kèm `characters` với `name`, `source`, `doneRows`. Nhập hỏi trước khi ghi đè, cập nhật prompt theo số hàng, thêm hàng mới, rồi báo số dòng đã thêm và đã cập nhật.
 
 ## Ngôn ngữ
-Nút **VI / EN** trên header đổi toàn bộ giao diện giữa English và Tiếng Việt, kể cả hộp cập nhật. Mặc định là English. Bấm VI thì lựa chọn được nhớ trên máy, trong cùng file dữ liệu với prompt. Chữ trên app dùng font Be Vietnam Pro để dấu tiếng Việt không bị tách. Mỗi nút và ô nhập có một dòng giải thích ngắn bên dưới (và tooltip khi rê chuột), cả tiếng Việt lẫn English.
+Nút bánh răng trên header mở **Cài đặt**. Mục đầu tiên là ngôn ngữ: English (mặc định), Tiếng Việt, 中文, 한국어. Lựa chọn được nhớ trên máy, trong cùng file dữ liệu với prompt, và đổi mọi chữ kể cả dòng giải thích và hộp cập nhật. Chữ Latin và tiếng Việt dùng Be Vietnam Pro; tiếng Trung và tiếng Hàn lần lượt dùng Microsoft YaHei và Malgun Gothic trên Windows.
 
 ## Ba tab
 - **Bốc prompt**: một ô bốc ngẫu nhiên và copy. Trước khi copy phải chọn nhân vật `Name - Source`.
