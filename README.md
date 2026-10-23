@@ -1,6 +1,6 @@
 # Prompt Picker
 
-Ứng dụng Windows để bốc ngẫu nhiên và quản lý prompt (1 ô bốc, lọc SFW/NSFW, chế độ Bình thường / Loại trừ lễ / Theo tag có % ưu tiên, thư viện có ảnh kết quả). App cài ra là **trống**, không kèm prompt nào.
+Ứng dụng Windows để bốc ngẫu nhiên và quản lý prompt (1 ô bốc, lọc SFW/NSFW, chế độ Bình thường / Loại trừ / Ưu tiên theo % , thư viện có ảnh kết quả). App cài ra là **trống**, không kèm prompt nào.
 
 ## Cài đặt
 1. Vào trang Releases của repo `prompt-picker-releases`, tải `PromptPicker-Setup-x.y.z.exe`.
@@ -9,7 +9,7 @@
 4. Gỡ trong *Settings → Apps*. Ô xoá dữ liệu mặc định không được tick. Chỉ khi tự tick thì `%APPDATA%\Prompt Picker\data` mới bị xoá.
 
 ## Nhập prompt
-- Tab **Dữ liệu prompt**: dán `[SFW][Tên &New&&Halloween& "ghi chú"][prompt], [NSFW][Tên][prompt]` → Xem trước → Thêm tất cả. Trong tên, `&tag&` là tag (dùng để lọc), chữ trong dấu nháy kép là ghi chú nhỏ màu xám, không vào danh sách tag. Ngoặc `()` `[]` `{}` là cú pháp TensorArt và được giữ nguyên trong prompt. Tên cũ dạng `{New}` hoặc `(JJK)` vẫn nhập được: New và tên ngày lễ thành tag, phần còn lại thành ghi chú.
+- Tab **Dữ liệu prompt**: dán `[SFW][Tên &New&&Halloween& "ghi chú"][prompt], [NSFW][Tên][prompt]` → Xem trước → Thêm tất cả. Trong tên, `&tag&` là tag (dùng để lọc), chữ trong dấu nháy kép là ghi chú nhỏ màu xám, không vào danh sách tag. Ngoặc `()` `[]` `{}` là cú pháp TensorArt và được giữ nguyên trong prompt. Tên cũ dạng `{New}`, `(Nope)` hoặc `(JJK)` vẫn nhập được: New, Nope và tag đặc biệt thành tag, phần còn lại thành ghi chú. Danh sách **Tag đặc biệt** dùng cho cả Loại trừ và Ưu tiên, mặc định có `new` và `nope`.
 - Hoặc bấm **📂 Nhập file** để chọn file sao lưu `.json` (hoặc file `.txt` theo mẫu trên).
 - **Xuất JSON** / **Nhập JSON** (cùng tab Dữ liệu prompt): file JSON thụt dòng, sửa được. Mỗi prompt có `row`, `rating`, `name`, `themes`, `notes`, `prompt`. Có thể kèm `characters` với `name`, `source`, `doneRows`. Nhập hỏi trước khi ghi đè, cập nhật prompt theo số hàng, thêm hàng mới, rồi báo số dòng đã thêm và đã cập nhật.
 
