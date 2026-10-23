@@ -1,6 +1,6 @@
 {
   "name": "prompt-picker",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Prompt Picker - bốc và quản lý prompt",
   "main": "src/main.js",
   "scripts": {
@@ -37,7 +37,7 @@
         "nsis"
       ],
       "icon": "build/icon.ico",
-      "publisherName": "Lineko",
+      "verifyUpdateCodeSignature": false,
       "artifactName": "PromptPicker-Setup-${version}.${ext}"
     },
     "nsis": {
