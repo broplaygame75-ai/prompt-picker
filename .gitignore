@@ -1,4 +1,5 @@
 node_modules/
 dist/
+build/guide-fonts/
 *.backup.json
 prompts*.json

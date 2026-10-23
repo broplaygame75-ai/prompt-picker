@@ -20,9 +20,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: npx electron-builder --win nsis --publish always
+      - name: Publish install guide zip and release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: node scripts/publish-extras.js
       - uses: actions/upload-artifact@v4
         with:
           name: installer
           path: |
             dist/*.exe
             dist/latest.yml
+            dist/*.zip

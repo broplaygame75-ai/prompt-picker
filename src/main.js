@@ -1,5 +1,5 @@
 const {app,BrowserWindow,ipcMain,dialog,shell}=require('electron');
-const path=require('path'),fs=require('fs');
+const path=require('path'),fs=require('fs'),https=require('https');
 const {autoUpdater}=require('electron-updater');
 const {fixedDataDir,adoptExistingData}=require('./dataDir');
 const cfgPath=()=>path.join(app.getPath('userData'),'config.json');
@@ -34,7 +34,7 @@ autoUpdater.autoDownload=false;
 autoUpdater.autoInstallOnAppQuit=false;
 function parseVer(v){return String(v||'').replace(/^v/i,'').split('.').map(n=>parseInt(n,10)||0)}
 function isNewerVersion(next,current){const a=parseVer(next),b=parseVer(current),n=Math.max(a.length,b.length);for(let i=0;i<n;i++){const d=(a[i]||0)-(b[i]||0);if(d)return d>0}return false}
-const send=msg=>{if(win&&!win.isDestroyed())win.webContents.send('upd',msg)};
+const send=msg=>{BrowserWindow.getAllWindows().forEach(w=>{if(!w.isDestroyed())w.webContents.send('upd',msg)})};
 autoUpdater.on('update-available',i=>{const version=i&&i.version;if(!version||!isNewerVersion(version,app.getVersion()))return;send({type:'available',version})});
 autoUpdater.on('update-not-available',()=>send({type:'none'}));
 autoUpdater.on('download-progress',p=>send({type:'progress',percent:p&&p.percent||0}));
@@ -42,5 +42,8 @@ autoUpdater.on('update-downloaded',()=>{send({type:'progress',percent:100});if(a
 autoUpdater.on('error',e=>send({type:'error',message:String(e&&e.message||e)}));
 ipcMain.handle('upd-check',()=>app.isPackaged?autoUpdater.checkForUpdates().then(()=>true).catch(e=>{send({type:'error',message:String(e.message)});return false}):(send({type:'error',code:'unpackaged-check'}),false));
 ipcMain.handle('upd-download',async()=>{if(!app.isPackaged){send({type:'error',code:'unpackaged-download'});return false}try{await autoUpdater.downloadUpdate();return true}catch(e){send({type:'error',message:String(e&&e.message||e)});return false}});
-app.whenReady().then(()=>{if(app.isPackaged)autoUpdater.installDirectory=path.dirname(process.execPath);create();if(app.isPackaged){setTimeout(()=>autoUpdater.checkForUpdates().catch(()=>{}),5000);setInterval(()=>autoUpdater.checkForUpdates().catch(()=>{}),4*36e5);}});
+function fetchJson(url){return new Promise((resolve,reject)=>{const req=https.get(url,{headers:{'User-Agent':'PromptPicker','Accept':'application/vnd.github+json'}},res=>{let d='';res.on('data',c=>{d+=c;if(d.length>2000000)req.destroy()});res.on('end',()=>{const code=res.statusCode||0;if(code>=300&&code<400&&res.headers.location)return fetchJson(res.headers.location).then(resolve,reject);if(code!==200)return reject(new Error('HTTP '+code));try{resolve(JSON.parse(d))}catch(e){reject(e)}})});req.on('error',reject);req.setTimeout(20000,()=>{req.destroy();reject(new Error('timeout'))})})}
+ipcMain.handle('releases',async()=>{const list=await fetchJson('https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases?per_page=20');if(!Array.isArray(list))return [];return list.filter(r=>r&&!r.draft&&!r.prerelease).slice(0,20).map(r=>({version:String(r.tag_name||r.name||'').replace(/^v/i,''),body:String(r.body||''),published:r.published_at||''}))});
+ipcMain.handle('quit',()=>{app.quit();return true});
+app.whenReady().then(()=>{if(app.isPackaged)autoUpdater.installDirectory=path.dirname(process.execPath);create();if(app.isPackaged){setTimeout(()=>autoUpdater.checkForUpdates().catch(()=>{}),5000);setInterval(()=>autoUpdater.checkForUpdates().catch(()=>{}),30*60*1000);}});
 app.on('window-all-closed',()=>app.quit());
