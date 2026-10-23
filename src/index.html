@@ -125,9 +125,9 @@ table{border-collapse:collapse;width:100%}td{padding:6px;border-bottom:1px solid
 <section id="v-pick" class="view"><div class="slots" id="slots"></div></section>
 <div id="v-data" class="view datapage hid"><section id="v-lib" class="listframe"><div class="listpin"><div class="tools"><div class="fld" style="flex:1.6;min-width:260px"><input id="lq" data-ph="libSearch" data-tip="helpLibSearch" placeholder="Search name, label, prompt, or row…"><span class="help" data-i="helpLibSearch">Filter cards by name, label, note, prompt text, or row number (e.g. 298).</span></div><div class="fld"><select id="lr" data-tip="helpLibRating"><option value="All" data-i="anyRating">Any rating</option><option>SFW</option><option>NSFW</option></select><span class="help" data-i="helpLibRating">Show SFW prompts, NSFW prompts, or every rating.</span></div><div class="fld"><select id="lt" data-tip="helpLibTag"></select><span class="help" data-i="helpLibTag">Show only prompts with this filterable label. Descriptive labels stay on the card as a muted chip and are not listed here. New, Nope, and holiday labels start as filterable.</span></div><div class="fld"><select id="ls" data-tip="helpLibSort"><option value="row" data-i="sortRow">By row</option><option value="name" data-i="sortName">Sort by name</option><option value="new" data-i="sortNew">Newest</option><option value="img" data-i="sortImg">With images first</option></select><span class="help" data-i="helpLibSort">Order cards by row, by name, newest first, or put prompts that already have an image first.</span></div><div class="fld"><span><span class="meta" id="lc"></span> <button type="button" class="btn pri" id="libadd" data-i="addPrompt" data-tip="helpAddPrompt">Add prompt</button> <button type="button" class="btn" id="librefresh" data-i="refresh" data-tip="helpRefresh">Refresh</button></span><span class="help" data-i="helpCount">This is the full filtered total, not only the cards on screen. Scroll or press Load more to see the rest.</span><span class="help" data-i="helpRefresh">Read the file from disk, parse names and labels again, then redraw the list.</span></div></div><div id="newprompt" class="hid"></div></div><div class="listscroll" id="listscroll"><div class="lib" id="lib"></div></div></section></div>
 <section id="v-log" class="view hid"><div class="card"><h3 data-i="logTitle">Prompt Log</h3><div class="logtools"><p class="meta" data-i="logHelp">Each Name - Source character has the prompt rows copied for them. Delete a row to remove it from that log when the prompt has been updated. A row is flagged if the prompt changed after it was logged.</p><p class="meta" data-i="logJsonHelp">Export JSON includes only Name - Source characters, done rows, timestamps, and the edited-after-logging flag. Import merges by character and row.</p><div class="row"><button type="button" class="btn" id="logexp" data-i="exportJson" data-tip="logJsonHelp">Export JSON</button><button type="button" class="btn" id="logimp" data-i="importJson" data-tip="logJsonHelp">Import JSON</button><input type="file" id="logimpf" class="hid" accept=".json,application/json"></div><input id="logq" data-ph="logSearch" data-tip="helpLogSearch" placeholder="Search character or row…" style="width:100%;margin-bottom:4px"><p class="help" data-i="helpLogSearch">Filter characters by name, or show only log rows that match a row number.</p><p class="help" data-i="helpLogChars">Click a character to see copied rows. Delete removes that row from the log and leaves the prompt in place.</p><div class="slot-body"><div><div id="logchars" class="chlist"></div></div><div id="logentries"></div></div></div><div id="logempty" class="hid"></div></div></section>
-</main><div id="toast"></div><div id="cfg"><div class="card cfgcard"><div class="row" style="justify-content:space-between"><h2 data-i="settingsTitle" style="margin:0">Settings</h2><button type="button" class="btn" id="cfgx" data-i="close" data-tip="helpClose">Close</button></div><div class="cfgtabs" id="cfgtabs"><button type="button" data-cfg="lang" class="on" data-i="langLabel">Language</button><button type="button" data-cfg="paste" data-i="pastePanel">Paste prompts</button><button type="button" data-cfg="tags" data-i="cfgTabTags">Labels</button><button type="button" data-cfg="backup" data-i="backupTitle">Backup</button><button type="button" data-cfg="data" data-i="cfgTabData">Data</button></div><div class="cfgbody"><section class="cfgsec" data-cfgp="lang"><h3 data-i="langLabel">Language</h3><p class="help" data-i="helpLang">Choose the language for every label, the help under each control, and the update dialog. The choice is remembered on this PC.</p><div class="langpick" id="langpick"><button type="button" data-l="en" class="on">English</button><button type="button" data-l="vi">Tiếng Việt</button><button type="button" data-l="zh">中文</button><button type="button" data-l="ko">한국어</button></div></section><section class="cfgsec hid" data-cfgp="paste"><h3 data-i="pastePanel">Paste prompts</h3><p class="meta" id="addHelp" data-ih="addHelp">Paste one or more prompts like <code>[SFW][Name &amp;New&amp;&amp;Halloween&amp; "note"][prompt…], [NSFW][Name][prompt]</code>. In the name, &amp;label&amp; is a label and quotes are a note. Tags are the comma-separated parts of the prompt text. () [] {} in the prompt are kept as written.</p><textarea id="paste" rows="8" data-tip="helpPaste"></textarea><div class="row" style="margin-top:10px"><button class="btn" id="prev" data-i="preview" data-tip="helpPreview">Preview</button><button class="btn pri" id="addall" data-i="addAll" data-tip="helpAddAll">Add all</button><button type="button" class="btn expjson" data-i="exportJson" data-tip="helpExportPrompt">Export JSON</button><button type="button" class="btn impjson" data-i="importJson" data-tip="helpImportPrompt">Import JSON</button><label class="btn" data-tip="helpImportFile"><span data-i="importFileLong">📂 Import file (.json / .txt)</span><input type="file" class="impf hid" accept=".json,.txt"></label><span class="meta" id="pc"></span></div><p class="help" data-i="helpPasteBtns">Preview reads the paste box. Add all saves those rows and skips duplicates. Export JSON / Import JSON is the prompt file. Import file also accepts a backup or a .txt file.</p><table id="ptab"></table><p class="meta" data-i="jsonHelp">Readable, editable JSON for every prompt: row, rating (SFW/NSFW), name, labels, notes, and prompt text. In older files, themes and tags are the same labels from the name, not tags inside the prompt text. labelRules lists each label and whether Allow filtering is on. Characters and finished rows are optional. Import updates prompts by row, adds new rows, and asks before overwriting.</p><p class="help" data-i="helpExportPrompt">A JSON file of every prompt to edit outside the app. Import updates by row, adds new rows, and asks before overwriting.</p><input type="file" id="impjsonf" class="hid" accept=".json,application/json"></section><section class="cfgsec hid" data-cfgp="tags"><h3 data-i="holTitle">Special labels (Exclude &amp; Priority)</h3><p class="meta" data-i="holHelp">One label per line, case-insensitive. These are the holiday labels. They start with Allow filtering on, and Exclude by label starts with them selected. Priority lists every filterable label.</p><textarea id="hol" rows="8" style="max-width:400px" data-tip="holHelp"></textarea><div class="row"><button class="btn" id="savehol" data-i="save" data-tip="helpHolSave">Save</button></div><p class="help" data-i="helpHolSave">Save applies this holiday list now. New, Nope, and these labels stay filterable unless you turn Allow filtering off.</p>
+</main><div id="toast"></div><div id="cfg"><div class="card cfgcard"><div class="row" style="justify-content:space-between"><h2 data-i="settingsTitle" style="margin:0">Settings</h2><button type="button" class="btn" id="cfgx" data-i="close" data-tip="helpClose">Close</button></div><div class="cfgtabs" id="cfgtabs"><button type="button" data-cfg="lang" class="on" data-i="langLabel">Language</button><button type="button" data-cfg="paste" data-i="pastePanel">Paste prompts</button><button type="button" data-cfg="tags" data-i="cfgTabTags">Labels</button><button type="button" data-cfg="backup" data-i="backupTitle">Backup &amp; Import</button><button type="button" data-cfg="data" data-i="cfgTabData">Data</button></div><div class="cfgbody"><section class="cfgsec" data-cfgp="lang"><h3 data-i="langLabel">Language</h3><p class="help" data-i="helpLang">Choose the language for every label, the help under each control, and the update dialog. The choice is remembered on this PC.</p><div class="langpick" id="langpick"><button type="button" data-l="en" class="on">English</button><button type="button" data-l="vi">Tiếng Việt</button><button type="button" data-l="zh">中文</button><button type="button" data-l="ko">한국어</button></div></section><section class="cfgsec hid" data-cfgp="paste"><h3 data-i="pastePanel">Paste prompts</h3><p class="meta" id="addHelp" data-ih="addHelp">Paste one or more prompts like <code>[SFW][Name &amp;New&amp;&amp;Halloween&amp; "note"][prompt…], [NSFW][Name][prompt]</code>. In the name, &amp;label&amp; is a label and quotes are a note. Tags are the comma-separated parts of the prompt text. () [] {} in the prompt are kept as written.</p><textarea id="paste" rows="8" data-tip="helpPaste"></textarea><div class="row" style="margin-top:10px"><button class="btn" id="prev" data-i="preview" data-tip="helpPreview">Preview</button><button class="btn pri" id="addall" data-i="addAll" data-tip="helpAddAll">Add all</button><span class="meta" id="pc"></span></div><p class="help" data-i="helpPasteBtns">Preview reads the paste box. Add all saves those rows and skips duplicates.</p><table id="ptab"></table></section><section class="cfgsec hid" data-cfgp="tags"><h3 data-i="holTitle">Special labels (Exclude &amp; Priority)</h3><p class="meta" data-i="holHelp">One label per line, case-insensitive. These are the holiday labels. They start with Allow filtering on, and Exclude by label starts with them selected. Priority lists every filterable label.</p><textarea id="hol" rows="8" style="max-width:400px" data-tip="holHelp"></textarea><div class="row"><button class="btn" id="savehol" data-i="save" data-tip="helpHolSave">Save</button></div><p class="help" data-i="helpHolSave">Save applies this holiday list now. New, Nope, and these labels stay filterable unless you turn Allow filtering off.</p>
 <h3 data-i="labelMgrTitle">Label manager</h3><p class="help" data-i="labelMgrHelp">Every label found on a prompt is listed here. Allow filtering puts it in the filter dropdown, Exclude by label, and Priority. New, Nope, and holiday labels start on. Other labels are descriptive: they stay on the card as a muted chip and are not filterable.</p><div class="row"><input id="labnew" data-ph="addLabelPh" data-tip="helpLabelAdd" placeholder="New label"><button type="button" class="btn" id="labadd" data-i="addLabel" data-tip="helpLabelAdd">Add label</button></div><p class="help" data-i="helpLabelAdd">Add a label here even if no prompt uses it yet. New labels start with Allow filtering on, so they show in the filter, Exclude by label, and Priority.</p><div id="lablist" class="lablist"></div>
-</section><section class="cfgsec hid" data-cfgp="backup"><h3 data-i="backupTitle">Backup</h3><p class="meta" data-i="backupHelp">Export every prompt, character, and image to one JSON file. Export regularly.</p><div class="row"><button class="btn pri" id="exp" data-i="exportBtn" data-tip="helpBackup">Export backup</button><label class="btn" data-tip="helpBackup"><span data-i="importFile">📂 Import file</span><input type="file" class="impf hid" accept=".json,.txt"></label></div><p class="help" data-i="helpBackup">Export saves prompts, characters, the log, images, and label filtering. Import asks whether to replace everything or merge.</p>
+</section><section class="cfgsec hid" data-cfgp="backup"><h3 data-i="backupTitle">Backup &amp; Import</h3><div class="row"><select id="expkind" data-tip="helpExportChoice"><option value="full" data-i="exportFull">Full backup, including images</option><option value="prompts" data-i="exportPrompts">Prompts only, readable JSON</option></select><button type="button" class="btn pri" id="exp" data-i="exportBtn" data-tip="helpExportChoice">Export</button></div><p class="help" data-i="helpExportChoice">Full backup includes images. Prompts only is a readable JSON file of every prompt.</p><div class="row"><label class="btn" data-tip="helpImportAuto"><span data-i="importBtn">Import</span><input type="file" id="impall" class="impf hid" accept=".json,.txt,application/json"></label></div><p class="help" data-i="helpImportAuto">Import detects a full backup, prompt JSON, or paste text. Prompt JSON updates by row, adds rows, and asks before overwriting.</p>
 </section><section class="cfgsec hid" data-cfgp="data"><h3 data-i="dataTitle">Data folder</h3><p class="meta"><span data-i="dataHelp">Prompts are stored in</span> <code id="ddir"></code> <span data-i="dataFiles">(prompts.json + images folder).</span></p><div class="row"><button class="btn" id="dopen" data-i="openFolder" data-tip="helpOpen">Open folder</button></div><p class="help" data-i="helpOpen">Open the Prompt Picker data folder on this PC. Installing an update does not delete it.</p><h3 data-i="versionTitle">Version</h3><div class="row"><span>Prompt Picker <b class="ver"></b></span><button class="btn" id="updchk" data-i="checkUpdate" data-tip="helpUpdate">Check for updates</button></div><p class="help" data-i="helpUpdate">Check for a newer version. Update now installs over this folder and does not delete prompts.</p><h3 data-i="resetTitle">Reset</h3><div class="row"><button class="btn danger" id="rstall" data-i="deleteAll" data-tip="helpReset">Delete all data</button></div><p class="help" data-i="helpReset">Delete every prompt, character, log row, and image on this PC. Export a backup first.</p></section></div></div></div><div id="upd"><div class="card" style="width:520px"><h2 id="updt" style="margin-top:0"></h2><div class="pt" id="updn" style="font-size:14px;max-height:220px"></div><div id="updp" class="hid"><div id="updb"></div></div><div class="row" style="justify-content:flex-end"><button class="btn" id="updl" data-i="later" data-tip="helpLater">Later</button><button class="btn pri" id="updy" data-i="updateNow" data-tip="helpUpdate">Update now</button></div></div></div>
 <script>
 // ==CORE== (pure logic, tested in node)
@@ -226,7 +226,10 @@ libSearch:'Tìm tên, nhãn, prompt, số hàng…',anyRating:'Mọi rating',sor
 addHelp:'Dán một hoặc nhiều prompt theo mẫu <code>[SFW][Tên &amp;New&amp;&amp;Halloween&amp; "ghi chú"][prompt…], [NSFW][Tên][prompt]</code>. Trong tên, &amp;nhãn&amp; là nhãn và dấu nháy kép là ghi chú. Tag là các phần của nội dung prompt cách nhau bằng dấu phẩy. Ngoặc () [] {} trong prompt được giữ nguyên.',
 preview:'Xem trước',addAll:'Thêm tất cả',importFileLong:'📂 Nhập file (.json / .txt)',importFile:'📂 Nhập file',
 holTitle:'Nhãn đặc biệt (Loại trừ & Ưu tiên)',holHelp:'Mỗi dòng một nhãn, không phân biệt hoa thường. Đây là nhãn ngày lễ. Chúng mặc định bật Cho phép lọc, và Loại trừ theo nhãn bắt đầu với chúng được chọn. Ưu tiên liệt kê mọi nhãn lọc được.',save:'Lưu',
-backupTitle:'Sao lưu',backupHelp:'Xuất toàn bộ prompt, nhân vật và ảnh ra 1 file JSON. Nên xuất định kỳ.',exportBtn:'Xuất file sao lưu',
+backupTitle:'Sao lưu & Nhập dữ liệu',backupHelp:'Xuất toàn bộ prompt, nhân vật và ảnh ra 1 file JSON. Nên xuất định kỳ.',exportBtn:'Xuất',
+exportFull:'Sao lưu đầy đủ, kể cả ảnh',exportPrompts:'Chỉ prompt, JSON dễ đọc',importBtn:'Nhập',
+helpExportChoice:'Sao lưu đầy đủ gồm ảnh. Chỉ prompt là file JSON dễ đọc của mọi prompt.',
+helpImportAuto:'Nhập tự nhận sao lưu đầy đủ, JSON prompt, hoặc chữ dán. JSON prompt cập nhật theo số hàng, thêm hàng mới, và hỏi trước khi ghi đè.',
 dataTitle:'Thư mục dữ liệu',dataHelp:'Prompt lưu ở',dataFiles:'(file prompts.json + thư mục images).',
 openFolder:'Mở thư mục',changeFolder:'Đổi thư mục…',versionTitle:'Phiên bản',checkUpdate:'Kiểm tra cập nhật',
 resetTitle:'Đặt lại',deleteAll:'Xoá toàn bộ dữ liệu',later:'Để sau',updateNow:'Cập nhật ngay',
@@ -247,12 +250,12 @@ logImportSummary:(a,u,c,skip)=>{let s='Đã thêm '+a+' hàng, cập nhật '+u+
 logImportNone:'Không có hàng nhật ký mới để gộp.',
 logImportNoneSkip:n=>'Không gộp được hàng nào. Bỏ qua '+n+' hàng vì không có prompt.',
 logImportBackup:'Đây là file sao lưu đầy đủ, không phải nhật ký.',
-logImportPrompts:'Đây là file prompt, không phải nhật ký. Hãy dùng Nhập JSON ở tab Dữ liệu prompt.',
+logImportPrompts:'Đây là file prompt, không phải nhật ký. Hãy dùng Nhập trong Cài đặt → Sao lưu & Nhập dữ liệu.',
 logNotPrompts:'Đây là file nhật ký. Hãy dùng Nhập JSON ở tab Nhật ký prompt.',
 logEmpty:'Nhân vật này chưa có hàng nào.',logNeedChar:'Chưa có nhân vật. Hãy copy một prompt kèm Name - Source.',
 confirmDelLog:(row,label)=>'Xoá hàng #'+row+' khỏi nhật ký của '+label+'?',
 resEmpty:'Bấm Bốc hoặc phím 1. Copy sẽ hỏi nhân vật (Name - Source).',
-resNone:'Chưa có prompt nào. Vào tab <b>Dữ liệu prompt</b> để dán prompt hoặc bấm <b>Nhập file</b>.',
+resNone:'Chưa có prompt nào. Mở Cài đặt → Sao lưu & Nhập dữ liệu, hoặc dán prompt trong Cài đặt.',
 emptyDataTitle:'Chưa có dữ liệu prompt',emptyDataHint:'Dán prompt hoặc nhập file. Các dòng sẽ hiện trong danh sách này.',
 emptyPickTitle:'Nhập prompt để bắt đầu bốc',emptyPickHint:'Thêm prompt trong Cài đặt, rồi bốc ngẫu nhiên ở đây.',
 emptyLogTitle:'Chưa có nhật ký prompt',emptyLogHint:'Nhật ký có dòng sau khi bạn copy prompt cho một nhân vật. Hãy thêm prompt trước.',
@@ -272,7 +275,7 @@ jsonConfirm:(u,a,ca,cu)=>{let s='Cập nhật '+u+' prompt bằng cách ghi đè
 jsonSummary:(u,a,ca,cu,skip)=>{let s='Đã thêm '+a+' prompt, cập nhật '+u+' prompt.';if(ca||cu)s+='\nNhân vật: thêm '+ca+', cập nhật '+cu+'.';if(skip)s+='\nBỏ qua '+skip+' hàng đã xong vì không có prompt.';return s},
 jsonNone:'Không có prompt hoặc nhân vật nào để nhập từ file JSON này.',
 jsonBad:'Không đọc được file JSON.',
-jsonBackupInstead:'Đây là file sao lưu đầy đủ. Hãy dùng Nhập file để khôi phục sao lưu.',
+jsonBackupInstead:'Đây là file sao lưu đầy đủ. Hãy dùng Nhập trong Sao lưu & Nhập dữ liệu để khôi phục.',
 jsonSaved:'Đã lưu file JSON.',
 confirmImport:(n,nc,ni)=>'File sao lưu: '+n+' prompt, '+nc+' nhân vật, '+ni+' ảnh.\nOK = THAY toàn bộ dữ liệu hiện tại\nHuỷ = GỘP thêm vào (bỏ prompt trùng)',
 imported:'Đã nhập xong',noneInFile:'Không đọc được prompt nào trong file',importedN:n=>'Đã nhập '+n+' prompt',
@@ -283,7 +286,7 @@ errUnknown:'Không rõ lỗi',errUnpackagedCheck:'Chỉ bản đã cài mới ki
 errUnpackagedDownload:'Chỉ bản đã cài mới tải được bản cập nhật.',errInvalidUpdate:'Cập nhật không hợp lệ',
 checkFail:m=>'Không kiểm tra được cập nhật: '+m,downloadFailMsg:m=>'Không tải được bản cập nhật. '+m,
 helpNavPick:'Bốc ngẫu nhiên một prompt, copy, và gắn với nhân vật.',
-helpNavData:'Ô tìm và bộ lọc nằm trên danh sách. Danh sách cuộn trong khung riêng. Dán, JSON, nhãn và sao lưu nằm trong Cài đặt.',
+helpNavData:'Ô tìm và bộ lọc nằm trên danh sách. Danh sách cuộn trong khung riêng. Dán, nhãn và Sao lưu & Nhập dữ liệu nằm trong Cài đặt.',
 helpNavLog:'Xem hàng đã copy theo từng nhân vật Name - Source, và xoá từng hàng.',
 helpLang:'Chọn ngôn ngữ cho mọi chữ, dòng giải thích và hộp cập nhật. Lựa chọn được nhớ trên máy.',
 helpLibSearch:'Lọc thẻ theo tên, nhãn, ghi chú, nội dung, hoặc số hàng (vd: 298).',
@@ -293,7 +296,7 @@ helpLibSort:'Xếp thẻ theo số hàng, theo tên, mới thêm, hoặc đưa p
 helpRefresh:'Đọc lại file trên đĩa, phân tích lại tên và nhãn, rồi vẽ lại danh sách.',
 helpCount:'Đây là tổng số prompt khớp bộ lọc, không chỉ số thẻ đang hiện. Cuộn hoặc bấm Tải thêm để xem tiếp.',
 helpPaste:'Dán đúng mẫu [SFW][Tên &nhãn& "ghi chú"][prompt]. Mỗi cụm một prompt.',
-helpPasteBtns:'Xem trước đọc ô dán. Thêm tất cả ghi các dòng đó và bỏ dòng trùng. Xuất JSON / Nhập JSON là file prompt. Nhập file còn nhận sao lưu hoặc file .txt.',
+helpPasteBtns:'Xem trước đọc ô dán. Thêm tất cả ghi các dòng đó và bỏ dòng trùng.',
 helpPreview:'Đọc ô dán và hiện bảng, chưa ghi vào danh sách.',
 helpAddAll:'Ghi các dòng vừa xem trước và bỏ dòng trùng nội dung.',
 helpImportFile:'Nhận file JSON prompt, file sao lưu, hoặc .txt đúng mẫu dán.',
@@ -334,7 +337,7 @@ helpCardDel:'Xoá prompt này khỏi danh sách, kể cả ảnh của nó.',
 helpLoadMore:'Hiện thêm một trang thẻ. Cuộn gần cuối danh sách cũng tự tải thêm.',
 goPrompt:'Tới prompt',helpGo:'Mở prompt này trong Dữ liệu prompt, cuộn tới thẻ đó và làm nổi bật.',goMissing:'Prompt này không còn trong danh sách.',
 pastePanel:'Dán prompt',cfgTabTags:'Nhãn',cfgTabData:'Dữ liệu',settingsTitle:'Cài đặt',close:'Đóng',langLabel:'Ngôn ngữ',
-helpSettings:'Mở cài đặt: ngôn ngữ, dán prompt, JSON, nhãn đặc biệt, quản lý nhãn, sao lưu và thư mục dữ liệu.',
+helpSettings:'Mở cài đặt: ngôn ngữ, dán prompt, nhãn, Sao lưu & Nhập dữ liệu, và thư mục dữ liệu.',
 helpClose:'Đóng cài đặt. Ngôn ngữ vừa chọn đã được nhớ trên máy.',
 labelMgrTitle:'Quản lý nhãn',labelMgrHelp:'Mọi nhãn tìm thấy trên prompt nằm ở đây. Bật Cho phép lọc để dùng trong bộ lọc, Loại trừ theo nhãn và Ưu tiên. New, Nope và nhãn ngày lễ mặc định bật. Nhãn khác chỉ để mô tả: hiện thành chip mờ trên thẻ và không lọc được.',
 allowFilter:'Cho phép lọc',addLabel:'Thêm nhãn',addLabelPh:'Nhãn mới',renameLabel:'Đổi tên',labelAdded:'Đã thêm nhãn',labelRenamed:'Đã đổi tên nhãn',labelExists:'Nhãn này đã có',labelEmpty:'Nhập tên nhãn',labelNone:'Chưa có nhãn.',
@@ -352,7 +355,10 @@ libSearch:'Search name, label, prompt, or row…',anyRating:'Any rating',sortRow
 addHelp:'Paste one or more prompts like <code>[SFW][Name &amp;New&amp;&amp;Halloween&amp; "note"][prompt…], [NSFW][Name][prompt]</code>. In the name, &amp;label&amp; is a label and quotes are a note. Tags are the comma-separated parts of the prompt text. () [] {} in the prompt are kept as written.',
 preview:'Preview',addAll:'Add all',importFileLong:'📂 Import file (.json / .txt)',importFile:'📂 Import file',
 holTitle:'Special labels (Exclude & Priority)',holHelp:'One label per line, case-insensitive. These are the holiday labels. They start with Allow filtering on, and Exclude by label starts with them selected. Priority lists every filterable label.',save:'Save',
-backupTitle:'Backup',backupHelp:'Export every prompt, character, and image to one JSON file. Export regularly.',exportBtn:'Export backup',
+backupTitle:'Backup & Import',backupHelp:'Export every prompt, character, and image to one JSON file. Export regularly.',exportBtn:'Export',
+exportFull:'Full backup, including images',exportPrompts:'Prompts only, readable JSON',importBtn:'Import',
+helpExportChoice:'Full backup includes images. Prompts only is a readable JSON file of every prompt.',
+helpImportAuto:'Import detects a full backup, prompt JSON, or paste text. Prompt JSON updates by row, adds rows, and asks before overwriting.',
 dataTitle:'Data folder',dataHelp:'Prompts are stored in',dataFiles:'(prompts.json + images folder).',
 openFolder:'Open folder',changeFolder:'Change folder…',versionTitle:'Version',checkUpdate:'Check for updates',
 resetTitle:'Reset',deleteAll:'Delete all data',later:'Later',updateNow:'Update now',
@@ -373,12 +379,12 @@ logImportSummary:(a,u,c,skip)=>{let s='Added '+a+' rows, updated '+u+' rows, add
 logImportNone:'No log rows to merge.',
 logImportNoneSkip:n=>'Nothing to merge. Skipped '+n+' rows with no matching prompt.',
 logImportBackup:'This is a full backup, not a prompt log.',
-logImportPrompts:'This is a prompt file, not a log. Use Import JSON on the Prompts Data tab.',
+logImportPrompts:'This is a prompt file, not a log. Use Import in Settings → Backup & Import.',
 logNotPrompts:'This is a log file. Use Import JSON on the Prompt Log tab.',
 logEmpty:'This character has no logged rows.',logNeedChar:'No characters yet. Copy a prompt with a Name - Source.',
 confirmDelLog:(row,label)=>'Remove row #'+row+' from the log for '+label+'?',
 resEmpty:'Press Pick or the 1 key. Copy asks for a character (Name - Source).',
-resNone:'No prompts yet. Open the <b>Prompts Data</b> tab to paste prompts, or click <b>Import file</b>.',
+resNone:'No prompts yet. Open Settings → Backup & Import, or paste prompts in Settings.',
 emptyDataTitle:'No prompt data yet',emptyDataHint:'Paste prompts or import a file. They show up in this list.',
 emptyPickTitle:'Import prompts to start picking',emptyPickHint:'Add prompts in Settings, then pick one at random from here.',
 emptyLogTitle:'No prompt log yet',emptyLogHint:'The log fills in after you copy a prompt for a character. Add prompts first.',
@@ -398,7 +404,7 @@ jsonConfirm:(u,a,ca,cu)=>{let s='Update '+u+' prompts by overwriting the matchin
 jsonSummary:(u,a,ca,cu,skip)=>{let s='Added '+a+' prompts, updated '+u+' prompts.';if(ca||cu)s+='\nCharacters: added '+ca+', updated '+cu+'.';if(skip)s+='\nSkipped '+skip+' finished rows with no prompt.';return s},
 jsonNone:'No prompts or characters to import from this JSON file.',
 jsonBad:'Could not read the JSON file.',
-jsonBackupInstead:'This is a full backup. Use Import file to restore a backup.',
+jsonBackupInstead:'This is a full backup. Use Import in Backup & Import to restore it.',
 jsonSaved:'JSON file saved.',
 confirmImport:(n,nc,ni)=>'Backup file: '+n+' prompts, '+nc+' characters, '+ni+' images.\nOK = REPLACE all current data\nCancel = MERGE in (skip duplicate prompts)',
 imported:'Import finished',noneInFile:'Could not read any prompts in the file',importedN:n=>'Imported '+n+' prompts',
@@ -409,7 +415,7 @@ errUnknown:'Unknown error',errUnpackagedCheck:'Update checks only work in the in
 errUnpackagedDownload:'Updates can only be downloaded from the installed app.',errInvalidUpdate:'Invalid update',
 checkFail:m=>'Could not check for updates: '+m,downloadFailMsg:m=>'Could not download the update. '+m,
 helpNavPick:'Randomly pick one prompt, copy it, and attach a character.',
-helpNavData:'Search and filters stay above the list. The list scrolls in its own frame. Paste, JSON, labels, and backup are in Settings.',
+helpNavData:'Search and filters stay above the list. The list scrolls in its own frame. Paste, labels, and Backup & Import are in Settings.',
 helpNavLog:'See copied rows for each Name - Source character, and delete a row.',
 helpLang:'Choose the language for every label, the help under each control, and the update dialog. The choice is remembered on this PC.',
 helpLibSearch:'Filter cards by name, label, note, prompt text, or row number (e.g. 298).',
@@ -419,7 +425,7 @@ helpLibSort:'Order cards by row, by name, newest first, or put prompts that alre
 helpRefresh:'Read the file from disk, parse names and labels again, then redraw the list.',
 helpCount:'This is the full filtered total, not only the cards on screen. Scroll or press Load more to see the rest.',
 helpPaste:'Paste as [SFW][Name &label& "note"][prompt]. One group is one prompt.',
-helpPasteBtns:'Preview reads the paste box. Add all saves those rows and skips duplicates. Export JSON / Import JSON is the prompt file. Import file also accepts a backup or a .txt file.',
+helpPasteBtns:'Preview reads the paste box. Add all saves those rows and skips duplicates.',
 helpPreview:'Read the paste box and show a table. Nothing is saved yet.',
 helpAddAll:'Save the previewed rows and skip duplicate prompt text.',
 helpImportFile:'Accept a prompt JSON file, a backup, or a .txt file in the paste format.',
@@ -460,7 +466,7 @@ helpCardDel:'Delete this prompt from the list, including its images.',
 helpLoadMore:'Show another page of cards. Scrolling near the bottom loads more as well.',
 goPrompt:'Go to prompt',helpGo:'Open this prompt in Prompts Data, scroll to its card, and highlight it.',goMissing:'That prompt is no longer in the list.',
 pastePanel:'Paste prompts',cfgTabTags:'Labels',cfgTabData:'Data',settingsTitle:'Settings',close:'Close',langLabel:'Language',
-helpSettings:'Open settings: language, paste, JSON, special labels, the label manager, backup, and the data folder.',
+helpSettings:'Open settings: language, paste, labels, Backup & Import, and the data folder.',
 helpClose:'Close settings. The language you picked is already saved on this PC.',
 labelMgrTitle:'Label manager',labelMgrHelp:'Every label found on a prompt is listed here. Allow filtering puts it in the filter dropdown, Exclude by label, and Priority. New, Nope, and holiday labels start on. Other labels are descriptive: they stay on the card as a muted chip and are not filterable.',
 allowFilter:'Allow filtering',addLabel:'Add label',addLabelPh:'New label',renameLabel:'Rename',labelAdded:'Label added',labelRenamed:'Label renamed',labelExists:'That label already exists',labelEmpty:'Enter a label name',labelNone:'No labels yet.',
@@ -478,7 +484,10 @@ libSearch:'搜索名称、标注、提示词或行号…',anyRating:'全部评�
 addHelp:'按示例粘贴一条或多条提示词 <code>[SFW][名称 &amp;New&amp;&amp;Halloween&amp; "备注"][提示词…], [NSFW][名称][提示词]</code>。名称里，&amp;标注&amp; 是标注，双引号里是备注。标签是提示词正文里用逗号分开的部分。提示词中的 () [] {} 会原样保留。',
 preview:'预览',addAll:'全部添加',importFileLong:'📂 导入文件 (.json / .txt)',importFile:'📂 导入文件',
 holTitle:'特殊标注（排除和优先）',holHelp:'每行一个标注，不区分大小写。这些是节日标注。它们默认开启允许筛选，按标注排除一开始就选中它们。优先会列出每一个可筛选标注。',save:'保存',
-backupTitle:'备份',backupHelp:'把全部提示词、角色和图片导出为一个 JSON 文件。建议定期导出。',exportBtn:'导出备份',
+backupTitle:'备份与导入',backupHelp:'把全部提示词、角色和图片导出为一个 JSON 文件。建议定期导出。',exportBtn:'导出',
+exportFull:'完整备份，包含图片',exportPrompts:'仅提示词，可读 JSON',importBtn:'导入',
+helpExportChoice:'完整备份包含图片。仅提示词是一份可读的全部提示词 JSON。',
+helpImportAuto:'导入会自动识别完整备份、提示词 JSON 或粘贴文本。提示词 JSON 按行号更新、添加新行，并在覆盖前询问。',
 dataTitle:'数据文件夹',dataHelp:'提示词保存在',dataFiles:'（prompts.json 和 images 文件夹）。',
 openFolder:'打开文件夹',changeFolder:'更换文件夹…',versionTitle:'版本',checkUpdate:'检查更新',
 resetTitle:'重置',deleteAll:'删除全部数据',later:'稍后',updateNow:'立即更新',
@@ -499,12 +508,12 @@ logImportSummary:(a,u,c,skip)=>{let s='已添加 '+a+' 行，更新 '+u+' 行，
 logImportNone:'没有可合并的新记录。',
 logImportNoneSkip:n=>'没有可合并的内容。已跳过 '+n+' 行，因为没有对应的提示词。',
 logImportBackup:'这是完整备份，不是提示词记录。',
-logImportPrompts:'这是提示词文件，不是记录。请在提示词数据页使用导入 JSON。',
+logImportPrompts:'这是提示词文件，不是记录。请在设置 → 备份与导入中使用导入。',
 logNotPrompts:'这是记录文件。请在提示词记录页使用导入 JSON。',
 logEmpty:'这个角色还没有记录。',logNeedChar:'还没有角色。复制提示词时请带上 Name - Source。',
 confirmDelLog:(row,label)=>'从 '+label+' 的记录中删除第 #'+row+' 行？',
 resEmpty:'点抽取或按 1。复制时会要求选择角色（Name - Source）。',
-resNone:'还没有提示词。打开<b>提示词数据</b>页粘贴，或点<b>导入文件</b>。',
+resNone:'还没有提示词。打开设置 → 备份与导入，或在设置里粘贴提示词。',
 emptyDataTitle:'还没有提示词数据',emptyDataHint:'粘贴提示词或导入文件后，它们会显示在这个列表里。',
 emptyPickTitle:'导入提示词后即可开始抽取',emptyPickHint:'先在设置里添加提示词，再回到这里随机抽取。',
 emptyLogTitle:'还没有提示词记录',emptyLogHint:'为角色复制提示词之后，记录才会出现。请先添加提示词。',
@@ -524,7 +533,7 @@ jsonConfirm:(u,a,ca,cu)=>{let s='按行号覆盖更新 '+u+' 条提示词，并�
 jsonSummary:(u,a,ca,cu,skip)=>{let s='已添加 '+a+' 条提示词，更新 '+u+' 条。';if(ca||cu)s+='\n角色：添加 '+ca+' 个，更新 '+cu+' 个。';if(skip)s+='\n跳过 '+skip+' 条没有对应提示词的已完成行。';return s},
 jsonNone:'这个 JSON 文件里没有可导入的提示词或角色。',
 jsonBad:'无法读取 JSON 文件。',
-jsonBackupInstead:'这是完整备份。请使用导入文件来恢复备份。',
+jsonBackupInstead:'这是完整备份。请在备份与导入中使用导入来恢复。',
 jsonSaved:'JSON 文件已保存。',
 confirmImport:(n,nc,ni)=>'备份文件：'+n+' 条提示词，'+nc+' 个角色，'+ni+' 张图片。\n确定 = 替换当前全部数据\n取消 = 合并进去（跳过重复的提示词）',
 imported:'导入完成',noneInFile:'文件里没有读到提示词',importedN:n=>'已导入 '+n+' 条提示词',
@@ -535,7 +544,7 @@ errUnknown:'未知错误',errUnpackagedCheck:'只有已安装的版本才能检�
 errUnpackagedDownload:'只有已安装的版本才能下载更新。',errInvalidUpdate:'更新无效',
 checkFail:m=>'无法检查更新：'+m,downloadFailMsg:m=>'无法下载更新。'+m,
 helpNavPick:'随机抽取一条提示词，复制，并关联到一个角色。',
-helpNavData:'搜索和筛选留在列表上方。列表在自己的框里滚动。粘贴、JSON、标注和备份在设置里。',
+helpNavData:'搜索和筛选留在列表上方。列表在自己的框里滚动。粘贴、标注和备份与导入在设置里。',
 helpNavLog:'查看每个 Name - Source 角色已复制的行，并可删除某一行。',
 helpLang:'为所有文字、每项控件下的说明以及更新窗口选择语言。选择会保存在这台电脑上。',
 helpLibSearch:'按名称、标注、备注、正文或行号筛选卡片（例如 298）。',
@@ -545,7 +554,7 @@ helpLibSort:'按行号、按名称、最新添加排序，或把已有图片的�
 helpRefresh:'从磁盘重新读取文件，再次解析名称和标注，然后重绘列表。',
 helpCount:'这是符合筛选条件的总数，不只是屏幕上的卡片。滚动或点加载更多可继续查看。',
 helpPaste:'按 [SFW][名称 &标注& "备注"][提示词] 粘贴。每一组是一条提示词。',
-helpPasteBtns:'预览会读取粘贴框。全部添加会保存这些行并跳过重复。导出 JSON / 导入 JSON 是提示词文件。导入文件还可以接受备份或 .txt。',
+helpPasteBtns:'预览会读取粘贴框。全部添加会保存这些行并跳过重复。',
 helpPreview:'读取粘贴框并显示表格。此时尚未保存。',
 helpAddAll:'保存刚预览的行，并跳过正文重复的行。',
 helpImportFile:'接受提示词 JSON、备份，或符合粘贴格式的 .txt 文件。',
@@ -586,7 +595,7 @@ helpCardDel:'从列表中删除这条提示词，包括它的图片。',
 helpLoadMore:'再显示一页卡片。滚到列表底部附近也会自动加载。',
 goPrompt:'转到提示词',helpGo:'在提示词数据中打开这条提示词，滚到它的卡片并高亮。',goMissing:'这条提示词已经不在列表里。',
 pastePanel:'粘贴提示词',cfgTabTags:'标注',cfgTabData:'数据',settingsTitle:'设置',close:'关闭',langLabel:'语言',
-helpSettings:'打开设置：语言、粘贴、JSON、特殊标注、标注管理、备份和数据文件夹。',
+helpSettings:'打开设置：语言、粘贴、标注、备份与导入和数据文件夹。',
 helpClose:'关闭设置。所选语言已经保存在这台电脑上。',
 labelMgrTitle:'标注管理',labelMgrHelp:'提示词上找到的每个标注都列在这里。打开允许筛选后，它会出现在筛选、按标注排除和优先里。New、Nope 和节日标注默认开启。其他标注只作说明：在卡片上显示为淡色标注，不能用来筛选。',
 allowFilter:'允许筛选',addLabel:'添加标注',addLabelPh:'新标注',renameLabel:'重命名',labelAdded:'已添加标注',labelRenamed:'已重命名标注',labelExists:'这个标注已经存在',labelEmpty:'请输入标注名称',labelNone:'还没有标注。',
@@ -604,7 +613,10 @@ libSearch:'이름, 라벨, 프롬프트, 행 번호 검색…',anyRating:'모든
 addHelp:'예시처럼 프롬프트를 하나 이상 붙여 넣으세요. <code>[SFW][이름 &amp;New&amp;&amp;Halloween&amp; "메모"][프롬프트…], [NSFW][이름][프롬프트]</code>. 이름에서 &amp;라벨&amp; 는 라벨이고, 큰따옴표 안은 메모입니다. 태그는 프롬프트 본문에서 쉼표로 나뉜 부분입니다. 프롬프트의 () [] {} 는 그대로 둡니다.',
 preview:'미리보기',addAll:'모두 추가',importFileLong:'📂 파일 가져오기 (.json / .txt)',importFile:'📂 파일 가져오기',
 holTitle:'특수 라벨 (제외 및 우선)',holHelp:'한 줄에 라벨 하나이며 대소문자를 구분하지 않습니다. 이것이 기념일 라벨입니다. 필터 허용이 기본으로 켜지고, 라벨로 제외는 이들을 선택한 채로 시작합니다. 우선은 필터 가능한 모든 라벨을 나열합니다.',save:'저장',
-backupTitle:'백업',backupHelp:'모든 프롬프트, 캐릭터, 이미지를 JSON 파일 하나로 내보냅니다. 정기적으로 내보내세요.',exportBtn:'백업 내보내기',
+backupTitle:'백업 및 가져오기',backupHelp:'모든 프롬프트, 캐릭터, 이미지를 JSON 파일 하나로 내보냅니다. 정기적으로 내보내세요.',exportBtn:'내보내기',
+exportFull:'이미지 포함 전체 백업',exportPrompts:'프롬프트만, 읽기 쉬운 JSON',importBtn:'가져오기',
+helpExportChoice:'전체 백업에는 이미지가 포함됩니다. 프롬프트만은 모든 프롬프트의 읽기 쉬운 JSON입니다.',
+helpImportAuto:'가져오기는 전체 백업, 프롬프트 JSON, 붙여 넣기 텍스트를 자동으로 구분합니다. 프롬프트 JSON은 행 번호로 업데이트하고 새 행을 추가하며, 덮어쓰기 전에 묻습니다.',
 dataTitle:'데이터 폴더',dataHelp:'프롬프트 저장 위치',dataFiles:'(prompts.json 및 images 폴더).',
 openFolder:'폴더 열기',changeFolder:'폴더 변경…',versionTitle:'버전',checkUpdate:'업데이트 확인',
 resetTitle:'초기화',deleteAll:'모든 데이터 삭제',later:'나중에',updateNow:'지금 업데이트',
@@ -625,12 +637,12 @@ logImportSummary:(a,u,c,skip)=>{let s=a+'행 추가, '+u+'행 업데이트, 캐�
 logImportNone:'합칠 새 기록이 없습니다.',
 logImportNoneSkip:n=>'합칠 항목이 없습니다. 프롬프트가 없어 '+n+'행을 건너뛰었습니다.',
 logImportBackup:'이것은 전체 백업이며 프롬프트 기록이 아닙니다.',
-logImportPrompts:'이것은 프롬프트 파일이며 기록이 아닙니다. 프롬프트 데이터 탭에서 JSON 가져오기를 사용하세요.',
+logImportPrompts:'이것은 프롬프트 파일이며 기록이 아닙니다. 설정 → 백업 및 가져오기에서 가져오기를 사용하세요.',
 logNotPrompts:'이것은 기록 파일입니다. 프롬프트 기록 탭에서 JSON 가져오기를 사용하세요.',
 logEmpty:'이 캐릭터에는 기록된 행이 없습니다.',logNeedChar:'아직 캐릭터가 없습니다. Name - Source와 함께 프롬프트를 복사하세요.',
 confirmDelLog:(row,label)=>label+'의 기록에서 #'+row+'행을 삭제할까요?',
 resEmpty:'뽑기를 누르거나 1 키를 누르세요. 복사는 캐릭터(Name - Source)를 묻습니다.',
-resNone:'아직 프롬프트가 없습니다. <b>프롬프트 데이터</b> 탭에서 붙여 넣거나 <b>파일 가져오기</b>를 누르세요.',
+resNone:'아직 프롬프트가 없습니다. 설정 → 백업 및 가져오기를 열거나, 설정에서 프롬프트를 붙여 넣으세요.',
 emptyDataTitle:'아직 프롬프트 데이터가 없습니다',emptyDataHint:'프롬프트를 붙여 넣거나 파일을 가져오면 이 목록에 나타납니다.',
 emptyPickTitle:'프롬프트를 가져오면 뽑기를 시작할 수 있습니다',emptyPickHint:'설정에서 프롬프트를 추가한 다음 여기서 무작위로 뽑으세요.',
 emptyLogTitle:'아직 프롬프트 기록이 없습니다',emptyLogHint:'캐릭터를 위해 프롬프트를 복사하면 기록이 생깁니다. 먼저 프롬프트를 추가하세요.',
@@ -650,7 +662,7 @@ jsonConfirm:(u,a,ca,cu)=>{let s='행 번호로 '+u+'개를 덮어 업데이트�
 jsonSummary:(u,a,ca,cu,skip)=>{let s='프롬프트 '+a+'개 추가, '+u+'개 업데이트.';if(ca||cu)s+='\n캐릭터: '+ca+'명 추가, '+cu+'명 업데이트.';if(skip)s+='\n프롬프트가 없는 완료 행 '+skip+'개를 건너뛰었습니다.';return s},
 jsonNone:'이 JSON 파일에서 가져올 프롬프트나 캐릭터가 없습니다.',
 jsonBad:'JSON 파일을 읽을 수 없습니다.',
-jsonBackupInstead:'이것은 전체 백업입니다. 백업을 복원하려면 파일 가져오기를 사용하세요.',
+jsonBackupInstead:'이것은 전체 백업입니다. 백업 및 가져오기에서 가져오기로 복원하세요.',
 jsonSaved:'JSON 파일을 저장했습니다.',
 confirmImport:(n,nc,ni)=>'백업 파일: 프롬프트 '+n+'개, 캐릭터 '+nc+'명, 이미지 '+ni+'개.\n확인 = 현재 데이터를 모두 교체\n취소 = 합치기 (중복 프롬프트는 건너뜀)',
 imported:'가져오기 완료',noneInFile:'파일에서 프롬프트를 읽지 못했습니다',importedN:n=>'프롬프트 '+n+'개를 가져왔습니다',
@@ -661,7 +673,7 @@ errUnknown:'알 수 없는 오류',errUnpackagedCheck:'업데이트를 확인하
 errUnpackagedDownload:'업데이트를 받으려면 설치된 앱이 필요합니다.',errInvalidUpdate:'잘못된 업데이트',
 checkFail:m=>'업데이트를 확인하지 못했습니다: '+m,downloadFailMsg:m=>'업데이트를 받지 못했습니다. '+m,
 helpNavPick:'프롬프트 하나를 무작위로 뽑고, 복사하고, 캐릭터에 연결합니다.',
-helpNavData:'검색과 필터는 목록 위에 있습니다. 목록은 자체 프레임에서 스크롤됩니다. 붙여넣기, JSON, 라벨, 백업은 설정에 있습니다.',
+helpNavData:'검색과 필터는 목록 위에 있습니다. 목록은 자체 프레임에서 스크롤됩니다. 붙여넣기, 라벨, 백업 및 가져오기는 설정에 있습니다.',
 helpNavLog:'각 Name - Source 캐릭터의 복사한 행을 보고, 행을 삭제합니다.',
 helpLang:'모든 문구, 각 컨트롤 아래 설명, 업데이트 창의 언어를 고릅니다. 선택은 이 PC에 저장됩니다.',
 helpLibSearch:'이름, 라벨, 메모, 본문 또는 행 번호(예: 298)로 카드를 거릅니다.',
@@ -671,7 +683,7 @@ helpLibSort:'행 번호, 이름, 최근 추가 순으로 정렬하거나, 이미
 helpRefresh:'디스크에서 파일을 다시 읽고, 이름과 라벨을 다시 분석한 뒤 목록을 그립니다.',
 helpCount:'화면에 보이는 카드 수가 아니라, 필터에 맞는 전체 개수입니다. 스크롤하거나 더 보기를 누르면 이어서 볼 수 있습니다.',
 helpPaste:'[SFW][이름 &라벨& "메모"][프롬프트] 형식으로 붙여 넣으세요. 한 묶음이 프롬프트 하나입니다.',
-helpPasteBtns:'미리보기는 붙여 넣기 칸을 읽습니다. 모두 추가는 그 행을 저장하고 중복은 건너뜁니다. JSON 내보내기 / 가져오기는 프롬프트 파일입니다. 파일 가져오기는 백업이나 .txt도 받습니다.',
+helpPasteBtns:'미리보기는 붙여 넣기 칸을 읽습니다. 모두 추가는 그 행을 저장하고 중복은 건너뜁니다.',
 helpPreview:'붙여 넣기 칸을 읽고 표를 보여 줍니다. 아직 저장되지 않습니다.',
 helpAddAll:'미리 본 행을 저장하고, 본문이 같은 행은 건너뜁니다.',
 helpImportFile:'프롬프트 JSON, 백업, 또는 붙여 넣기 형식의 .txt 파일을 받습니다.',
@@ -712,7 +724,7 @@ helpCardDel:'이 프롬프트와 이미지를 목록에서 삭제합니다.',
 helpLoadMore:'카드를 한 페이지 더 표시합니다. 목록 아래쪽 근처로 스크롤해도 더 불러옵니다.',
 goPrompt:'프롬프트로 이동',helpGo:'프롬프트 데이터에서 이 프롬프트를 열고, 해당 카드로 스크롤한 뒤 강조합니다.',goMissing:'그 프롬프트는 목록에 없습니다.',
 pastePanel:'프롬프트 붙여넣기',cfgTabTags:'라벨',cfgTabData:'데이터',settingsTitle:'설정',close:'닫기',langLabel:'언어',
-helpSettings:'설정을 엽니다. 언어, 붙여넣기, JSON, 특수 라벨, 라벨 관리, 백업, 데이터 폴더가 있습니다.',
+helpSettings:'설정을 엽니다. 언어, 붙여넣기, 라벨, 백업 및 가져오기, 데이터 폴더가 있습니다.',
 helpClose:'설정을 닫습니다. 고른 언어는 이미 이 PC에 저장되어 있습니다.',
 labelMgrTitle:'라벨 관리',labelMgrHelp:'프롬프트에서 찾은 모든 라벨이 여기 나열됩니다. 필터 허용을 켜면 필터, 라벨로 제외, 우선에 들어갑니다. New, Nope, 기념일 라벨은 기본으로 켜집니다. 그 밖의 라벨은 설명용입니다. 카드에 옅은 칩으로만 보이고 필터에는 쓰이지 않습니다.',
 allowFilter:'필터 허용',addLabel:'라벨 추가',addLabelPh:'새 라벨',renameLabel:'이름 바꾸기',labelAdded:'라벨을 추가했습니다',labelRenamed:'라벨 이름을 바꿨습니다',labelExists:'그 라벨은 이미 있습니다',labelEmpty:'라벨 이름을 입력하세요',labelNone:'아직 라벨이 없습니다.',
@@ -805,8 +817,8 @@ function entryMatches(p,q){if(!q)return true;const nq=rowQuery(q);if(nq&&String(
 function charVisible(c,q){if(!q)return true;if(lc(c.label).includes(lc(q)))return true;return S.used.some(u=>{if(u.characterId!==c.id)return false;const p=S.prompts.find(x=>x.id===u.promptId);return p&&entryMatches(p,q)})}
 function visibleEntries(c,q){const labelHit=!!q&&lc(c.label).includes(lc(q));const onlyRow=/^#?\d+$/.test(String(q||'').trim());return S.used.filter(u=>u.characterId===c.id).map(u=>({u,p:S.prompts.find(x=>x.id===u.promptId)})).filter(x=>x.p&&(!q||(labelHit&&!onlyRow)||entryMatches(x.p,q))).sort((a,b)=>a.p.row-b.p.row)}
 function deleteLog(characterId,promptId){const c=S.characters.find(x=>x.id===characterId),p=S.prompts.find(x=>x.id===promptId);if(!c||!p)return;if(!confirm(t('confirmDelLog',p.row,c.label)))return;S.used=S.used.filter(u=>!(u.characterId===characterId&&u.promptId===promptId));save();renderLog()}
-function emptyMarkup(titleKey,hintKey){return `<div class="empty"><h2>${esc(t(titleKey))}</h2><p class="help">${esc(t(hintKey))}</p><div class="row"><button type="button" class="btn pri" data-empty="import" title="${esc(t('helpImportFile'))}">${esc(t('importFile'))}</button><button type="button" class="btn" data-empty="paste" title="${esc(t('helpPaste'))}">${esc(t('pastePanel'))}</button></div></div>`}
-function bindEmpty(root){root.querySelectorAll('[data-empty]').forEach(b=>b.onclick=()=>{showCfg(true);showCfgTab('paste');if(b.dataset.empty==='import'){const input=document.querySelector('[data-cfgp="paste"] .impf');if(input)input.click()}else{const ta=$('#paste');if(ta)ta.focus()}})}
+function emptyMarkup(titleKey,hintKey){return `<div class="empty"><h2>${esc(t(titleKey))}</h2><p class="help">${esc(t(hintKey))}</p><div class="row"><button type="button" class="btn pri" data-empty="import" title="${esc(t('helpImportAuto'))}">${esc(t('importBtn'))}</button><button type="button" class="btn" data-empty="paste" title="${esc(t('helpPaste'))}">${esc(t('pastePanel'))}</button></div></div>`}
+function bindEmpty(root){root.querySelectorAll('[data-empty]').forEach(b=>b.onclick=()=>{showCfg(true);if(b.dataset.empty==='import'){showCfgTab('backup');const input=document.querySelector('[data-cfgp="backup"] .impf');if(input)input.click();return}showCfgTab('paste');const ta=$('#paste');if(ta)ta.focus()})}
 function renderLog(){const box=$('#logchars'),entries=$('#logentries'),empty=$('#logempty');const none=!S||!S.prompts.length;const logView=$('#v-log');if(logView)logView.classList.toggle('is-empty',none);if(empty){empty.classList.toggle('hid',!none);if(none){empty.innerHTML=emptyMarkup('emptyLogTitle','emptyLogHint');bindEmpty(empty);return}}if(!box||!entries)return;const q=logQuery;const list=S.characters.filter(c=>charVisible(c,q));const selected=list.some(c=>c.id===S.activeCharacter)?S.activeCharacter:(list[0]&&list[0].id);box.innerHTML=list.length?list.map(c=>{const n=S.used.filter(u=>u.characterId===c.id&&S.prompts.some(p=>p.id===u.promptId)).length;return `<button type="button" class="chopt${c.id===selected?' on':''}" data-id="${c.id}" title="${esc(t('helpLogChars'))}"><span>${esc(c.label)}</span><span class="meta">${n}</span></button>`}).join(''):'<p class="meta" style="padding:8px">'+esc(t('logNeedChar'))+'</p>';box.querySelectorAll('.chopt').forEach(b=>b.onclick=()=>{S.activeCharacter=b.dataset.id;S.charMode='old';save();renderLog()});const c=S.characters.find(x=>x.id===selected);if(!c){entries.innerHTML='<p class="meta">'+esc(t('logNeedChar'))+'</p>';return}const rows=visibleEntries(c,q);entries.innerHTML='<div class="meta" style="margin-bottom:6px">'+esc(c.label)+'</div>'+(rows.length?rows.map(({u,p})=>{const stale=logStale(p,u);const snip=String(p.prompt||'').replace(/\s+/g,' ').slice(0,90);return `<div class="logitem"><span class="rid">#${p.row}</span><div class="grow"><b>${esc(dispName(p.name))}</b> <span class="tag r-${p.rating}">${p.rating}</span>${notesHtml(p)}${stale?` <span class="donebadge warn">${esc(t('logEdited'))}</span>`:''}<div class="snip">${esc(snip)}</div></div><button type="button" class="btn" data-go="${p.id}" title="${esc(t('helpGo'))}">${esc(t('goPrompt'))}</button><button type="button" class="btn danger" data-pid="${p.id}" title="${esc(t('helpLogDel'))}">${esc(t('logDelete'))}</button></div>`}).join(''):'<p class="meta">'+esc(t('logEmpty'))+'</p>');entries.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>goToPrompt(b.dataset.go));entries.querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>deleteLog(c.id,b.dataset.pid))}
 function chipHue(text){let h=0;const s=lc(text);for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))%360;return h}
 function pillHtml(chip,idx,group,pct){const hue=chipHue(chip.text);const qual=group==='pri'?((pct==null?50:+pct)+'%'):(chip.kind==='tag'?t('chipTag'):'');return `<button type="button" class="pill${chip.on===false?' off':''}" data-group="${group}" data-idx="${idx}" style="--ph:${hue}" title="${esc(t(chip.on===false?'chipOff':'chipOn'))}"><b>${esc(chip.text)}</b>${qual?`<span class="dot">· ${esc(String(qual))}</span>`:''}<span class="pillx" title="${esc(t('chipRemove'))}" aria-label="${esc(t('chipRemove'))}">✕</span></button>`}
@@ -911,7 +923,7 @@ $('#savehol').onclick=()=>{S.holidays=$('#hol').value.split('\n').map(s=>lc(s)).
 $('#labadd').onclick=()=>{const input=$('#labnew');const res=addLabelName(input&&input.value);if(!res.ok){toast(t(res.error));return}if(input)input.value='';save();toast(t('labelAdded'));refreshLabelSurfaces()};
 $('#labnew').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#labadd').click()}});
 $('#rstall').onclick=async()=>{if(!confirm(t('confirmDeleteAll')))return;const keep=curLang(),chosen=S.langChosen===true;for(const x of S.images.slice())await api.imgDel(x.id);S=fresh();S.lang=keep;if(chosen)S.langChosen=true;charQuery='';charDraft='';logQuery='';const lqin=$('#logq');if(lqin)lqin.value='';save();toast(t('deleted'));applyStatic();show('pick')};
-$('#exp').onclick=async()=>{const ok=await api.saveFile('PromptPicker-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'PromptPicker',v:1,date:new Date().toISOString(),data:S,images:await allImgs()}));if(ok)toast(t('backupSaved'))};
+$('#exp').onclick=async()=>{if($('#expkind')&&$('#expkind').value==='prompts'){await exportPromptJson();return}const ok=await api.saveFile('PromptPicker-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'PromptPicker',v:1,date:new Date().toISOString(),data:S,images:await allImgs()}));if(ok)toast(t('backupSaved'))};
 async function exportPromptJson(){const text=JSON.stringify(exportPromptDoc(),null,2)+'\n';const ok=await api.saveFile('PromptPicker-prompts-'+new Date().toISOString().slice(0,10)+'.json',text,t('exportJson'));if(ok)toast(t('jsonSaved'))}
 async function importPromptJson(txt,parsed){let o=parsed;if(o===undefined){try{o=JSON.parse(txt)}catch(e){alert(t('jsonBad'));return}}if(o&&o.format==='log'){alert(t('logNotPrompts'));return}if(o&&o.data&&Array.isArray(o.data.prompts)){alert(t('jsonBackupInstead'));return}const plan=planPromptImport(o);if(!plan){alert(t('jsonBad'));return}const cu=plan.characters?plan.characters.filter(c=>c.doneChanged&&!c.isNew).length:0;const ca=plan.characters?plan.characters.filter(c=>c.isNew).length:0;if(!plan.updates.length&&!plan.adds.length&&!ca&&!cu){if(plan.labelRules){if(!confirm(t('labelRulesConfirm')))return;applyPromptImport(plan);save();alert(t('labelRulesApplied'));show(currentView());renderLabelManager();return}alert(t('jsonNone'));return}if(!confirm(t('jsonConfirm',plan.updates.length,plan.adds.length,ca,cu)))return;const res=applyPromptImport(plan);save();alert(t('jsonSummary',res.updated,res.added,res.charsAdded,res.charsUpdated,res.doneSkipped));show(currentView());renderLabelManager()}
 async function importText(txt){let o=null;try{o=JSON.parse(txt)}catch(e){}
@@ -925,9 +937,6 @@ async function importText(txt){let o=null;try{o=JSON.parse(txt)}catch(e){}
  if(!list.length){alert(t('noneInFile'));return}
  const have=new Set(S.prompts.map(p=>p.prompt));let n=0;list.forEach(p=>{if(!have.has(p.prompt)){have.add(p.prompt);p.row=allocRow();S.prompts.push(p);n++}});save();toast(t('importedN',n));show('pick');}
 document.querySelectorAll('.impf').forEach(i=>i.onchange=async e=>{const f=e.target.files[0];if(f)await importText(await f.text());e.target.value=''});
-document.querySelectorAll('.expjson').forEach(b=>b.onclick=()=>exportPromptJson());
-document.querySelectorAll('.impjson').forEach(b=>b.onclick=()=>$('#impjsonf').click());
-$('#impjsonf').onchange=async e=>{const f=e.target.files[0];if(f)await importPromptJson(await f.text());e.target.value=''};
 $('#librefresh').onclick=()=>refreshFromDisk();
 $('#libadd').onclick=()=>{const box=$('#newprompt');if(box&&!box.classList.contains('hid')){const name=box.querySelector('[data-f=name]');if(name)name.focus();return}openNewPrompt()};
 async function exportLogJson(){const text=JSON.stringify(exportLogDoc(),null,2)+'\n';const ok=await api.saveFile('PromptPicker-log-'+new Date().toISOString().slice(0,10)+'.json',text,t('exportJson'));if(ok)toast(t('jsonSaved'))}
