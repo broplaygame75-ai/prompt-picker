@@ -9,7 +9,7 @@ W, H = 1100, 680
 
 FONTS = {
     "en": ("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf", "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"),
-    "vi": (str(ROOT / "src/fonts/BeVietnamPro-Regular.ttf"), str(ROOT / "src/fonts/BeVietnamPro-SemiBold.ttf")),
+    "vi": (str(ROOT / "build/guide-fonts/Lexend-Regular.ttf"), str(ROOT / "build/guide-fonts/Lexend-SemiBold.ttf")),
     "zh": (str(ROOT / "build/guide-fonts/NotoSansSC-Regular.ttf"), str(ROOT / "build/guide-fonts/NotoSansSC-SemiBold.ttf")),
     "ko": (str(ROOT / "build/guide-fonts/NotoSansKR-Regular.ttf"), str(ROOT / "build/guide-fonts/NotoSansKR-SemiBold.ttf")),
 }

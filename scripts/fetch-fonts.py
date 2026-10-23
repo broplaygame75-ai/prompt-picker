@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download small Noto Sans SC/KR subsets for the UI and the install guide."""
+"""Download Lexend (Latin, including Vietnamese) and Noto Sans SC/KR subsets."""
 import pathlib, urllib.parse, urllib.request
 from fontTools.ttLib import TTFont
 from fontTools.merge import Merger
@@ -95,7 +95,12 @@ def main():
     ascii_set = "".join(chr(i) for i in range(32, 127))
     cjk = take(text, lambda c: "\u3400" <= c <= "\u9fff" or "\u3000" <= c <= "\u303f" or "\uff00" <= c <= "\uffef")
     hang = take(text, lambda c: "\uac00" <= c <= "\ud7af" or "\u1100" <= c <= "\u11ff" or "\u3130" <= c <= "\u318f")
-    print("cjk", len(cjk), "hangul", len(hang))
+    viet_alpha = "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ"
+    viet = "".join(sorted(set(take(text, lambda c: "\u00c0" <= c <= "\u024f" or c in "…—–“”‘’") + viet_alpha)))
+    print("cjk", len(cjk), "hangul", len(hang), "latin-ext", len(viet))
+    latin = ascii_set + viet
+    build("Lexend", 400, latin, OUT / "Lexend-Regular.woff2", TTF / "Lexend-Regular.ttf")
+    build("Lexend", 600, latin, OUT / "Lexend-SemiBold.woff2", TTF / "Lexend-SemiBold.ttf")
     build("Noto Sans SC", 400, ascii_set + cjk, OUT / "NotoSansSC-Regular.woff2", TTF / "NotoSansSC-Regular.ttf")
     build("Noto Sans SC", 600, ascii_set + cjk, OUT / "NotoSansSC-SemiBold.woff2", TTF / "NotoSansSC-SemiBold.ttf")
     build("Noto Sans KR", 400, ascii_set + hang, OUT / "NotoSansKR-Regular.woff2", TTF / "NotoSansKR-Regular.ttf")
