@@ -5,7 +5,6 @@
  * releases-repo README. Old 0.1.3/0.1.4 note edits are best-effort.
  */
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const https = require('https');
 const {execFileSync} = require('child_process');
@@ -136,36 +135,33 @@ function guideBody() {
   }).join('\n\n');
 }
 
-function gitEnv() {
-  return Object.assign({}, process.env, {
-    GIT_TERMINAL_PROMPT: '0',
-    GIT_CONFIG_COUNT: '1',
-    GIT_CONFIG_KEY_0: 'http.extraheader',
-    GIT_CONFIG_VALUE_0: 'AUTHORIZATION: bearer ' + token
-  });
+async function putFile(repoPath, buf, message) {
+  const urlPath = '/repos/' + owner + '/' + repo + '/contents/' + repoPath.split('/').map(encodeURIComponent).join('/');
+  let sha = null;
+  try {
+    const cur = await api('GET', urlPath + '?ref=main');
+    sha = cur.json && cur.json.sha;
+  } catch (e) {
+    if (e.status !== 404) throw e;
+  }
+  const body = {message, content: buf.toString('base64'), branch: 'main'};
+  if (sha) body.sha = sha;
+  await api('PUT', urlPath, body);
+  console.log('wrote', repoPath);
 }
 
-function pushReadme() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pprel-'));
-  const url = `https://github.com/${owner}/${repo}.git`;
-  try {
-    execFileSync('git', ['clone', '--depth', '1', url, dir], {env: gitEnv(), stdio: ['ignore', 'pipe', 'pipe']});
-  } catch (e) {
-    console.error('clone releases repo failed', e.status || '');
-    return false;
+async function pushReadme() {
+  const files = [];
+  function walk(dir, prefix) {
+    for (const name of fs.readdirSync(dir)) {
+      if (name.endsWith('.exe')) continue;
+      const src = path.join(dir, name);
+      const rel = prefix ? prefix + '/' + name : name;
+      if (fs.statSync(src).isDirectory()) walk(src, rel);
+      else files.push({rel: 'guide/' + rel, buf: fs.readFileSync(src)});
+    }
   }
-  const guideDir = path.join(dir, 'guide');
-  fs.rmSync(guideDir, {recursive: true, force: true});
-  fs.mkdirSync(guideDir, {recursive: true});
-  for (const name of fs.readdirSync(stage)) {
-    const src = path.join(stage, name);
-    if (name.endsWith('.exe')) continue;
-    const dest = path.join(guideDir, name);
-    if (fs.statSync(src).isDirectory()) {
-      fs.mkdirSync(dest, {recursive: true});
-      for (const file of fs.readdirSync(src)) fs.copyFileSync(path.join(src, file), path.join(dest, file));
-    } else fs.copyFileSync(src, dest);
-  }
+  walk(stage, '');
   const readme = [
     '# Prompt Picker',
     '',
@@ -179,31 +175,19 @@ function pushReadme() {
     '',
     'Windows may say "Windows protected your PC" because the app is not code-signed. Click **More info**, then **Run anyway**. Do not turn off SmartScreen or Defender. The pictures are illustrations.',
     '',
-    rootize(fs.readFileSync(path.join(guideDir, 'HOW-TO-INSTALL.md'), 'utf8').trim()),
+    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.md'), 'utf8').trim()),
     '',
-    rootize(fs.readFileSync(path.join(guideDir, 'HOW-TO-INSTALL.en.md'), 'utf8').trim()),
+    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.en.md'), 'utf8').trim()),
     '',
-    rootize(fs.readFileSync(path.join(guideDir, 'HOW-TO-INSTALL.vi.md'), 'utf8').trim()),
+    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.vi.md'), 'utf8').trim()),
     '',
-    rootize(fs.readFileSync(path.join(guideDir, 'HOW-TO-INSTALL.zh.md'), 'utf8').trim()),
+    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.zh.md'), 'utf8').trim()),
     '',
-    rootize(fs.readFileSync(path.join(guideDir, 'HOW-TO-INSTALL.ko.md'), 'utf8').trim()),
+    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.ko.md'), 'utf8').trim()),
     ''
   ].join('\n');
-  fs.writeFileSync(path.join(dir, 'README.md'), readme);
-  execFileSync('git', ['-C', dir, 'config', 'user.email', 'cursoragent@cursor.com']);
-  execFileSync('git', ['-C', dir, 'config', 'user.name', 'Cursor Agent']);
-  execFileSync('git', ['-C', dir, 'add', 'README.md', 'guide'], {env: gitEnv()});
-  const status = execFileSync('git', ['-C', dir, 'status', '--porcelain'], {encoding: 'utf8'});
-  if (!status.trim()) { console.log('releases README unchanged'); return true; }
-  execFileSync('git', ['-C', dir, 'commit', '-m', 'Update the Prompt Picker ' + version + ' install guide'], {env: gitEnv()});
-  try {
-    execFileSync('git', ['-C', dir, 'push', 'origin', 'HEAD:main'], {env: gitEnv(), stdio: ['ignore', 'pipe', 'pipe']});
-  } catch (e) {
-    console.error('push releases README failed', e.status || '');
-    return false;
-  }
-  console.log('updated releases README');
+  files.push({rel: 'README.md', buf: Buffer.from(readme, 'utf8')});
+  for (const file of files) await putFile(file.rel, file.buf, 'Update ' + file.rel + ' for Prompt Picker ' + version);
   return true;
 }
 
@@ -228,7 +212,7 @@ async function main() {
     fs.writeFileSync(path.join(root, 'dist', 'publish-report.json'), JSON.stringify(report, null, 2));
     return;
   }
-  report.readme = pushReadme();
+  report.readme = await pushReadme();
   const current = await setNotes('v' + version, notesFor(version) + '\n\n' + guideBody());
   if (!current) {
     fs.writeFileSync(path.join(root, 'dist', 'publish-report.json'), JSON.stringify(report, null, 2));
