@@ -8,11 +8,17 @@ function dataSources(){const sources=[];try{const userData=app.getPath('userData
 function dataDir(){return adoptExistingData(fixedDataDir(app.getPath('appData')),dataSources())}
 const dataFile=()=>path.join(dataDir(),'prompts.json');
 function writeAtomic(f,s){fs.writeFileSync(f+'.tmp',s);fs.renameSync(f+'.tmp',f);}
-let win;
-function create(){win=new BrowserWindow({width:1500,height:950,minWidth:1000,backgroundColor:'#0f0d14',title:'Prompt Picker',icon:path.join(__dirname,'../build/icon.png'),autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true}});win.loadFile(path.join(__dirname,'index.html'));}
+let win,settingsWin;
+const winOpts=()=>({backgroundColor:'#0f0d14',icon:path.join(__dirname,'../build/icon.png'),autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true}});
+function create(){win=new BrowserWindow(Object.assign(winOpts(),{width:1500,height:950,minWidth:1000,title:'Prompt Picker'}));win.loadFile(path.join(__dirname,'index.html'));win.on('closed',()=>{win=null;if(settingsWin&&!settingsWin.isDestroyed())settingsWin.close()});}
+function openSettings(tab){const token=typeof tab==='string'?tab:'';if(settingsWin&&!settingsWin.isDestroyed()){if(settingsWin.isMinimized())settingsWin.restore();settingsWin.focus();settingsWin.webContents.send('settings-tab',token);return}settingsWin=new BrowserWindow(Object.assign(winOpts(),{width:960,height:780,minWidth:560,minHeight:480,title:'Settings'}));settingsWin.loadFile(path.join(__dirname,'index.html'),{query:{view:'settings',tab:token}});settingsWin.on('closed',()=>{settingsWin=null});}
+function otherWindows(sender){return BrowserWindow.getAllWindows().filter(w=>!w.isDestroyed()&&w.webContents!==sender)}
 ipcMain.handle('version',()=>app.getVersion());
 ipcMain.handle('load',()=>{try{return JSON.parse(fs.readFileSync(dataFile(),'utf8'))}catch(e){return null}});
 ipcMain.handle('save',(e,s)=>{writeAtomic(dataFile(),s);return true});
+ipcMain.handle('settings-open',(e,tab)=>{openSettings(tab);return true});
+ipcMain.on('state-push',(e,text)=>{if(typeof text!=='string'||text.length>20000000)return;otherWindows(e.sender).forEach(w=>w.webContents.send('state-push',text))});
+ipcMain.on('theme-preview',(e,colors)=>{if(!colors||typeof colors!=='object')return;otherWindows(e.sender).forEach(w=>w.webContents.send('theme-preview',colors))});
 ipcMain.handle('img-save',(e,id,dataUrl)=>{const b=Buffer.from(dataUrl.split(',')[1],'base64');fs.writeFileSync(path.join(dataDir(),'images',id+'.webp'),b);return true});
 ipcMain.handle('img-read',(e,id)=>{try{return 'data:image/webp;base64,'+fs.readFileSync(path.join(dataDir(),'images',id+'.webp')).toString('base64')}catch(x){return null}});
 ipcMain.handle('img-del',(e,id)=>{try{fs.unlinkSync(path.join(dataDir(),'images',id+'.webp'))}catch(x){}return true});
@@ -20,7 +26,7 @@ ipcMain.handle('dir-get',()=>dataDir());
 ipcMain.handle('dir-open',()=>shell.openPath(dataDir()));
 function uiLang(){try{const s=JSON.parse(fs.readFileSync(dataFile(),'utf8'));if(s.langChosen===true&&['en','vi','zh','ko'].includes(s.lang))return s.lang}catch(e){}return 'en'}
 ipcMain.handle('dir-change',()=>dataDir());
-ipcMain.handle('save-file',async(e,name,text,title)=>{const fallback={en:'Save backup',vi:'Lưu file sao lưu',zh:'保存备份',ko:'백업 저장'}[uiLang()]||'Save backup';const r=await dialog.showSaveDialog(win,{title:typeof title==='string'&&title.trim()?title.trim():fallback,defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
+ipcMain.handle('save-file',async(e,name,text,title)=>{const fallback={en:'Save backup',vi:'Lưu file sao lưu',zh:'保存备份',ko:'백업 저장'}[uiLang()]||'Save backup';const parent=BrowserWindow.fromWebContents(e.sender)||win;const r=await dialog.showSaveDialog(parent,{title:typeof title==='string'&&title.trim()?title.trim():fallback,defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
 // updates
 autoUpdater.autoDownload=false;
 autoUpdater.autoInstallOnAppQuit=false;
