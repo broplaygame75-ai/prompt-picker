@@ -10,7 +10,7 @@ const dataFile=()=>path.join(dataDir(),'prompts.json');
 function writeAtomic(f,s){fs.writeFileSync(f+'.tmp',s);fs.renameSync(f+'.tmp',f);}
 let win,settingsWin;
 const winOpts=()=>({backgroundColor:'#0f0d14',icon:path.join(__dirname,'../build/icon.png'),autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true}});
-function create(){win=new BrowserWindow(Object.assign(winOpts(),{width:1500,height:950,minWidth:1000,title:'Prompt Picker'}));win.loadFile(path.join(__dirname,'index.html'));win.on('closed',()=>{win=null;if(settingsWin&&!settingsWin.isDestroyed())settingsWin.close()});}
+function create(){win=new BrowserWindow(Object.assign(winOpts(),{width:1500,height:950,minWidth:360,title:'Prompt Picker'}));win.loadFile(path.join(__dirname,'index.html'));win.on('closed',()=>{win=null;if(settingsWin&&!settingsWin.isDestroyed())settingsWin.close()});}
 function openSettings(tab){const token=typeof tab==='string'?tab:'';if(settingsWin&&!settingsWin.isDestroyed()){if(settingsWin.isMinimized())settingsWin.restore();settingsWin.focus();settingsWin.webContents.send('settings-tab',token);return}settingsWin=new BrowserWindow(Object.assign(winOpts(),{width:960,height:780,minWidth:560,minHeight:480,title:'Settings'}));settingsWin.loadFile(path.join(__dirname,'index.html'),{query:{view:'settings',tab:token}});settingsWin.on('closed',()=>{settingsWin=null});}
 function otherWindows(sender){return BrowserWindow.getAllWindows().filter(w=>!w.isDestroyed()&&w.webContents!==sender)}
 ipcMain.handle('version',()=>app.getVersion());

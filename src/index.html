@@ -152,6 +152,39 @@ body.win-settings .cfgcard{width:100%;max-width:none;max-height:none;height:100%
 #zoom{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:9}#zoom img{max-width:92vw;max-height:92vh}
 table{border-collapse:collapse;width:100%;table-layout:fixed}td{padding:6px;border-bottom:1px solid var(--ln);vertical-align:top;overflow-wrap:anywhere}
 @container settings (max-width:720px){.cfgsec .row{flex-direction:column;align-items:stretch}.cfgsec .row .btn,.cfgsec .row select,.cfgsec .row input{width:100%}.fontpresets{flex-direction:column}.fontpresets button{width:100%;text-align:left}.labrow{flex-direction:column;align-items:stretch}.labrow input{min-width:0;width:100%}.wheelmeta{flex-direction:column;align-items:flex-start}.cfgtabs button{white-space:normal}}
+@media(max-width:600px){
+ body:not(.win-settings){overflow-x:hidden}
+ body:not(.win-settings) header{display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"title gear ver" "nav nav nav" "hint hint hint";align-items:center;gap:8px;padding:10px 12px}
+ body:not(.win-settings) header h1{grid-area:title;font-size:18px;min-width:0}
+ body:not(.win-settings) header nav{grid-area:nav;display:flex;flex-wrap:nowrap;gap:6px;width:100%;overflow-x:auto;touch-action:pan-x}
+ body:not(.win-settings) header nav button{flex:1 0 auto;min-height:44px;padding:8px 12px;white-space:nowrap;text-align:center}
+ body:not(.win-settings) header .gear{grid-area:gear;min-width:44px;min-height:44px}
+ body:not(.win-settings) header .ver{grid-area:ver;margin:0!important}
+ body:not(.win-settings) header .sp{display:none}
+ body:not(.win-settings) header .hint:not(.ver){grid-area:hint;font-size:12px}
+ body:not(.win-settings) main{padding:10px 12px;overflow-x:hidden}
+ body:not(.win-settings) .view,body:not(.win-settings) .listscroll,body:not(.win-settings) .datapage{overflow-x:hidden;touch-action:pan-y}
+ body:not(.win-settings) .slot-body,body:not(.win-settings) .modecols,body:not(.win-settings) .lib{grid-template-columns:1fr}
+ body:not(.win-settings) .row{flex-direction:column;align-items:stretch}
+ body:not(.win-settings) .btn,body:not(.win-settings) .fld,body:not(.win-settings) .seg{width:100%}
+ body:not(.win-settings) .btn,body:not(.win-settings) .seg button,body:not(.win-settings) select,body:not(.win-settings) textarea,body:not(.win-settings) .fld input,body:not(.win-settings) .chopt{min-height:44px}
+ body:not(.win-settings) .big{min-height:48px}
+ body:not(.win-settings) .seg{display:flex}
+ body:not(.win-settings) .seg button{flex:1 1 auto}
+ body:not(.win-settings) .cardface{flex-direction:column}
+ body:not(.win-settings) .shots,body:not(.win-settings) .res .shots,body:not(.win-settings) .lib .shots{width:100%;flex-basis:auto;max-width:100%}
+ body:not(.win-settings) .thumbs{flex-direction:row;flex-wrap:wrap}
+ body:not(.win-settings) .shot{flex:1 1 140px;max-width:100%}
+ body:not(.win-settings) .card,body:not(.win-settings) .modecol{padding:14px}
+ body:not(.win-settings) .tools{gap:12px}
+ body:not(.win-settings) .help,.slot .help,.fld .help{max-width:none}
+ body:not(.win-settings) .pill{min-height:40px;padding:6px 8px 6px 12px}
+ body:not(.win-settings) .pillx{width:28px;height:28px}
+ body:not(.win-settings) .logitem{flex-direction:column;align-items:stretch}
+ body:not(.win-settings) .logitem .btn{width:100%}
+ body:not(.win-settings) #upd .card{width:min(520px,calc(100vw - 24px))}
+ body:not(.win-settings) #toast{left:12px;right:12px;transform:none;max-width:none;text-align:center}
+}
 </style></head><body>
 <header><h1>✦ Prompt Picker</h1><nav><button data-v="pick" class="on" data-i="navPick" data-tip="helpNavPick">Prompt Pick</button><button data-v="data" data-i="navData" data-tip="helpNavData">Prompts Data</button><button data-v="log" data-i="navLog" data-tip="helpNavLog">Prompt Log</button></nav><span class="sp"></span><button type="button" class="btn gear" id="cfgbtn" data-tip="helpSettings" aria-label="Settings">⚙️</button><span class="hint ver" style="margin-right:10px"></span><span class="hint" data-ih="hint"><kbd>1</kbd> pick · <kbd>Q</kbd>/<kbd>C</kbd> copy</span></header>
 <main>
