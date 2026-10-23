@@ -18,7 +18,7 @@ ipcMain.handle('img-read',(e,id)=>{try{return 'data:image/webp;base64,'+fs.readF
 ipcMain.handle('img-del',(e,id)=>{try{fs.unlinkSync(path.join(dataDir(),'images',id+'.webp'))}catch(x){}return true});
 ipcMain.handle('dir-get',()=>dataDir());
 ipcMain.handle('dir-open',()=>shell.openPath(dataDir()));
-function uiLang(){try{const s=JSON.parse(fs.readFileSync(dataFile(),'utf8'));return s.lang==='en'?'en':'vi'}catch(e){return 'vi'}}
+function uiLang(){try{const s=JSON.parse(fs.readFileSync(dataFile(),'utf8'));if(s.langChosen===true&&s.lang==='vi')return 'vi';return 'en'}catch(e){return 'en'}}
 ipcMain.handle('dir-change',()=>dataDir());
 ipcMain.handle('save-file',async(e,name,text,title)=>{const fallback=uiLang()==='en'?'Save backup':'Lưu file sao lưu';const r=await dialog.showSaveDialog(win,{title:typeof title==='string'&&title.trim()?title.trim():fallback,defaultPath:name,filters:[{name:'JSON',extensions:['json']}]});if(r.canceled)return false;fs.writeFileSync(r.filePath,text);return true});
 // updates
