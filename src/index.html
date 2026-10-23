@@ -16,7 +16,20 @@ nav button{background:none;border:0;color:var(--mu);font-size:15px;padding:8px 1
 .listpin .tools{margin:0}
 .listscroll{flex:1;min-height:0;overflow:auto;padding:12px;overscroll-behavior:contain;container-type:inline-size;container-name:liblist}
 .card{background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:18px}
-.slot-body{display:grid;grid-template-columns:minmax(340px,460px) minmax(0,1fr);gap:28px;align-items:stretch}
+.slot-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.85fr);gap:22px;align-items:start}
+.modecols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.modecol{min-width:0;border:1px solid var(--ln);border-radius:12px;padding:10px 10px 2px;background:#14111a}
+.modecol h3{margin:0 0 8px;font-size:14px;font-weight:700}
+.modecol .help{max-width:none}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.pill{display:inline-flex;align-items:center;gap:4px;max-width:100%;overflow:hidden;border:1px solid hsl(var(--ph) 48% 42%);border-radius:999px;padding:3px 2px 3px 10px;background:hsl(var(--ph) 42% 16%);color:hsl(var(--ph) 85% 90%);font:700 12px/1.2 var(--font);cursor:pointer}
+.pill b{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modecol select{flex:1;min-width:0;max-width:100%}
+.pill .dot{font-weight:650;opacity:.8}
+.pill.off{opacity:.4;filter:grayscale(.85)}
+.pillx{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;font:700 11px/1 var(--font);opacity:.85}
+.pillx:hover{background:#0008}
+@media(max-width:1100px){.modecols{grid-template-columns:1fr}}
 .slot .res{min-height:520px;margin-top:0;border-top:0;padding-top:0;border-left:1px dashed var(--ln);padding-left:28px}
 .slot .pt{font-size:20px;max-height:min(64vh,720px)}
 .chlist{max-height:180px;overflow:auto;border:1px solid var(--ln);border-radius:8px;background:var(--pn2);margin:6px 0 10px}
@@ -165,12 +178,22 @@ function weightedPick(list,state,now,rnd){
 function promptTags(p){return String(p&&p.prompt||'').split(',').map(s=>lc(s)).filter(Boolean)}
 // filter: {rating, mode:'normal'|'exclude'|'theme', theme, pct, kw, exTag, exTags, exKw, exWords}
 function labelFilterable(name,state){state=state||{};const rules=Array.isArray(state.labelRules)?state.labelRules:[];const hit=rules.find(r=>r&&lc(r.name)===lc(name));if(hit&&typeof hit.filterable==='boolean')return !!hit.filterable;const s=lc(name);if(s==='new'||s==='nope')return true;const hol=Array.isArray(state.holidays)&&state.holidays.length?state.holidays:HOLIDAY_DEFAULT;return hol.some(h=>lc(h)===s)}
-// mode 'theme' is Priority. Exclude can skip selected name labels (exTag/exTags) and/or comma-separated tags in the prompt text (exKw/exWords).
+// When exChips or priChips is an array, active Exclude chips run first, then Priority weighting. Otherwise mode 'theme' is Priority.
+// Legacy exclude can skip selected name labels (exTag/exTags) and/or comma-separated tags in the prompt text (exKw/exWords).
 // When exTags is unset, only filterable holiday labels are skipped.
 function pick(prompts,f,state,opts){
   opts=opts||{};const now=opts.now||Date.now(),rnd=opts.rnd||Math.random,hol=(state.holidays||HOLIDAY_DEFAULT).map(lc);
   let base=prompts.filter(p=>matchRating(p,f.rating||'All')&&matchKw(p,f.kw)&&p.id!==opts.avoidId);
   if(!base.length)base=prompts.filter(p=>matchRating(p,f.rating||'All')&&matchKw(p,f.kw));
+  if(Array.isArray(f.exChips)||Array.isArray(f.priChips)){
+    const chips=(Array.isArray(f.exChips)?f.exChips:[]).filter(c=>c&&c.on!==false&&lc(c.text));
+    const tags=chips.filter(c=>c.kind!=='tag').map(c=>lc(c.text));
+    const words=chips.filter(c=>c.kind==='tag').map(c=>lc(c.text));
+    base=base.filter(p=>{if(tags.length&&(p.tags||[]).some(t=>tags.includes(lc(t))))return false;if(words.some(w=>promptTags(p).includes(w)))return false;return true});
+    const pri=(Array.isArray(f.priChips)?f.priChips:[]).filter(c=>c&&c.on!==false&&lc(c.text)).map(c=>lc(c.text));
+    if(pri.length){const th=base.filter(p=>(p.tags||[]).some(t=>pri.includes(lc(t))));if(th.length&&rnd()*100<(f.pct==null?50:f.pct))return weightedPick(th,state,now,rnd)}
+    return weightedPick(base,state,now,rnd);
+  }
   if(f.mode==='exclude'){
     const listed=f.exTag===false?[]:(Array.isArray(f.exTags)?f.exTags.map(lc).filter(Boolean):hol);const tags=Array.isArray(f.exTags)||f.exTag===false?listed:listed.filter(h=>labelFilterable(h,state));
     const words=f.exKw===true?String(f.exWords||'').split(',').map(lc).filter(Boolean):[];
@@ -201,6 +224,7 @@ openFolder:'Mở thư mục',changeFolder:'Đổi thư mục…',versionTitle:'P
 resetTitle:'Đặt lại',deleteAll:'Xoá toàn bộ dữ liệu',later:'Để sau',updateNow:'Cập nhật ngay',
 pickTitle:'Bốc prompt',pickHint:'phím <kbd>1</kbd> bốc · <kbd>Q</kbd>/<kbd>C</kbd> copy',rating:'Rating',all:'Tất cả',theme:'Chủ đề',
 modeNormal:'Bình thường',modeExclude:'Loại trừ',modeTheme:'Ưu tiên',tag:'Nhãn',chooseTag:'— chọn nhãn —',priority:'Phần trăm',
+addChip:'Thêm',chipTag:'tag',chipOn:'Bấm để tắt',chipOff:'Bấm để bật',chipRemove:'Gỡ',
 exTag:'Loại trừ theo nhãn',exKw:'Loại trừ theo tag',exWordsPh:'bath, solo',
 kwPh:'Lọc từ khoá hoặc số hàng (tuỳ chọn)',character:'Nhân vật',charOld:'Chọn cũ',charNew:'Tạo mới',
 charSearch:'Tìm Name - Source hoặc số hàng…',charNewPh:'Name - Source, ví dụ Boothill - HSR',
@@ -277,9 +301,9 @@ helpLogSearch:'Lọc nhân vật theo tên, hoặc chỉ hiện hàng nhật ký
 helpLogChars:'Bấm một nhân vật để xem hàng đã copy. Nút xoá gỡ hàng khỏi nhật ký, không xoá prompt.',
 helpLogDel:'Gỡ hàng này khỏi nhật ký nhân vật. Prompt trong danh sách không bị xoá.',
 helpRating:'SFW chỉ bốc prompt an toàn, NSFW chỉ prompt người lớn, Tất cả lấy cả hai. Prompt ghi All vẫn khớp mọi lựa chọn.',
-helpTheme:'Bình thường: bốc ngẫu nhiên trong bộ lọc. Loại trừ: bỏ prompt theo nhãn đã chọn, theo tag trong nội dung, hoặc cả hai. Ưu tiên: chọn một nhãn lọc được rồi tăng % prompt có nhãn đó.',
-helpPct:'Khi đang Ưu tiên: 70% nghĩa là khoảng 70/100 lần bốc sẽ lấy prompt có nhãn đã chọn. Phần còn lại bốc như Bình thường.',
-helpExTag:'Bỏ prompt có tên chứa nhãn đã chọn (&nhãn&). Mặc định chọn các nhãn đặc biệt. Có thể bật cùng Loại trừ theo tag.',
+helpTheme:'Ba cột luôn hiện cùng lúc. Bình thường là bộ lọc gốc. Loại trừ chạy trước: chip đang bật sẽ bị bỏ. Ưu tiên dùng phần trăm để lấy prompt có nhãn đang bật. Bấm chip để tắt, ✕ để gỡ.',
+helpPct:'Thêm nhãn lọc được rồi chỉnh phần trăm. 70% nghĩa là sau Loại trừ, khoảng 70/100 lần bốc lấy prompt có nhãn đang bật.',
+helpExTag:'Thêm nhãn lọc được hoặc tag trong nội dung prompt. Chip đang bật sẽ bị bỏ khi bốc.',
 helpExKw:'Bỏ prompt có tag này trong nội dung. Tag là một phần cách nhau bằng dấu phẩy, ví dụ bath trong "1girl, bath, solo". Có thể bật cùng Loại trừ theo nhãn.',
 helpKw:'Tuỳ chọn. Gõ từ (vd: bath) để chỉ bốc trong prompt có từ đó, hoặc gõ số hàng (vd: 298) để lấy đúng prompt đó.',
 helpChar:'Bắt buộc trước khi copy. Chọn cũ tìm nhân vật đã lưu. Tạo mới gõ Name - Source (vd: Boothill - HSR) và lưu lại.',
@@ -318,6 +342,7 @@ openFolder:'Open folder',changeFolder:'Change folder…',versionTitle:'Version',
 resetTitle:'Reset',deleteAll:'Delete all data',later:'Later',updateNow:'Update now',
 pickTitle:'Pick prompt',pickHint:'key <kbd>1</kbd> pick · <kbd>Q</kbd>/<kbd>C</kbd> copy',rating:'Rating',all:'All',theme:'Theme',
 modeNormal:'Normal',modeExclude:'Exclude',modeTheme:'Priority',tag:'Label',chooseTag:'— choose a label —',priority:'Percent',
+addChip:'Add',chipTag:'tag',chipOn:'Click to turn off',chipOff:'Click to turn on',chipRemove:'Remove',
 exTag:'Exclude by label',exKw:'Exclude by tag',exWordsPh:'bath, solo',
 kwPh:'Keyword or row filter (optional)',character:'Character',charOld:'Pick existing',charNew:'New',
 charSearch:'Search Name - Source or row…',charNewPh:'Name - Source, e.g. Boothill - HSR',
@@ -394,9 +419,9 @@ helpLogSearch:'Filter characters by name, or show only log rows that match a row
 helpLogChars:'Click a character to see copied rows. Delete removes that row from the log and leaves the prompt in place.',
 helpLogDel:'Remove this row from the character log. The prompt stays in the list.',
 helpRating:'SFW picks only safe prompts, NSFW only adult prompts, All keeps both. A prompt rated All still matches every choice.',
-helpTheme:'Normal picks at random inside the filter. Exclude can skip prompts by selected labels, by tags in the prompt text, or both. Priority: choose one filterable label, then raise the percent of picks that use it.',
-helpPct:'Used in Priority. 70% means about 70 of 100 picks come from prompts with the chosen label. The rest pick like Normal.',
-helpExTag:'Skip prompts whose name has any selected label. The special labels start selected. You can combine this with Exclude by tag.',
+helpTheme:'These three columns stay open together. Normal is the base filter. Exclude runs first and skips active chips. Priority then uses the percent to pick prompts with an active label. Click a chip to turn it off, or ✕ to remove it.',
+helpPct:'Add filterable labels, then set the percent. 70% means about 70 of 100 picks, after Exclude, come from prompts with an active label.',
+helpExTag:'Add a filterable label or a tag from the prompt text. Active chips are skipped. Click a chip to turn it off, or ✕ to remove it.',
 helpExKw:'Skip prompts whose text contains any of these tags. A tag is one comma-separated part of the prompt. You can combine this with Exclude by label.',
 helpKw:'Optional. Type a word (e.g. bath) to pick only prompts containing it, or a row number (e.g. 298) to get exactly that prompt.',
 helpChar:'Required before copying. Pick existing searches characters you already stored. New asks for Name - Source (e.g. Boothill - HSR) and saves it.',
@@ -435,6 +460,7 @@ openFolder:'打开文件夹',changeFolder:'更换文件夹…',versionTitle:'版
 resetTitle:'重置',deleteAll:'删除全部数据',later:'稍后',updateNow:'立即更新',
 pickTitle:'抽取提示词',pickHint:'按 <kbd>1</kbd> 抽取 · <kbd>Q</kbd>/<kbd>C</kbd> 复制',rating:'分级',all:'全部',theme:'主题',
 modeNormal:'普通',modeExclude:'排除',modeTheme:'优先',tag:'标注',chooseTag:'— 选择标注 —',priority:'百分比',
+addChip:'添加',chipTag:'标签',chipOn:'点击关闭',chipOff:'点击开启',chipRemove:'移除',
 exTag:'按标注排除',exKw:'按标签排除',exWordsPh:'bath, solo',
 kwPh:'关键词或行号筛选（可选）',character:'角色',charOld:'选择已有',charNew:'新建',
 charSearch:'搜索 Name - Source 或行号…',charNewPh:'Name - Source，例如 Boothill - HSR',
@@ -511,9 +537,9 @@ helpLogSearch:'按名称筛选角色，或只显示行号匹配的记录。',
 helpLogChars:'点一个角色查看已复制的行。删除只从记录中移除该行，不会删除提示词。',
 helpLogDel:'从该角色的记录中移除这一行。提示词仍留在列表里。',
 helpRating:'SFW 只抽取安全提示词，NSFW 只抽取成人提示词，全部两者都抽。评级为 All 的提示词符合任何选择。',
-helpTheme:'普通：在筛选结果里随机抽取。排除：可按所选标注跳过，按提示词正文里的标签跳过，或两者同时使用。优先：先选一个可筛选标注，再提高抽到该标注的百分比。',
-helpPct:'在优先模式下使用。70% 表示大约 100 次里有 70 次抽到带所选标注的提示词。其余次数按普通模式抽取。',
-helpExTag:'跳过名称里带有所选标注的提示词。特殊标注默认被选中。可以和按标签排除一起用。',
+helpTheme:'这三列同时显示。普通是基础筛选。排除先执行，跳过已启用的芯片。优先再用百分比抽取带有已启用标注的提示词。点击芯片可关闭，✕ 可移除。',
+helpPct:'添加可筛选标注，再设置百分比。70% 表示排除之后，大约 100 次里有 70 次抽到带有已启用标注的提示词。',
+helpExTag:'添加可筛选标注，或提示词正文里的标签。已启用的芯片会被跳过。点击芯片可关闭，✕ 可移除。',
 helpExKw:'跳过正文里包含这些标签的提示词。标签是提示词中用逗号分开的一段，例如 "1girl, bath, solo" 里的 bath。可以和按标注排除一起用。',
 helpKw:'可选。输入单词（例如 bath）则只抽取包含该词的提示词，输入行号（例如 298）则精确抽取那一条。',
 helpChar:'复制前必须选择。选择已有会查找已经保存的角色。新建要求输入 Name - Source（例如 Boothill - HSR）并保存。',
@@ -552,6 +578,7 @@ openFolder:'폴더 열기',changeFolder:'폴더 변경…',versionTitle:'버전'
 resetTitle:'초기화',deleteAll:'모든 데이터 삭제',later:'나중에',updateNow:'지금 업데이트',
 pickTitle:'프롬프트 뽑기',pickHint:'<kbd>1</kbd> 뽑기 · <kbd>Q</kbd>/<kbd>C</kbd> 복사',rating:'등급',all:'전체',theme:'주제',
 modeNormal:'보통',modeExclude:'제외',modeTheme:'우선',tag:'라벨',chooseTag:'— 라벨 선택 —',priority:'비율',
+addChip:'추가',chipTag:'태그',chipOn:'클릭하면 끕니다',chipOff:'클릭하면 켭니다',chipRemove:'제거',
 exTag:'라벨로 제외',exKw:'태그로 제외',exWordsPh:'bath, solo',
 kwPh:'키워드 또는 행 번호 필터 (선택)',character:'캐릭터',charOld:'기존 선택',charNew:'새로 만들기',
 charSearch:'Name - Source 또는 행 번호 검색…',charNewPh:'Name - Source, 예: Boothill - HSR',
@@ -628,9 +655,9 @@ helpLogSearch:'이름으로 캐릭터를 거르거나, 행 번호가 같은 기�
 helpLogChars:'캐릭터를 누르면 복사한 행이 보입니다. 삭제는 기록에서만 그 행을 빼며, 프롬프트는 남습니다.',
 helpLogDel:'이 캐릭터 기록에서 이 행을 뺍니다. 프롬프트는 목록에 남습니다.',
 helpRating:'SFW는 안전한 프롬프트만, NSFW는 성인 프롬프트만, 전체는 둘 다 뽑습니다. 등급이 All인 프롬프트는 어떤 선택과도 맞습니다.',
-helpTheme:'보통: 필터 안에서 무작위로 뽑습니다. 제외: 선택한 라벨로 건너뛰거나, 프롬프트 본문의 태그로 건너뛰거나, 둘 다 할 수 있습니다. 우선: 필터 가능한 라벨 하나를 고른 뒤 그 라벨이 뽑힐 비율을 높입니다.',
-helpPct:'우선에서 사용합니다. 70%는 100번 중 약 70번이 선택한 라벨의 프롬프트라는 뜻입니다. 나머지는 보통처럼 뽑습니다.',
-helpExTag:'이름에 선택한 라벨이 있는 프롬프트를 건너뜁니다. 특수 라벨이 기본으로 선택됩니다. 태그로 제외와 함께 쓸 수 있습니다.',
+helpTheme:'세 열이 함께 열려 있습니다. 보통은 기본 필터입니다. 제외가 먼저 실행되어 켜진 칩을 건너뜁니다. 그다음 우선이 비율로 켜진 라벨의 프롬프트를 뽑습니다. 칩을 클릭하면 끄고, ✕로 제거합니다.',
+helpPct:'필터 가능한 라벨을 추가한 뒤 비율을 정합니다. 70%는 제외 이후 100번 중 약 70번이 켜진 라벨의 프롬프트라는 뜻입니다.',
+helpExTag:'필터 가능한 라벨이나 프롬프트 본문의 태그를 추가합니다. 켜진 칩은 건너뜁니다. 클릭하면 끄고, ✕로 제거합니다.',
 helpExKw:'본문에 이 태그가 있으면 건너뜁니다. 태그는 쉼표로 나뉜 한 부분입니다. 예를 들어 "1girl, bath, solo"의 bath입니다. 라벨로 제외와 함께 쓸 수 있습니다.',
 helpKw:'선택 사항입니다. 단어(예: bath)를 입력하면 그 단어가 있는 프롬프트만 뽑고, 행 번호(예: 298)를 입력하면 그 프롬프트만 뽑습니다.',
 helpChar:'복사하기 전에 필요합니다. 기존 선택은 이미 저장한 캐릭터를 찾습니다. 새로 만들기는 Name - Source(예: Boothill - HSR)를 입력하고 저장합니다.',
@@ -667,8 +694,10 @@ function showCfgTab(name){const tab=name||'lang';document.querySelectorAll('#cfg
 function showCfg(on){const el=$('#cfg');if(!el)return;el.classList.toggle('on',!!on);el.style.display=on?'flex':'none';if(on){if(S&&$('#hol'))$('#hol').value=(S.holidays||[]).join('\n');renderLabelManager();api.dirGet().then(d=>{const n=$('#ddir');if(n)n.textContent=d});if(!document.querySelector('#cfgtabs button.on'))showCfgTab('lang')}}
 const blankSlot=()=>({rating:'All',mode:'normal',theme:'',pct:50,kw:'',exTag:true,exTags:null,exKw:false,exWords:''});
 let S;const fresh=()=>({prompts:[],images:[],pickCounter:0,holidays:HOLIDAY_DEFAULT.slice(),slots:[blankSlot()],cur:[null],characters:[],used:[],activeCharacter:null,charMode:'old',lang:'en',nextRow:1});
-function slotInUse(s,id){return !!(id||s&&(s.rating&&s.rating!=='All'||s.mode&&s.mode!=='normal'||s.theme||s.kw||(s.pct!=null&&+s.pct!==50)));}
-function keepOneSlot(){const slots=Array.isArray(S.slots)?S.slots:[],cur=Array.isArray(S.cur)?S.cur:[];let i=0;if(!slotInUse(slots[0],cur[0])&&slotInUse(slots[1],cur[1]))i=1;const s=Object.assign(blankSlot(),slots[i]||{});if(!['All','SFW','NSFW'].includes(s.rating))s.rating='All';if(!['normal','exclude','theme'].includes(s.mode))s.mode='normal';s.pct=Math.max(0,Math.min(100,Number.isFinite(+s.pct)?+s.pct:50));if(typeof s.exTag!=='boolean')s.exTag=true;if(s.exTags!=null&&!Array.isArray(s.exTags))s.exTags=themeList(s.exTags);if(typeof s.exKw!=='boolean')s.exKw=false;if(typeof s.exWords!=='string')s.exWords=s.exWords==null?'':String(s.exWords);S.slots=[s];S.cur=[cur[i]||null];}
+function slotInUse(s,id){return !!(id||s&&(s.rating&&s.rating!=='All'||s.mode&&s.mode!=='normal'||s.theme||s.kw||(s.pct!=null&&+s.pct!==50)||(Array.isArray(s.exChips)&&s.exChips.length)||(Array.isArray(s.priChips)&&s.priChips.length)));}
+function legacyExcludeLabels(s){if(!s||s.exTag===false)return [];if(Array.isArray(s.exTags))return s.exTags.map(x=>nfc(x).trim()).filter(Boolean);const hol=Array.isArray(S.holidays)&&S.holidays.length?S.holidays:HOLIDAY_DEFAULT;return hol.filter(h=>labelFilterable(h,S))}
+function ensureSlotColumns(s){if(!s)return s;if(!Array.isArray(s.exChips)){const chips=[];if(s.mode==='exclude'){legacyExcludeLabels(s).forEach(text=>chips.push({kind:'label',text,on:true}));if(s.exKw===true)String(s.exWords||'').split(',').map(x=>nfc(x).trim()).filter(Boolean).forEach(text=>chips.push({kind:'tag',text,on:true}))}s.exChips=chips}if(!Array.isArray(s.priChips)){const theme=nfc(s.theme).trim();s.priChips=s.mode==='theme'&&theme?[{kind:'label',text:theme,on:true}]:[]}return s}
+function keepOneSlot(){const slots=Array.isArray(S.slots)?S.slots:[],cur=Array.isArray(S.cur)?S.cur:[];let i=0;if(!slotInUse(slots[0],cur[0])&&slotInUse(slots[1],cur[1]))i=1;const s=Object.assign(blankSlot(),slots[i]||{});if(!['All','SFW','NSFW'].includes(s.rating))s.rating='All';if(!['normal','exclude','theme'].includes(s.mode))s.mode='normal';s.pct=Math.max(0,Math.min(100,Number.isFinite(+s.pct)?+s.pct:50));if(typeof s.exTag!=='boolean')s.exTag=true;if(s.exTags!=null&&!Array.isArray(s.exTags))s.exTags=themeList(s.exTags);if(typeof s.exKw!=='boolean')s.exKw=false;if(typeof s.exWords!=='string')s.exWords=s.exWords==null?'':String(s.exWords);ensureSlotColumns(s);S.slots=[s];S.cur=[cur[i]||null];}
 function positiveInt(n){n=Math.floor(Number(n));return Number.isInteger(n)&&n>0?n:0}
 function normCharacters(){if(!Array.isArray(S.characters))S.characters=[];const seen=new Set();S.characters=S.characters.map(c=>{const parsed=parseCharacter(c&&(c.label||(c.name&&c.source?c.name+' - '+c.source:c)));if(!parsed)return null;const key=lc(parsed.label);if(seen.has(key))return null;seen.add(key);return {id:(c&&c.id)||uid(),label:parsed.label};}).filter(Boolean);if(!Array.isArray(S.used))S.used=[];S.used=S.used.filter(u=>u&&u.promptId&&u.characterId).map(u=>({promptId:u.promptId,characterId:u.characterId,at:u.at||0,row:positiveInt(u.row)||0}));if(!S.characters.some(c=>c.id===S.activeCharacter))S.activeCharacter=null;if(S.charMode!=='new')S.charMode='old';}
 function normRows(){if(!Array.isArray(S.prompts))S.prompts=[];const used=new Set();let max=0;S.prompts.forEach(p=>{const n=positiveInt(p&&p.row);if(n&&!used.has(n)){p.row=n;used.add(n);if(n>max)max=n}else p.row=0});S.prompts.forEach(p=>{if(p.row>0)return;max+=1;p.row=max;used.add(max)});const stored=positiveInt(S.nextRow);S.nextRow=Math.max(max+1,stored||1)}
@@ -721,7 +750,7 @@ function managedLabels(){const counts=labelDisplayMap();const out=[];const seen=
 function filterableLabelNames(){return managedLabels().filter(name=>labelFilterable(name,S||{}))}
 function setLabelFilterable(name,on){const s=nfc(name).trim();if(!s)return;if(!Array.isArray(S.labelRules))S.labelRules=[];const i=S.labelRules.findIndex(r=>r&&lc(r.name)===lc(s));if(i>=0)S.labelRules[i]={name:S.labelRules[i].name,filterable:!!on};else S.labelRules.push({name:s,filterable:!!on})}
 function addLabelName(raw){const name=nfc(raw).trim();if(!name)return {ok:false,error:'labelEmpty'};if(managedLabels().some(n=>lc(n)===lc(name)))return {ok:false,error:'labelExists'};setLabelFilterable(name,true);return {ok:true,name}}
-function renameLabelName(from,to){const next=nfc(to).trim();const prev=lc(from);if(!next||!prev)return {ok:false,error:'labelEmpty'};if(lc(next)!==prev&&managedLabels().some(n=>lc(n)===lc(next)))return {ok:false,error:'labelExists'};const was=labelFilterable(from,S||{});const swap=list=>dedupeList((list||[]).map(t=>lc(t)===prev?next:t));(S.prompts||[]).forEach(p=>{if(p)p.tags=swap(p.tags)});if(Array.isArray(S.holidays)&&prev!=='new'&&prev!=='nope'){const nextHol=[];S.holidays.forEach(h=>{const s=lc(h)===prev?lc(next):lc(h);if(s&&!nextHol.includes(s))nextHol.push(s)});S.holidays=nextHol}if(!Array.isArray(S.labelRules))S.labelRules=[];S.labelRules=S.labelRules.filter(r=>r&&lc(r.name)!==prev&&lc(r.name)!==lc(next));S.labelRules.push({name:next,filterable:!!was});(S.slots||[]).forEach(slot=>{if(!slot)return;if(slot.theme&&lc(slot.theme)===prev)slot.theme=next;if(Array.isArray(slot.exTags))slot.exTags=dedupeList(slot.exTags.map(t=>lc(t)===prev?next:t))});return {ok:true,name:next}}
+function renameLabelName(from,to){const next=nfc(to).trim();const prev=lc(from);if(!next||!prev)return {ok:false,error:'labelEmpty'};if(lc(next)!==prev&&managedLabels().some(n=>lc(n)===lc(next)))return {ok:false,error:'labelExists'};const was=labelFilterable(from,S||{});const swap=list=>dedupeList((list||[]).map(t=>lc(t)===prev?next:t));(S.prompts||[]).forEach(p=>{if(p)p.tags=swap(p.tags)});if(Array.isArray(S.holidays)&&prev!=='new'&&prev!=='nope'){const nextHol=[];S.holidays.forEach(h=>{const s=lc(h)===prev?lc(next):lc(h);if(s&&!nextHol.includes(s))nextHol.push(s)});S.holidays=nextHol}if(!Array.isArray(S.labelRules))S.labelRules=[];S.labelRules=S.labelRules.filter(r=>r&&lc(r.name)!==prev&&lc(r.name)!==lc(next));S.labelRules.push({name:next,filterable:!!was});(S.slots||[]).forEach(slot=>{if(!slot)return;if(slot.theme&&lc(slot.theme)===prev)slot.theme=next;if(Array.isArray(slot.exTags))slot.exTags=dedupeList(slot.exTags.map(t=>lc(t)===prev?next:t));['exChips','priChips'].forEach(key=>{if(Array.isArray(slot[key]))slot[key].forEach(c=>{if(c&&lc(c.text)===prev)c.text=next})})});return {ok:true,name:next}}
 function specialTagChoices(){const list=Array.isArray(S.holidays)&&S.holidays.length?S.holidays:HOLIDAY_DEFAULT;const out=[];const seen=new Set();list.forEach(h=>{const s=lc(h);if(!s||seen.has(s))return;seen.add(s);out.push(String(h).trim())});return out}
 function allTags(){return filterableLabelNames()}
 function refreshLabelSurfaces(){renderLabelManager();if($('#v-data')&&!$('#v-data').classList.contains('hid')){fillTags();renderLib()}if($('#v-pick')&&!$('#v-pick').classList.contains('hid'))renderSlots()}
@@ -739,33 +768,52 @@ function deleteLog(characterId,promptId){const c=S.characters.find(x=>x.id===cha
 function emptyMarkup(titleKey,hintKey){return `<div class="empty"><h2>${esc(t(titleKey))}</h2><p class="help">${esc(t(hintKey))}</p><div class="row"><button type="button" class="btn pri" data-empty="import" title="${esc(t('helpImportFile'))}">${esc(t('importFile'))}</button><button type="button" class="btn" data-empty="paste" title="${esc(t('helpPaste'))}">${esc(t('pastePanel'))}</button></div></div>`}
 function bindEmpty(root){root.querySelectorAll('[data-empty]').forEach(b=>b.onclick=()=>{showCfg(true);showCfgTab('paste');if(b.dataset.empty==='import'){const input=document.querySelector('[data-cfgp="paste"] .impf');if(input)input.click()}else{const ta=$('#paste');if(ta)ta.focus()}})}
 function renderLog(){const box=$('#logchars'),entries=$('#logentries'),empty=$('#logempty');const none=!S||!S.prompts.length;const logView=$('#v-log');if(logView)logView.classList.toggle('is-empty',none);if(empty){empty.classList.toggle('hid',!none);if(none){empty.innerHTML=emptyMarkup('emptyLogTitle','emptyLogHint');bindEmpty(empty);return}}if(!box||!entries)return;const q=logQuery;const list=S.characters.filter(c=>charVisible(c,q));const selected=list.some(c=>c.id===S.activeCharacter)?S.activeCharacter:(list[0]&&list[0].id);box.innerHTML=list.length?list.map(c=>{const n=S.used.filter(u=>u.characterId===c.id&&S.prompts.some(p=>p.id===u.promptId)).length;return `<button type="button" class="chopt${c.id===selected?' on':''}" data-id="${c.id}" title="${esc(t('helpLogChars'))}"><span>${esc(c.label)}</span><span class="meta">${n}</span></button>`}).join(''):'<p class="meta" style="padding:8px">'+esc(t('logNeedChar'))+'</p>';box.querySelectorAll('.chopt').forEach(b=>b.onclick=()=>{S.activeCharacter=b.dataset.id;S.charMode='old';save();renderLog()});const c=S.characters.find(x=>x.id===selected);if(!c){entries.innerHTML='<p class="meta">'+esc(t('logNeedChar'))+'</p>';return}const rows=visibleEntries(c,q);entries.innerHTML='<div class="meta" style="margin-bottom:6px">'+esc(c.label)+'</div>'+(rows.length?rows.map(({u,p})=>{const stale=logStale(p,u);const snip=String(p.prompt||'').replace(/\s+/g,' ').slice(0,90);return `<div class="logitem"><span class="rid">#${p.row}</span><div class="grow"><b>${esc(dispName(p.name))}</b> <span class="tag r-${p.rating}">${p.rating}</span>${notesHtml(p)}${stale?` <span class="donebadge warn">${esc(t('logEdited'))}</span>`:''}<div class="snip">${esc(snip)}</div></div><button type="button" class="btn" data-go="${p.id}" title="${esc(t('helpGo'))}">${esc(t('goPrompt'))}</button><button type="button" class="btn danger" data-pid="${p.id}" title="${esc(t('helpLogDel'))}">${esc(t('logDelete'))}</button></div>`}).join(''):'<p class="meta">'+esc(t('logEmpty'))+'</p>');entries.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>goToPrompt(b.dataset.go));entries.querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>deleteLog(c.id,b.dataset.pid))}
-function renderSlots(){if(!S.prompts.length){$('#slots').innerHTML=`<div class="card emptycard">${emptyMarkup('emptyPickTitle','emptyPickHint')}</div>`;bindEmpty($('#slots'));return}keepOneSlot();normCharacters();const f=S.slots[0],mode=S.charMode==='new'?'new':'old';const filters=filterableLabelNames();const tags=filters.slice();if(f.theme&&!tags.some(t=>lc(t)===lc(f.theme)))tags.push(f.theme);const exOn=f.exTag!==false,exKwOn=f.exKw===true;const exChosen=Array.isArray(f.exTags)?new Set(f.exTags.map(lc)):new Set(specialTagChoices().map(lc).filter(h=>labelFilterable(h,S)));const exOpts=filters.slice();if(Array.isArray(f.exTags))f.exTags.forEach(tag=>{if(tag&&!exOpts.some(x=>lc(x)===lc(tag)))exOpts.push(String(tag))});$('#slots').innerHTML=`<div class="card slot" id="slot0"><div class="row" style="justify-content:space-between"><div class="nm">${t('pickTitle')}</div><span class="meta">${t('pickHint')}</span></div>
+function chipHue(text){let h=0;const s=lc(text);for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))%360;return h}
+function pillHtml(chip,idx,group,pct){const hue=chipHue(chip.text);const qual=group==='pri'?((pct==null?50:+pct)+'%'):(chip.kind==='tag'?t('chipTag'):'');return `<button type="button" class="pill${chip.on===false?' off':''}" data-group="${group}" data-idx="${idx}" style="--ph:${hue}" title="${esc(t(chip.on===false?'chipOff':'chipOn'))}"><b>${esc(chip.text)}</b>${qual?`<span class="dot">· ${esc(String(qual))}</span>`:''}<span class="pillx" title="${esc(t('chipRemove'))}" aria-label="${esc(t('chipRemove'))}">✕</span></button>`}
+function renderSlots(){if(!S.prompts.length){$('#slots').innerHTML=`<div class="card emptycard">${emptyMarkup('emptyPickTitle','emptyPickHint')}</div>`;bindEmpty($('#slots'));return}keepOneSlot();normCharacters();const f=S.slots[0];ensureSlotColumns(f);const mode=S.charMode==='new'?'new':'old';const filters=filterableLabelNames();const exLabels=new Set((f.exChips||[]).filter(c=>c.kind!=='tag').map(c=>lc(c.text)));const priLabels=new Set((f.priChips||[]).map(c=>lc(c.text)));const exChoices=filters.filter(name=>!exLabels.has(lc(name)));const priChoices=filters.filter(name=>!priLabels.has(lc(name)));const opts=list=>`<option value="">${esc(t('chooseTag'))}</option>`+list.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');$('#slots').innerHTML=`<div class="card slot" id="slot0"><div class="row" style="justify-content:space-between"><div class="nm">${t('pickTitle')}</div><span class="meta">${t('pickHint')}</span></div>
 <div class="slot-body"><div>
-<div class="row"><label>${t('rating')}</label><span class="seg" data-k="rating">${['All','SFW','NSFW'].map(r=>`<button data-v="${r}" class="${f.rating===r?'on':''}" title="${esc(t('helpRating'))}">${r==='All'?t('all'):r}</button>`).join('')}</span></div>
-<p class="help">${esc(t('helpRating'))}</p>
-<div class="row"><label>${t('theme')}</label><span class="seg" data-k="mode">${[['normal','modeNormal'],['exclude','modeExclude'],['theme','modeTheme']].map(([v,k])=>`<button data-v="${v}" class="${f.mode===v?'on':''}" title="${esc(t('helpTheme'))}">${t(k)}</button>`).join('')}</span></div>
 <p class="help">${esc(t('helpTheme'))}</p>
-<div class="${f.mode==='exclude'?'':'hid'} exbox"><label class="chk"><input type="checkbox" data-k="exTag" ${exOn?'checked':''} title="${esc(t('helpExTag'))}"> ${esc(t('exTag'))}</label><p class="help">${esc(t('helpExTag'))}</p><div class="exchecks ${exOn?'':'hid'}">${exOpts.map(tag=>`<label class="chk"><input type="checkbox" data-k="exTags" value="${esc(tag)}" ${exChosen.has(lc(tag))?'checked':''}> ${esc(tag)}</label>`).join('')}</div><label class="chk"><input type="checkbox" data-k="exKw" ${exKwOn?'checked':''} title="${esc(t('helpExKw'))}"> ${esc(t('exKw'))}</label><p class="help">${esc(t('helpExKw'))}</p><div class="${exKwOn?'':'hid'}"><input data-k="exWords" placeholder="${esc(t('exWordsPh'))}" title="${esc(t('helpExKw'))}" value="${esc(f.exWords||'')}" style="width:100%"></div></div>
-<div class="${f.mode==='theme'?'':'hid'}"><div class="row"><label>${t('tag')}</label><select data-k="theme" title="${esc(t('helpPct'))}"><option value="">${esc(t('chooseTag'))}</option>${tags.map(tag=>`<option ${lc(tag)===lc(f.theme)?'selected':''}>${esc(tag)}</option>`).join('')}</select><label>${t('priority')}</label><input type="range" min="0" max="100" step="5" value="${f.pct}" data-k="pct" title="${esc(t('helpPct'))}"><b>${f.pct}%</b></div>
-<p class="help">${esc(t('helpPct'))}</p></div>
-<div class="row"><input data-k="kw" placeholder="${esc(t('kwPh'))}" title="${esc(t('helpKw'))}" value="${esc(f.kw)}" style="flex:1"></div>
+<div class="modecols">
+<div class="modecol"><h3>${esc(t('modeNormal'))}</h3>
+<div class="row"><label>${t('rating')}</label><span class="seg" data-k="rating">${['All','SFW','NSFW'].map(r=>`<button type="button" data-v="${r}" class="${f.rating===r?'on':''}" title="${esc(t('helpRating'))}">${r==='All'?t('all'):r}</button>`).join('')}</span></div>
+<p class="help">${esc(t('helpRating'))}</p>
+<input data-k="kw" placeholder="${esc(t('kwPh'))}" title="${esc(t('helpKw'))}" value="${esc(f.kw)}" style="width:100%">
 <p class="help">${esc(t('helpKw'))}</p>
-<div class="row"><label>${t('character')}</label><span class="seg" data-k="charMode">${[['old','charOld'],['new','charNew']].map(([v,k])=>`<button data-v="${v}" class="${mode===v?'on':''}" title="${esc(t('helpChar'))}">${t(k)}</button>`).join('')}</span></div>
+</div>
+<div class="modecol"><h3>${esc(t('modeExclude'))}</h3>
+<div class="row"><select data-k="ex-add" title="${esc(t('helpExTag'))}">${opts(exChoices)}</select><button type="button" class="btn" data-add="ex-label">${esc(t('addChip'))}</button></div>
+<div class="row"><input data-k="ex-word" placeholder="${esc(t('exWordsPh'))}" title="${esc(t('helpExTag'))}" style="flex:1;min-width:0"><button type="button" class="btn" data-add="ex-tag">${esc(t('addChip'))}</button></div>
+<div class="pills">${(f.exChips||[]).map((c,i)=>pillHtml(c,i,'ex',f.pct)).join('')}</div>
+<p class="help">${esc(t('helpExTag'))}</p>
+</div>
+<div class="modecol"><h3>${esc(t('modeTheme'))}</h3>
+<div class="row"><select data-k="pri-add" title="${esc(t('helpPct'))}">${opts(priChoices)}</select><button type="button" class="btn" data-add="pri">${esc(t('addChip'))}</button></div>
+<div class="row"><label>${t('priority')}</label><input type="range" min="0" max="100" step="5" value="${f.pct}" data-k="pct" title="${esc(t('helpPct'))}"><b data-pct-label>${f.pct}%</b></div>
+<div class="pills">${(f.priChips||[]).map((c,i)=>pillHtml(c,i,'pri',f.pct)).join('')}</div>
+<p class="help">${esc(t('helpPct'))}</p>
+</div>
+</div>
+<div class="row"><label>${t('character')}</label><span class="seg" data-k="charMode">${[['old','charOld'],['new','charNew']].map(([v,k])=>`<button type="button" data-v="${v}" class="${mode===v?'on':''}" title="${esc(t('helpChar'))}">${t(k)}</button>`).join('')}</span></div>
 <p class="help">${esc(t('helpChar'))}</p>
 <div class="${mode==='new'?'hid':''}"><input id="chq" placeholder="${esc(t('charSearch'))}" title="${esc(t('helpCharOld'))}" value="${esc(charQuery)}" style="width:100%"><p class="help">${esc(t('helpCharOld'))}</p><div id="chlist" class="chlist"></div></div>
 <div class="${mode==='new'?'':'hid'}"><input id="chnew" placeholder="${esc(t('charNewPh'))}" title="${esc(t('helpCharNew'))}" value="${esc(charDraft)}" style="width:100%"><p class="help">${esc(t('helpCharNew'))}</p></div>
 <div class="row"><button class="btn big pri" data-a="pick" title="${esc(t('helpActions'))}">${t('pickBtn')}</button><button class="btn big" data-a="copy" title="${esc(t('helpActions'))}">${t('copyBtn')}</button></div>
 <p class="help">${esc(t('helpActions'))}</p>
 </div><div class="res" id="res0"></div></div></div>`;
- const c=$('#slot0');c.querySelectorAll('.seg').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(sg.dataset.k==='charMode'){S.charMode=b.dataset.v;save();renderSlots();return}f[sg.dataset.k]=b.dataset.v;save();renderSlots()}));
- c.querySelector('[data-k=theme]').onchange=e=>{f.theme=e.target.value;save()};const rg=c.querySelector('[data-k=pct]');rg.oninput=()=>{f.pct=+rg.value;rg.nextElementSibling.textContent=f.pct+'%';save()};
- const exTagBox=c.querySelector('[data-k=exTag]');if(exTagBox)exTagBox.onchange=e=>{f.exTag=e.target.checked;save();renderSlots()};
- const exKwBox=c.querySelector('[data-k=exKw]');if(exKwBox)exKwBox.onchange=e=>{f.exKw=e.target.checked;save();renderSlots()};
- c.querySelectorAll('[data-k=exTags]').forEach(box=>box.onchange=()=>{f.exTags=[...c.querySelectorAll('[data-k=exTags]')].filter(x=>x.checked).map(x=>x.value);save()});
- const exWords=c.querySelector('[data-k=exWords]');if(exWords)exWords.oninput=e=>{f.exWords=e.target.value;save()};
+ const c=$('#slot0');
+ c.querySelectorAll('.seg').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(sg.dataset.k==='charMode'){S.charMode=b.dataset.v;save();renderSlots();return}f[sg.dataset.k]=b.dataset.v;save();renderSlots()}));
  c.querySelector('[data-k=kw]').oninput=e=>{f.kw=e.target.value;save()};
- const chq=$('#chq');if(chq)chq.oninput=e=>{charQuery=e.target.value;renderCharList();};
- const chnew=$('#chnew');if(chnew)chnew.oninput=e=>{charDraft=e.target.value;};
+ const rg=c.querySelector('[data-k=pct]');rg.oninput=()=>{f.pct=+rg.value;const lab=c.querySelector('[data-pct-label]');if(lab)lab.textContent=f.pct+'%';c.querySelectorAll('[data-group=pri] .dot').forEach(d=>{d.textContent='· '+f.pct+'%'});save()};
+ function pushLabel(list,sel){const name=sel&&nfc(sel.value).trim();if(!name)return;if(list.some(ch=>ch&&ch.kind!=='tag'&&lc(ch.text)===lc(name)))return;list.push({kind:'label',text:name,on:true});save();renderSlots()}
+ c.querySelector('[data-add=ex-label]').onclick=()=>pushLabel(f.exChips,c.querySelector('[data-k=ex-add]'));
+ c.querySelector('[data-add=pri]').onclick=()=>pushLabel(f.priChips,c.querySelector('[data-k=pri-add]'));
+ const word=c.querySelector('[data-k=ex-word]');
+ function pushTags(){const parts=String(word.value||'').split(',').map(x=>nfc(x).trim()).filter(Boolean);if(!parts.length)return;let n=0;parts.forEach(text=>{if(f.exChips.some(ch=>ch&&ch.kind==='tag'&&lc(ch.text)===lc(text)))return;f.exChips.push({kind:'tag',text,on:true});n++});if(!n)return;word.value='';save();renderSlots()}
+ c.querySelector('[data-add=ex-tag]').onclick=pushTags;
+ word.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();pushTags()}});
+ c.querySelectorAll('.pill').forEach(btn=>btn.onclick=e=>{const list=btn.dataset.group==='pri'?f.priChips:f.exChips;const idx=+btn.dataset.idx;if(!list||!list[idx])return;if(e.target.closest('.pillx'))list.splice(idx,1);else list[idx].on=list[idx].on===false;save();renderSlots()});
+ const chq=$('#chq');if(chq)chq.oninput=e=>{charQuery=e.target.value;renderCharList()};
+ const chnew=$('#chnew');if(chnew)chnew.oninput=e=>{charDraft=e.target.value};
  c.querySelector('[data-a=pick]').onclick=()=>doPick(0);c.querySelector('[data-a=copy]').onclick=()=>doCopy(0);renderCharList();renderRes(0);}
 function renderRes(i){const el=$('#res'+i),p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){el.classList.remove('is-done');el.innerHTML=S.prompts.length?'<p class="meta">'+esc(t('resEmpty'))+'</p>':'<p class="meta">'+t('resNone')+'</p>';return}
  el.classList.toggle('is-done',isDoneFor(p,flagCharacter()));
@@ -775,7 +823,7 @@ function renderRes(i){const el=$('#res'+i),p=S.prompts.find(x=>x.id===S.cur[i]);
 function characterForLog(){normCharacters();if(S.charMode==='new'){const parsed=parseCharacter(charDraft);if(!parsed){toast(t('needCharFormat'));return null}let c=S.characters.find(x=>lc(x.label)===lc(parsed.label));if(!c){c={id:uid(),label:parsed.label};S.characters.push(c)}S.activeCharacter=c.id;S.charMode='old';charDraft='';if($('#slot0'))renderSlots();return c}const c=S.characters.find(x=>x.id===S.activeCharacter);if(!c){toast(t('needChar'));return null}return c}
 function logUse(p,c){if(S.used.some(u=>u.promptId===p.id&&u.characterId===c.id))return;S.used.push({promptId:p.id,characterId:c.id,at:Date.now(),row:p.row})}
 async function copyPromptText(text){try{await navigator.clipboard.writeText(text)}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}}
-function doPick(i){const f=S.slots[i];if(!f)return;if(f.mode==='theme'&&!f.theme){toast(t('needTheme'));return}const p=pick(S.prompts,f,S,{avoidId:S.cur[i]});if(!p){toast(t('noMatch'));return}S.cur[i]=p.id;save();renderRes(i);}
+function doPick(i){const f=S.slots[i];if(!f)return;ensureSlotColumns(f);const p=pick(S.prompts,f,S,{avoidId:S.cur[i]});if(!p){toast(t('noMatch'));return}S.cur[i]=p.id;save();renderRes(i);}
 async function doCopy(i){let p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){doPick(i);p=S.prompts.find(x=>x.id===S.cur[i]);if(!p)return}const c=characterForLog();if(!c)return;await copyPromptText(p.prompt);logUse(p,c);save();if($('#chlist'))renderCharList();if($('#res'+i))renderRes(i);toast(t('copiedFor',c.label));}
 document.addEventListener('keydown',e=>{if($('#cfg')&&$('#cfg').classList.contains('on')){if(e.key==='Escape')showCfg(false);return}if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||e.ctrlKey||e.altKey||e.metaKey||$('#v-pick').classList.contains('hid'))return;const k=e.key.toLowerCase();if(k==='1')doPick(0);else if(k==='q'||k==='c')doCopy(0);});
 // Library. The count is the full filtered total. Cards load in pages as the list scrolls.
