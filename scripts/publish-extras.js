@@ -19,6 +19,20 @@ const stage = path.join(root, 'dist', 'guide-stage');
 const report = {version, zip: false, notes: {}, readme: false};
 
 function fill(s) { return String(s).split('{{version}}').join(version); }
+function writeZip(stageDir, zipFile) {
+  const zipRel = path.relative(root, zipFile).split(path.sep).join('/');
+  const stageRel = path.relative(root, stageDir).split(path.sep).join('/');
+  try {
+    execFileSync('tar', ['--force-local', '-a', '-c', '-f', zipRel, '-C', stageRel, '.'], {cwd: root, stdio: 'inherit'});
+    return;
+  } catch (e) {
+    if (process.platform !== 'win32') throw e;
+    console.log('tar could not write the zip, using Compress-Archive');
+    if (fs.existsSync(zipFile)) fs.unlinkSync(zipFile);
+    const q = s => "'" + String(s).replace(/'/g, "''") + "'";
+    execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Compress-Archive -Path ${q(stageDir + '\\*')} -DestinationPath ${q(zipFile)} -Force`], {stdio: 'inherit'});
+  }
+}
 function rootize(md) {
   return md.replace(/\]\(HOW-TO-INSTALL/g, '](guide/HOW-TO-INSTALL').replace(/\]\(([a-z]{2}\/[^)]+)\)/g, '](guide/$1)');
 }
@@ -48,7 +62,7 @@ function stageGuide() {
   fs.copyFileSync(exe, path.join(stage, exeName));
   const zip = path.join(root, 'dist', `PromptPicker-${version}-Windows.zip`);
   if (fs.existsSync(zip)) fs.unlinkSync(zip);
-  execFileSync('tar', ['-a', '-c', '-f', zip, '-C', stage, '.'], {stdio: 'inherit'});
+  writeZip(stage, zip);
   console.log('zip bytes', fs.statSync(zip).size);
   report.zip = true;
   return zip;
