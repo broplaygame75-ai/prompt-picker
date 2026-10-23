@@ -39,14 +39,23 @@ select,input,textarea{background:var(--pn2);color:var(--tx);border:1px solid var
 .res{min-height:260px;margin-top:8px;border-top:1px dashed var(--ln);padding-top:14px}.nm{font-weight:600;font-size:21px}.pt{font-size:18px;line-height:1.55;background:#0c0a10;border-radius:10px;padding:14px;margin:10px 0;white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto}
 .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:#2e2540;color:#cdb9ff;margin:2px 4px 2px 0}.r-SFW{background:#173a2c;color:var(--ok)}.r-NSFW{background:#40172a;color:#ff8fb3}.r-All{background:#2b2b2b;color:#ddd}
 .note{display:inline-block;font-family:var(--font);font-size:11px;font-weight:500;padding:1px 7px;border-radius:20px;background:#2a2a32;color:#b7b0c4;margin:2px 4px 2px 0}
-.meta{color:var(--mu);font-size:13px}.thumbs img{height:90px;border-radius:8px;margin:4px 6px 0 0;cursor:zoom-in;border:1px solid var(--ln)}
-.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}.lib .card{padding:14px}.lib .pt{font-size:14px;max-height:120px}
+.meta{color:var(--mu);font-size:13px}
+.cardface{display:flex;gap:14px;align-items:flex-start}.cardmain{flex:1;min-width:0}
+.shots{flex:0 0 168px;width:168px;display:flex;flex-direction:column;gap:8px}
+.res .shots{flex-basis:180px;width:180px}.lib .shots{flex-basis:160px;width:160px}
+.thumbs{display:flex;flex-direction:column;gap:8px}
+.shot{position:relative}
+.shot img{display:block;width:100%;height:auto;max-height:240px;object-fit:contain;background:#0c0a10;border-radius:8px;border:1px solid var(--ln);cursor:zoom-in;margin:0}
+.shotx{position:absolute;top:4px;right:4px;width:24px;height:24px;border:0;border-radius:50%;background:#140e18ee;color:#fff;cursor:pointer;padding:0;line-height:24px;font-size:14px;font-family:var(--font)}
+.shotx:hover{background:var(--ac)}
+.lib{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.lib .card{padding:14px}.lib .pt{font-size:14px;max-height:220px}
+@media(min-width:1400px){.lib{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lib .card.goto-hold{border-color:#b9a6ff;box-shadow:0 0 0 1px #8b6cf0}
 .lib .card.goto-pulse{animation:gotopulse 2.6s ease-out}
 @keyframes gotopulse{0%{box-shadow:0 0 0 2px #e2648f,0 0 18px #8b6cf0}40%{box-shadow:0 0 0 5px #8b6cf0,0 0 32px #e2648f}100%{box-shadow:0 0 0 1px #8b6cf0}}
 @media(prefers-reduced-motion:reduce){.lib .card.goto-pulse{animation:none}}
 #lc{font-weight:600;color:var(--tx)}.libmore{grid-column:1/-1;display:flex;justify-content:center;padding:8px 0 18px}
-.drop{border:1px dashed var(--ln);border-radius:8px;padding:6px;color:var(--mu);font-size:12px;text-align:center;margin-top:6px}.drop.ov{border-color:var(--ac)}
+.drop{border:1px dashed var(--ln);border-radius:8px;padding:6px;color:var(--mu);font-size:12px;text-align:center}.shots .drop{margin:0}.drop.ov{border-color:var(--ac)}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ok);color:#06210f;padding:10px 20px;border-radius:30px;font-weight:600;opacity:0;transition:.25s;pointer-events:none}#toast.on{opacity:1}
 kbd{background:var(--pn2);border:1px solid var(--ln);border-radius:4px;padding:0 5px;font-size:12px}.hid{display:none}
 #upd,#cfg{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:20}#upd.on,#cfg.on{display:flex}
@@ -176,7 +185,7 @@ confirmDelLog:(row,label)=>'Xoá hàng #'+row+' khỏi nhật ký của '+label+
 resEmpty:'Bấm Bốc hoặc phím 1. Copy sẽ hỏi nhân vật (Name - Source).',
 resNone:'Chưa có prompt nào. Vào tab <b>Dữ liệu prompt</b> để dán prompt hoặc bấm <b>Nhập file</b>.',
 dropHere:'Kéo-thả hoặc click rồi Ctrl+V ảnh kết quả vào đây',dropShort:'Thả / dán ảnh kết quả',
-imgTitle:'Click: phóng to · Chuột phải: xoá',confirmDelImg:'Xoá ảnh này?',
+imgTitle:'Click để xem đầy đủ. Nút ✕ xoá ảnh.',confirmDelImg:'Xoá ảnh này?',delImg:'Xoá ảnh',
 needCharFormat:'Nhập nhân vật theo mẫu Name - Source',needChar:'Chọn nhân vật (Name - Source) trước khi copy',
 needTheme:'Chọn tag chủ đề trước nha',noMatch:'Không có prompt nào khớp bộ lọc',
 copiedFor:label=>'Đã copy cho '+label,unnamed:'(không tên)',tagsComma:'Tag (cách nhau bởi dấu phẩy)',notesComma:'Ghi chú (cách nhau bởi dấu phẩy)',
@@ -235,7 +244,7 @@ helpChar:'Bắt buộc trước khi copy. Chọn cũ tìm nhân vật đã lưu.
 helpCharOld:'Gõ tên, nguồn, hoặc số hàng đã xong để lọc. Bấm một dòng để chọn nhân vật.',
 helpCharNew:'Đúng dạng Tên - Nguồn, có dấu cách hai bên dấu gạch. Nhân vật mới hiện lại ở Chọn cũ.',
 helpActions:'Bốc lấy một prompt. Copy chép nội dung và ghi số hàng vào nhật ký nhân vật. Phím tắt khi không đang gõ: 1 bốc, Q hoặc C copy.',
-helpDrop:'Ảnh kết quả của prompt này. Kéo thả file vào ô, hoặc click ô rồi Ctrl+V. Click ảnh để phóng to, chuột phải để xoá.',
+helpDrop:'Ảnh kết quả của prompt này. Kéo thả file vào ô, hoặc click ô rồi Ctrl+V. Ảnh hiện bên trái, cạnh tên hàng, ở Bốc prompt và trên thẻ Dữ liệu prompt. Click ảnh để xem đầy đủ. Nút ✕ hỏi rồi xoá file trên đĩa.',
 helpEdit:'Rating là SFW, NSFW hoặc All. Trong tên, &tag& là tag và dấu nháy kép là ghi chú. Tag đặc biệt (New, Nope, ngày lễ) dùng cho Loại trừ và Theo tag. Sửa nội dung sẽ đánh dấu hàng nhật ký là đã sửa sau khi ghi.',
 helpCardCopy:'Copy prompt này cho nhân vật đang chọn và ghi số hàng vào nhật ký.',
 helpCardEdit:'Sửa rating, tên, tag, ghi chú và nội dung của prompt này.',
@@ -280,7 +289,7 @@ confirmDelLog:(row,label)=>'Remove row #'+row+' from the log for '+label+'?',
 resEmpty:'Press Pick or the 1 key. Copy asks for a character (Name - Source).',
 resNone:'No prompts yet. Open the <b>Prompts Data</b> tab to paste prompts, or click <b>Import file</b>.',
 dropHere:'Drag and drop, or click then Ctrl+V, a result image here',dropShort:'Drop / paste a result image',
-imgTitle:'Click: zoom · Right-click: delete',confirmDelImg:'Delete this image?',
+imgTitle:'Click to view full size. The ✕ button deletes the image.',confirmDelImg:'Delete this image?',delImg:'Delete image',
 needCharFormat:'Enter a character as Name - Source',needChar:'Choose a character (Name - Source) before copying',
 needTheme:'Choose a theme tag first',noMatch:'No prompts match the filter',
 copiedFor:label=>'Copied for '+label,unnamed:'(untitled)',tagsComma:'Tags (comma-separated)',notesComma:'Notes (comma-separated)',
@@ -339,7 +348,7 @@ helpChar:'Required before copying. Pick existing searches characters you already
 helpCharOld:'Type a name, source, or finished row to filter. Click a row to select that character.',
 helpCharNew:'Use Name - Source, with spaces around the hyphen. The new character shows up under Pick existing.',
 helpActions:'Pick chooses one prompt. Copy copies its text and logs the row for the selected character. Shortcuts when you are not typing: 1 picks, Q or C copies.',
-helpDrop:'Result image for this prompt. Drag a file onto the box, or click the box and press Ctrl+V. Click an image to zoom, right-click to delete.',
+helpDrop:'Result image for this prompt. Drag a file onto the box, or click the box and press Ctrl+V. The image sits on the left, beside the row title, in Prompt Pick and on the Prompts Data card. Click the image to view full size. ✕ asks, then deletes the file from disk.',
 helpEdit:'Rating is SFW, NSFW, or All. In the name, &tag& is a tag and quotes are a note. Special tags (New, Nope, holidays) drive Exclude and By tag. Changing the prompt marks logged rows as edited after logging.',
 helpCardCopy:'Copy this prompt for the selected character and log the row.',
 helpCardEdit:'Edit the rating, name, tags, notes, and text of this prompt.',
@@ -384,7 +393,7 @@ confirmDelLog:(row,label)=>'从 '+label+' 的记录中删除第 #'+row+' 行？'
 resEmpty:'点抽取或按 1。复制时会要求选择角色（Name - Source）。',
 resNone:'还没有提示词。打开<b>提示词数据</b>页粘贴，或点<b>导入文件</b>。',
 dropHere:'把结果图片拖到这里，或点击后按 Ctrl+V',dropShort:'拖入或粘贴结果图片',
-imgTitle:'点击放大 · 右键删除',confirmDelImg:'删除这张图片？',
+imgTitle:'点击查看大图。✕ 按钮删除图片。',confirmDelImg:'删除这张图片？',delImg:'删除图片',
 needCharFormat:'请按 Name - Source 的格式输入角色',needChar:'复制前请先选择角色（Name - Source）',
 needTheme:'请先选择一个主题标签',noMatch:'没有符合筛选条件的提示词',
 copiedFor:label=>'已为 '+label+' 复制',unnamed:'（未命名）',tagsComma:'标签（用逗号分隔）',notesComma:'备注（用逗号分隔）',
@@ -443,7 +452,7 @@ helpChar:'复制前必须选择。选择已有会查找已经保存的角色。�
 helpCharOld:'输入名称、来源或已完成的行号来筛选。点一行即可选中该角色。',
 helpCharNew:'格式为名称 - 来源，连字符两边要有空格。新角色会出现在选择已有里。',
 helpActions:'抽取会选出一条提示词。复制会复制正文，并把行号记到所选角色的记录里。未在输入时，快捷键 1 抽取，Q 或 C 复制。',
-helpDrop:'这条提示词的结果图片。把文件拖进框里，或点击框后按 Ctrl+V。点击图片放大，右键删除。',
+helpDrop:'这条提示词的结果图片。把文件拖进框里，或点击框后按 Ctrl+V。图片显示在左侧、行号标题旁边，抽取页和提示词数据卡片都会显示。点击查看大图。✕ 会确认后从磁盘删除文件。',
 helpEdit:'分级是 SFW、NSFW 或 All。名称里，&标签& 是标签，双引号是备注。特殊标签（New、Nope、节日）用于排除和按标签。修改内容后，已记录的行会标为记录后已修改。',
 helpCardCopy:'把这条提示词复制给当前角色，并把行号写入记录。',
 helpCardEdit:'编辑这条提示词的分级、名称、标签、备注和正文。',
@@ -488,7 +497,7 @@ confirmDelLog:(row,label)=>label+'의 기록에서 #'+row+'행을 삭제할까�
 resEmpty:'뽑기를 누르거나 1 키를 누르세요. 복사는 캐릭터(Name - Source)를 묻습니다.',
 resNone:'아직 프롬프트가 없습니다. <b>프롬프트 데이터</b> 탭에서 붙여 넣거나 <b>파일 가져오기</b>를 누르세요.',
 dropHere:'결과 이미지를 여기로 끌어 놓거나, 클릭한 뒤 Ctrl+V',dropShort:'결과 이미지 놓기 / 붙여 넣기',
-imgTitle:'클릭: 확대 · 오른쪽 클릭: 삭제',confirmDelImg:'이 이미지를 삭제할까요?',
+imgTitle:'클릭하면 크게 봅니다. ✕ 버튼으로 이미지를 삭제합니다.',confirmDelImg:'이 이미지를 삭제할까요?',delImg:'이미지 삭제',
 needCharFormat:'캐릭터를 Name - Source 형식으로 입력하세요',needChar:'복사하기 전에 캐릭터(Name - Source)를 선택하세요',
 needTheme:'먼저 주제 태그를 선택하세요',noMatch:'필터와 맞는 프롬프트가 없습니다',
 copiedFor:label=>label+'용으로 복사함',unnamed:'(제목 없음)',tagsComma:'태그 (쉼표로 구분)',notesComma:'메모 (쉼표로 구분)',
@@ -547,7 +556,7 @@ helpChar:'복사하기 전에 필요합니다. 기존 선택은 이미 저장한
 helpCharOld:'이름, 출처, 또는 완료한 행 번호를 입력해 거릅니다. 한 줄을 누르면 그 캐릭터가 선택됩니다.',
 helpCharNew:'이름 - 출처 형식이며, 붙임표 양쪽에 공백이 있어야 합니다. 새 캐릭터는 기존 선택에 나타납니다.',
 helpActions:'뽑기는 프롬프트 하나를 고릅니다. 복사는 본문을 복사하고 선택한 캐릭터 기록에 행 번호를 남깁니다. 입력 중이 아닐 때 1은 뽑기, Q 또는 C는 복사입니다.',
-helpDrop:'이 프롬프트의 결과 이미지입니다. 파일을 칸에 끌어 놓거나, 칸을 클릭한 뒤 Ctrl+V를 누르세요. 이미지는 클릭하면 확대되고, 오른쪽 클릭하면 삭제됩니다.',
+helpDrop:'이 프롬프트의 결과 이미지입니다. 파일을 칸에 끌어 놓거나, 칸을 클릭한 뒤 Ctrl+V를 누르세요. 이미지는 왼쪽, 행 제목 옆에 보이며 프롬프트 뽑기와 프롬프트 데이터 카드에 함께 나타납니다. 클릭하면 크게 보고, ✕는 확인 후 디스크에서 파일을 삭제합니다.',
 helpEdit:'등급은 SFW, NSFW 또는 All입니다. 이름에서 &태그& 는 태그이고 따옴표는 메모입니다. 특수 태그(New, Nope, 기념일)는 제외와 태그 기준에 쓰입니다. 내용을 바꾸면 기록된 행이 기록 후 수정됨으로 표시됩니다.',
 helpCardCopy:'이 프롬프트를 선택한 캐릭터용으로 복사하고 행 번호를 기록합니다.',
 helpCardEdit:'이 프롬프트의 등급, 이름, 태그, 메모, 본문을 편집합니다.',
@@ -609,9 +618,11 @@ async function imgsFor(pid){const a=S.images.filter(x=>x.pid===pid);return Promi
 async function allImgs(){return Promise.all(S.images.map(async x=>({...x,data:await api.imgRead(x.id)})));}
 async function delImg(id){await api.imgDel(id);S.images=S.images.filter(x=>x.id!==id);save();}
 function thumb(file){return new Promise(r=>{const im=new Image();im.onload=()=>{const m=480,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);r(c.toDataURL('image/webp',.8));URL.revokeObjectURL(im.src)};im.src=URL.createObjectURL(file);});}
-async function addImages(pid,files){const list=[];for(const f of files)if(f&&f.type.startsWith('image/'))list.push({id:uid(),pid,data:await thumb(f)});for(const x of list){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid});}save();toast(t('imagesAdded',list.length));}
-async function renderThumbs(el,pid,del){const a=await imgsFor(pid);el.innerHTML='';a.forEach(x=>{const i=document.createElement('img');i.src=x.data;i.title=del?t('imgTitle'):'';i.onclick=()=>{const z=document.createElement('div');z.id='zoom';z.innerHTML='<img src="'+x.data+'">';z.onclick=()=>z.remove();document.body.appendChild(z)};if(del)i.oncontextmenu=async e=>{e.preventDefault();if(confirm(t('confirmDelImg'))){await delImg(x.id);renderThumbs(el,pid,del)}};el.appendChild(i)});}
-function dropZone(el,pid,after){el.ondragover=e=>{e.preventDefault();el.classList.add('ov')};el.ondragleave=()=>el.classList.remove('ov');el.ondrop=async e=>{e.preventDefault();el.classList.remove('ov');await addImages(pid,[...e.dataTransfer.files]);after()};el.tabIndex=0;el.onpaste=async e=>{const fs=[...e.clipboardData.items].filter(i=>i.kind==='file').map(i=>i.getAsFile());if(fs.length){e.preventDefault();await addImages(pid,fs);after()}};}
+async function addImages(pid,files){const list=[];for(const f of files)if(f&&f.type.startsWith('image/'))list.push({id:uid(),pid,data:await thumb(f)});if(!list.length)return;for(const x of list){await api.imgSave(x.id,x.data);S.images.push({id:x.id,pid:x.pid});}save();toast(t('imagesAdded',list.length));syncThumbs(pid);}
+function zoomImg(src){const z=document.createElement('div');z.id='zoom';const i=document.createElement('img');i.src=src;z.appendChild(i);z.onclick=()=>z.remove();document.body.appendChild(z);}
+async function renderThumbs(el,pid,del){if(!el)return;const token=(el._tg=(el._tg||0)+1);const a=await imgsFor(pid);if(el._tg!==token)return;el.innerHTML='';a.forEach(x=>{if(!x.data)return;const shot=document.createElement('div');shot.className='shot';const i=document.createElement('img');i.src=x.data;i.alt='';i.title=t('imgTitle');i.onclick=()=>zoomImg(x.data);shot.appendChild(i);if(del){const b=document.createElement('button');b.type='button';b.className='shotx';b.textContent='✕';b.title=t('delImg');b.setAttribute('aria-label',t('delImg'));b.onclick=async e=>{e.stopPropagation();e.preventDefault();if(!confirm(t('confirmDelImg')))return;await delImg(x.id);syncThumbs(pid)};shot.appendChild(b)}el.appendChild(shot)});}
+function syncThumbs(pid){document.querySelectorAll('.thumbs').forEach(el=>{if(el.dataset.pid===pid)renderThumbs(el,pid,true)});}
+function dropZone(el,pid){if(!el)return;el.ondragover=e=>{e.preventDefault();el.classList.add('ov')};el.ondragleave=()=>el.classList.remove('ov');el.ondrop=async e=>{e.preventDefault();el.classList.remove('ov');await addImages(pid,[...e.dataTransfer.files])};el.tabIndex=0;el.onpaste=async e=>{const fs=[...e.clipboardData.items].filter(i=>i.kind==='file').map(i=>i.getAsFile());if(fs.length){e.preventDefault();await addImages(pid,fs)}};}
 function specialTagChoices(){const list=Array.isArray(S.holidays)&&S.holidays.length?S.holidays:HOLIDAY_DEFAULT;const out=[];const seen=new Set();list.forEach(h=>{const s=lc(h);if(!s||seen.has(s))return;seen.add(s);out.push(String(h).trim())});return out}
 function allTags(){const m={};S.prompts.forEach(p=>(p.tags||[]).forEach(tag=>m[tag]=(m[tag]||0)+1));const keys=Object.keys(m).sort((a,b)=>m[b]-m[a]||a.localeCompare(b));const have=new Set(keys.map(lc));specialTagChoices().forEach(h=>{if(have.has(lc(h)))return;have.add(lc(h));keys.push(h)});return keys}
 const tagsHtml=p=>`<span class="tag r-${p.rating}">${p.rating}</span>`+(p.tags||[]).map(tag=>`<span class="tag">${esc(tag)}</span>`).join('');
@@ -650,9 +661,9 @@ function renderSlots(){keepOneSlot();normCharacters();const f=S.slots[0],tags=sp
  c.querySelector('[data-a=pick]').onclick=()=>doPick(0);c.querySelector('[data-a=copy]').onclick=()=>doCopy(0);renderCharList();renderRes(0);}
 function renderRes(i){const el=$('#res'+i),p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){el.classList.remove('is-done');el.innerHTML=S.prompts.length?'<p class="meta">'+esc(t('resEmpty'))+'</p>':'<p class="meta">'+t('resNone')+'</p>';return}
  el.classList.toggle('is-done',isDoneFor(p,flagCharacter()));
- el.innerHTML=`<div class="row" style="justify-content:space-between;margin:0"><div class="nm">${nameHtml(p)}</div><button type="button" class="btn" data-a="goto" title="${esc(t('helpGo'))}">${esc(t('goPrompt'))}</button></div><div>${tagsHtml(p)}${notesHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop" title="${esc(t('helpDrop'))}">${esc(t('dropHere'))}</div><p class="help">${esc(t('helpDrop'))}</p>`;
+ el.innerHTML=`<div class="cardface"><div class="shots"><div class="thumbs" data-pid="${esc(p.id)}"></div><div class="drop" title="${esc(t('helpDrop'))}">${esc(t('dropHere'))}</div></div><div class="cardmain"><div class="row" style="justify-content:space-between;margin:0"><div class="nm">${nameHtml(p)}</div><button type="button" class="btn" data-a="goto" title="${esc(t('helpGo'))}">${esc(t('goPrompt'))}</button></div><div>${tagsHtml(p)}${notesHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><p class="help">${esc(t('helpDrop'))}</p></div></div>`;
  el.querySelector('[data-a=goto]').onclick=()=>goToPrompt(p.id);
- renderThumbs(el.querySelector('.thumbs'),p.id,true);dropZone(el.querySelector('.drop'),p.id,()=>renderThumbs(el.querySelector('.thumbs'),p.id,true));}
+ renderThumbs(el.querySelector('.thumbs'),p.id,true);dropZone(el.querySelector('.drop'),p.id);}
 function characterForLog(){normCharacters();if(S.charMode==='new'){const parsed=parseCharacter(charDraft);if(!parsed){toast(t('needCharFormat'));return null}let c=S.characters.find(x=>lc(x.label)===lc(parsed.label));if(!c){c={id:uid(),label:parsed.label};S.characters.push(c)}S.activeCharacter=c.id;S.charMode='old';charDraft='';if($('#slot0'))renderSlots();return c}const c=S.characters.find(x=>x.id===S.activeCharacter);if(!c){toast(t('needChar'));return null}return c}
 function logUse(p,c){if(S.used.some(u=>u.promptId===p.id&&u.characterId===c.id))return;S.used.push({promptId:p.id,characterId:c.id,at:Date.now(),row:p.row})}
 async function copyPromptText(text){try{await navigator.clipboard.writeText(text)}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}}
@@ -671,8 +682,8 @@ function renderLib(){const q=$('#lq').value,r=$('#lr').value,tag=$('#lt').value,
  const gen=++libGen;
  Promise.resolve(S.images).then(im=>{if(gen!==libGen)return;const has=new Set(im.map(x=>x.pid));L.sort(so==='img'?(a,b)=>has.has(b.id)-has.has(a.id):cmp);$('#lc').textContent=t('promptCount',L.length);
  const box=$('#lib');box.innerHTML='';if(libObs){libObs.disconnect();libObs=null}L.slice(0,libShown).forEach(p=>{const c=document.createElement('div');c.dataset.pid=p.id;c.className='card'+(isDoneFor(p,flagCharacter())?' is-done':'')+(p.id===focusPid?' goto-hold':'')+(p.id===focusPid&&focusPulse?' goto-pulse':'');
-  c.innerHTML=`<div class="row" style="justify-content:space-between;margin:0"><b>${nameHtml(p)}</b><span><button class="btn" data-a="cp" title="${esc(t('helpCardCopy'))}">${t('copy')}</button> <button class="btn" data-a="ed" title="${esc(t('helpCardEdit'))}">${t('edit')}</button> <button class="btn danger" data-a="del" title="${esc(t('helpCardDel'))}">${t('del')}</button></span></div><div>${tagsHtml(p)}${notesHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop" title="${esc(t('helpDrop'))}">${esc(t('dropShort'))}</div>`;
-  const th=c.querySelector('.thumbs');if(has.has(p.id))renderThumbs(th,p.id,true);dropZone(c.querySelector('.drop'),p.id,()=>renderThumbs(th,p.id,true));
+  c.innerHTML=`<div class="cardface"><div class="shots"><div class="thumbs" data-pid="${esc(p.id)}"></div><div class="drop" title="${esc(t('helpDrop'))}">${esc(t('dropShort'))}</div></div><div class="cardmain"><div class="row" style="justify-content:space-between;margin:0"><b>${nameHtml(p)}</b><span><button class="btn" data-a="cp" title="${esc(t('helpCardCopy'))}">${t('copy')}</button> <button class="btn" data-a="ed" title="${esc(t('helpCardEdit'))}">${t('edit')}</button> <button class="btn danger" data-a="del" title="${esc(t('helpCardDel'))}">${t('del')}</button></span></div><div>${tagsHtml(p)}${notesHtml(p)}</div><div class="pt">${esc(p.prompt)}</div></div></div>`;
+  const th=c.querySelector('.thumbs');if(has.has(p.id))renderThumbs(th,p.id,true);dropZone(c.querySelector('.drop'),p.id);
   c.querySelector('[data-a=cp]').onclick=async()=>{clearFocus();const ch=characterForLog();if(!ch)return;await copyPromptText(p.prompt);logUse(p,ch);save();toast(t('copiedFor',ch.label));renderLib()};
   c.querySelector('[data-a=del]').onclick=async()=>{if(!confirm(t('confirmDelPrompt',dispName(p.name))))return;clearFocus();S.prompts=S.prompts.filter(x=>x!==p);S.used=S.used.filter(u=>u.promptId!==p.id);save();for(const x of S.images.filter(x=>x.pid===p.id))await delImg(x.id);renderLib()};
   c.querySelector('[data-a=ed]').onclick=()=>{clearFocus();c.classList.remove('goto-hold','goto-pulse');const shown=dispName(p.name);c.innerHTML=`<div class="row"><span class="rid">#${p.row}</span><select data-f="rating" title="${esc(t('helpEdit'))}">${['SFW','NSFW','All'].map(x=>`<option ${x===p.rating?'selected':''}>${x}</option>`).join('')}</select><input data-f="name" value="${esc(shown)}" style="flex:1" title="${esc(t('helpEdit'))}"></div><div class="row"><label>${esc(t('tagsComma'))}</label><input data-f="tags" value="${esc((p.tags||[]).join(', '))}" style="flex:1" title="${esc(t('helpEdit'))}"></div><div class="row"><label>${esc(t('notesComma'))}</label><input data-f="notes" value="${esc((p.notes||[]).join(', '))}" style="flex:1" title="${esc(t('helpEdit'))}"></div><textarea data-f="prompt" rows="6" title="${esc(t('helpEdit'))}">${esc(p.prompt)}</textarea><p class="help">${esc(t('helpEdit'))}</p><div class="row"><button class="btn pri" data-a="sv">${t('save')}</button><button class="btn" data-a="cn">${t('cancel')}</button></div>`;

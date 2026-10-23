@@ -17,8 +17,8 @@
 Nút bánh răng trên header mở **Cài đặt**. Mục đầu tiên là ngôn ngữ: English (mặc định), Tiếng Việt, 中文, 한국어. Lựa chọn được nhớ trên máy, trong cùng file dữ liệu với prompt, và đổi mọi chữ kể cả dòng giải thích và hộp cập nhật. Chữ Latin và tiếng Việt dùng Be Vietnam Pro; tiếng Trung và tiếng Hàn lần lượt dùng Microsoft YaHei và Malgun Gothic trên Windows.
 
 ## Ba tab
-- **Bốc prompt**: một ô bốc ngẫu nhiên và copy. Trước khi copy phải chọn nhân vật `Name - Source`. Nút **Tới prompt** mở đúng thẻ trong Dữ liệu prompt và làm nổi nó. Nhật ký cũng có nút này.
-- **Dữ liệu prompt**: sửa, xoá, thêm prompt, nhập/xuất JSON, sao lưu và thư mục dữ liệu. Danh sách hiện tổng số (ví dụ `592 prompt`) và tải thêm khi cuộn, không cắt ở 300 dòng. **Làm mới** đọc lại `prompts.json` trên đĩa và phân tích lại tên, tag, ghi chú.
+- **Bốc prompt**: một ô bốc ngẫu nhiên và copy. Trước khi copy phải chọn nhân vật `Name - Source`. Nút **Tới prompt** mở đúng thẻ trong Dữ liệu prompt và làm nổi nó. Nhật ký cũng có nút này. Ảnh kết quả thả hoặc dán vào đây hiện bên trái, cạnh tên `#165`, và cùng hiện trên thẻ trong Dữ liệu prompt. Nút **✕** hỏi rồi xoá file ảnh trên đĩa.
+- **Dữ liệu prompt**: sửa, xoá, thêm prompt, nhập/xuất JSON, sao lưu và thư mục dữ liệu. Danh sách hiện tổng số (ví dụ `592 prompt`) và tải thêm khi cuộn, không cắt ở 300 dòng. Lưới 2 cột khi cửa sổ hẹp, 3 cột khi rộng; ảnh nằm bên trái thẻ. **Làm mới** đọc lại `prompts.json` trên đĩa và phân tích lại tên, tag, ghi chú.
 - **Nhật ký prompt**: từng nhân vật và các hàng đã copy. Mỗi hàng có nút xoá. Hàng bị đánh dấu nếu prompt đã đổi sau lúc ghi. **Xuất JSON** / **Nhập JSON** ở tab này chỉ gồm nhật ký: nhân vật `name` + `source`, và mỗi hàng có `row`, `at`, `editedAfterLogging`. Nhập gộp theo nhân vật và số hàng, hỏi trước, rồi báo số hàng đã thêm và đã cập nhật.
 
 ## Phím tắt
