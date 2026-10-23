@@ -22,12 +22,7 @@ Var DeleteData
 !macroend
 
 Function un.promptDataPage
-  ${If} ${Silent}
-    Abort
-  ${EndIf}
-  ${If} ${isUpdated}
-    Abort
-  ${EndIf}
+  ; /S upgrades never show this page. The delete itself is guarded in customUnInstall.
   nsDialogs::Create 1018
   Pop $0
   ${If} $0 == error
