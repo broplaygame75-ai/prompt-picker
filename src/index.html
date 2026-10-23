@@ -31,6 +31,7 @@ select,input,textarea{background:var(--pn2);color:var(--tx);border:1px solid var
 .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:#2e2540;color:#cdb9ff;margin:2px 4px 2px 0}.r-SFW{background:#173a2c;color:var(--ok)}.r-NSFW{background:#40172a;color:#ff8fb3}.r-All{background:#2b2b2b;color:#ddd}
 .meta{color:var(--mu);font-size:13px}.thumbs img{height:90px;border-radius:8px;margin:4px 6px 0 0;cursor:zoom-in;border:1px solid var(--ln)}
 .lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}.lib .card{padding:14px}.lib .pt{font-size:14px;max-height:120px}
+#lc{font-weight:600;color:var(--tx)}.libmore{grid-column:1/-1;display:flex;justify-content:center;padding:8px 0 18px}
 .drop{border:1px dashed var(--ln);border-radius:8px;padding:6px;color:var(--mu);font-size:12px;text-align:center;margin-top:6px}.drop.ov{border-color:var(--ac)}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ok);color:#06210f;padding:10px 20px;border-radius:30px;font-weight:600;opacity:0;transition:.25s;pointer-events:none}#toast.on{opacity:1}
 kbd{background:var(--pn2);border:1px solid var(--ln);border-radius:4px;padding:0 5px;font-size:12px}.hid{display:none}
@@ -47,7 +48,7 @@ table{border-collapse:collapse;width:100%}td{padding:6px;border-bottom:1px solid
 <section id="v-set" class="hid"><div class="card"><h3 data-i="holTitle">Tag ngày lễ (cho chế độ Loại trừ)</h3><p class="meta" data-i="holHelp">Mỗi dòng một tag, không phân biệt hoa thường.</p><textarea id="hol" rows="8" style="max-width:400px"></textarea><div class="row"><button class="btn" id="savehol" data-i="save">Lưu</button></div>
 <h3 data-i="backupTitle">Sao lưu</h3><p class="meta" data-i="backupHelp">Xuất toàn bộ prompt, nhân vật và ảnh ra 1 file JSON. Nên xuất định kỳ.</p><div class="row"><button class="btn pri" id="exp" data-i="exportBtn">Xuất file sao lưu</button><label class="btn"><span data-i="importFile">📂 Nhập file</span><input type="file" class="impf hid" accept=".json,.txt"></label></div>
 <h3 data-i="jsonTitle">JSON prompt</h3><p class="meta" data-i="jsonHelp">File JSON dễ đọc và sửa: số hàng, rating (SFW/NSFW), tên, theme và nội dung prompt. Có thể kèm nhân vật và hàng đã xong. Nhập sẽ cập nhật prompt theo số hàng, thêm hàng mới, và hỏi trước khi ghi đè.</p><div class="row"><button type="button" class="btn expjson" data-i="exportJson">Xuất JSON</button><button type="button" class="btn impjson" data-i="importJson">Nhập JSON</button><input type="file" id="impjsonf" class="hid" accept=".json,application/json"></div>
-<h3 data-i="dataTitle">Thư mục dữ liệu</h3><p class="meta"><span data-i="dataHelp">Prompt lưu ở</span> <code id="ddir"></code> <span data-i="dataFiles">(file prompts.json + thư mục images).</span></p><div class="row"><button class="btn" id="dopen" data-i="openFolder">Mở thư mục</button><button class="btn" id="dchg" data-i="changeFolder">Đổi thư mục…</button></div><h3 data-i="versionTitle">Phiên bản</h3><div class="row"><span>Prompt Picker <b class="ver"></b></span><button class="btn" id="updchk" data-i="checkUpdate">Kiểm tra cập nhật</button></div><h3 data-i="resetTitle">Đặt lại</h3><div class="row"><button class="btn danger" id="rstall" data-i="deleteAll">Xoá toàn bộ dữ liệu</button></div></div></section>
+<h3 data-i="dataTitle">Thư mục dữ liệu</h3><p class="meta"><span data-i="dataHelp">Prompt lưu ở</span> <code id="ddir"></code> <span data-i="dataFiles">(file prompts.json + thư mục images).</span></p><div class="row"><button class="btn" id="dopen" data-i="openFolder">Mở thư mục</button></div><h3 data-i="versionTitle">Phiên bản</h3><div class="row"><span>Prompt Picker <b class="ver"></b></span><button class="btn" id="updchk" data-i="checkUpdate">Kiểm tra cập nhật</button></div><h3 data-i="resetTitle">Đặt lại</h3><div class="row"><button class="btn danger" id="rstall" data-i="deleteAll">Xoá toàn bộ dữ liệu</button></div></div></section>
 <section id="v-log" class="hid"><div class="card"><h3 data-i="logTitle">Nhật ký prompt</h3><p class="meta" data-i="logHelp">Mỗi nhân vật Name - Source có danh sách hàng đã copy. Bấm xoá cạnh một hàng để gỡ nó khỏi nhật ký khi prompt đã được sửa. Hàng được đánh dấu nếu prompt đổi sau lúc ghi.</p><input id="logq" data-ph="logSearch" placeholder="Tìm nhân vật hoặc số hàng…" style="width:100%;margin-bottom:10px"><div class="slot-body"><div><div id="logchars" class="chlist"></div></div><div id="logentries"></div></div></div></section>
 </main><div id="toast"></div><div id="upd"><div class="card" style="width:520px"><h2 id="updt" style="margin-top:0"></h2><div class="pt" id="updn" style="font-size:14px;max-height:220px"></div><div id="updp" class="hid"><div id="updb"></div></div><div class="row" style="justify-content:flex-end"><button class="btn" id="updl" data-i="later">Để sau</button><button class="btn pri" id="updy" data-i="updateNow">Cập nhật ngay</button></div></div></div>
 <script>
@@ -139,7 +140,7 @@ imgTitle:'Click: phóng to · Chuột phải: xoá',confirmDelImg:'Xoá ảnh n�
 needCharFormat:'Nhập nhân vật theo mẫu Name - Source',needChar:'Chọn nhân vật (Name - Source) trước khi copy',
 needTheme:'Chọn tag chủ đề trước nha',noMatch:'Không có prompt nào khớp bộ lọc',
 copiedFor:label=>'Đã copy cho '+label,unnamed:'(không tên)',tagsComma:'Tag (cách nhau bởi dấu phẩy)',
-libLimit:'Chỉ hiện 300 kết quả đầu, hãy lọc thêm.',anyTag:'Mọi tag',
+anyTag:'Mọi tag',loadMore:'Tải thêm',
 promptCount:n=>n+' prompt',parsedCount:n=>n+' prompt đọc được',noneParsed:'Không đọc được prompt nào',
 addedPrompts:(n,d)=>'Đã thêm '+n+' prompt'+(d?' (bỏ '+d+' trùng)':''),
 saved:'Đã lưu',confirmDeleteAll:'Xoá HẾT prompt, nhân vật và ảnh? Nên xuất sao lưu trước!',deleted:'Đã xoá',
@@ -191,7 +192,7 @@ imgTitle:'Click: zoom · Right-click: delete',confirmDelImg:'Delete this image?'
 needCharFormat:'Enter a character as Name - Source',needChar:'Choose a character (Name - Source) before copying',
 needTheme:'Choose a theme tag first',noMatch:'No prompts match the filter',
 copiedFor:label=>'Copied for '+label,unnamed:'(untitled)',tagsComma:'Tags (comma-separated)',
-libLimit:'Showing the first 300. Narrow the filter.',anyTag:'Any tag',
+anyTag:'Any tag',loadMore:'Load more',
 promptCount:n=>n+' prompts',parsedCount:n=>n+' prompts read',noneParsed:'Could not read any prompts',
 addedPrompts:(n,d)=>'Added '+n+' prompts'+(d?' (skipped '+d+' duplicates)':''),
 saved:'Saved',confirmDeleteAll:'Delete ALL prompts, characters, and images? Export a backup first!',deleted:'Deleted',
@@ -292,21 +293,25 @@ async function copyPromptText(text){try{await navigator.clipboard.writeText(text
 function doPick(i){const f=S.slots[i];if(!f)return;if(f.mode==='theme'&&!f.theme){toast(t('needTheme'));return}const p=pick(S.prompts,f,S,{avoidId:S.cur[i]});if(!p){toast(t('noMatch'));return}S.cur[i]=p.id;save();renderRes(i);}
 async function doCopy(i){let p=S.prompts.find(x=>x.id===S.cur[i]);if(!p){doPick(i);p=S.prompts.find(x=>x.id===S.cur[i]);if(!p)return}const c=characterForLog();if(!c)return;await copyPromptText(p.prompt);logUse(p,c);save();if($('#chlist'))renderCharList();if($('#res'+i))renderRes(i);toast(t('copiedFor',c.label));}
 document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||e.ctrlKey||e.altKey||e.metaKey||$('#v-pick').classList.contains('hid'))return;const k=e.key.toLowerCase();if(k==='1')doPick(0);else if(k==='q'||k==='c')doCopy(0);});
-// Library
+// Library. The count is the full filtered total. Cards load in pages as the list scrolls.
+const LIB_PAGE=48;
+let libShown=LIB_PAGE,libObs=null,libGen=0;
 function renderLib(){const q=$('#lq').value,r=$('#lr').value,tag=$('#lt').value,so=$('#ls').value;
  let L=S.prompts.filter(p=>(r==='All'||p.rating===r)&&(!tag||p.tags.includes(tag))&&matchKw(p,q));
  const cmp={name:(a,b)=>a.name.localeCompare(b.name),new:(a,b)=>b.created-a.created,row:(a,b)=>a.row-b.row}[so]||((a,b)=>a.row-b.row);
- Promise.resolve(S.images).then(im=>{const has=new Set(im.map(x=>x.pid));L.sort(so==='img'?(a,b)=>has.has(b.id)-has.has(a.id):cmp);$('#lc').textContent=t('promptCount',L.length);
- const box=$('#lib');box.innerHTML='';L.slice(0,300).forEach(p=>{const c=document.createElement('div');c.className='card'+(isDoneFor(p,flagCharacter())?' is-done':'');
+ const gen=++libGen;
+ Promise.resolve(S.images).then(im=>{if(gen!==libGen)return;const has=new Set(im.map(x=>x.pid));L.sort(so==='img'?(a,b)=>has.has(b.id)-has.has(a.id):cmp);$('#lc').textContent=t('promptCount',L.length);
+ const box=$('#lib');box.innerHTML='';if(libObs){libObs.disconnect();libObs=null}L.slice(0,libShown).forEach(p=>{const c=document.createElement('div');c.className='card'+(isDoneFor(p,flagCharacter())?' is-done':'');
   c.innerHTML=`<div class="row" style="justify-content:space-between;margin:0"><b>${nameHtml(p)}</b><span><button class="btn" data-a="cp">${t('copy')}</button> <button class="btn" data-a="ed">${t('edit')}</button> <button class="btn danger" data-a="del">${t('del')}</button></span></div><div>${tagsHtml(p)}</div><div class="pt">${esc(p.prompt)}</div><div class="thumbs"></div><div class="drop">${esc(t('dropShort'))}</div>`;
   const th=c.querySelector('.thumbs');if(has.has(p.id))renderThumbs(th,p.id,true);dropZone(c.querySelector('.drop'),p.id,()=>renderThumbs(th,p.id,true));
   c.querySelector('[data-a=cp]').onclick=async()=>{const ch=characterForLog();if(!ch)return;await copyPromptText(p.prompt);logUse(p,ch);save();toast(t('copiedFor',ch.label));renderLib()};
   c.querySelector('[data-a=del]').onclick=async()=>{if(!confirm(t('confirmDelPrompt',dispName(p.name))))return;S.prompts=S.prompts.filter(x=>x!==p);S.used=S.used.filter(u=>u.promptId!==p.id);save();for(const x of S.images.filter(x=>x.pid===p.id))await delImg(x.id);renderLib()};
   c.querySelector('[data-a=ed]').onclick=()=>{const shown=dispName(p.name);c.innerHTML=`<div class="row"><span class="rid">#${p.row}</span><select data-f="rating">${['SFW','NSFW','All'].map(x=>`<option ${x===p.rating?'selected':''}>${x}</option>`).join('')}</select><input data-f="name" value="${esc(shown)}" style="flex:1"></div><div class="row"><label>${esc(t('tagsComma'))}</label><input data-f="tags" value="${esc(p.tags.join(', '))}" style="flex:1"></div><textarea data-f="prompt" rows="6">${esc(p.prompt)}</textarea><div class="row"><button class="btn pri" data-a="sv">${t('save')}</button><button class="btn" data-a="cn">${t('cancel')}</button></div>`;
    c.querySelector('[data-a=sv]').onclick=()=>{const g=k=>c.querySelector(`[data-f=${k}]`).value;const rating=g('rating');let name=g('name').trim();if(name===t('unnamed')||name==='(không tên)'||name==='(untitled)')name='(không tên)';const tags=g('tags').split(',').map(s=>s.trim()).filter(Boolean);const prompt=g('prompt').trim();const changed=p.rating!==rating||p.name!==name||p.prompt!==prompt||p.tags.join('\n')!==tags.join('\n');p.rating=rating;p.name=name;p.tags=tags;p.prompt=prompt;if(changed)p.editedAt=Date.now();save();fillTags();renderLib()};c.querySelector('[data-a=cn]').onclick=renderLib;};
-  box.appendChild(c)});if(L.length>300)box.insertAdjacentHTML('beforeend','<p class="meta">'+esc(t('libLimit'))+'</p>');});}
+  box.appendChild(c)});if(L.length>libShown){const more=document.createElement('div');more.className='libmore';more.innerHTML=`<button type="button" class="btn" id="libmore">${esc(t('loadMore'))}</button>`;box.appendChild(more);const grow=()=>{if(gen!==libGen||$('#lib [data-f]'))return;libShown+=LIB_PAGE;renderLib()};more.querySelector('button').onclick=grow;if(window.IntersectionObserver){libObs=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))grow()},{root:null,rootMargin:'600px'});libObs.observe(more)}}});}
+function resetLib(){libShown=LIB_PAGE;renderLib()}
 function fillTags(){const cur=$('#lt').value;$('#lt').innerHTML='<option value="">'+esc(t('anyTag'))+'</option>'+allTags().map(tag=>`<option>${esc(tag)}</option>`).join('');if([...$('#lt').options].some(o=>o.value===cur))$('#lt').value=cur;}
-['#lq','#lr','#lt','#ls'].forEach(s=>$(s).addEventListener('input',renderLib));
+['#lq','#lr','#lt','#ls'].forEach(s=>$(s).addEventListener('input',resetLib));
 $('#logq').addEventListener('input',e=>{logQuery=e.target.value;renderLog()});
 // Add
 let pending=[];
@@ -338,7 +343,6 @@ function show(v){if(v==='lib'||v==='add'||v==='set')v='data';document.querySelec
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('#langseg button').forEach(b=>b.onclick=()=>setLang(b.dataset.l));
 $('#dopen').onclick=()=>api.dirOpen();
-$('#dchg').onclick=async()=>{const d=await api.dirChange();if(d){await load();applyStatic();toast(t('folderChanged'));show('data')}};
 api.version().then(v=>document.querySelectorAll('.ver').forEach(e=>e.textContent='v'+v));
 let manual=false,pendingVer=null,updPct=null,updErr=null,updBusy=false;
 function showUpd(on){const el=$('#upd');el.classList.toggle('on',!!on);el.style.display=on?'flex':'none'}
