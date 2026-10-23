@@ -189,7 +189,9 @@ async function pushReadme() {
 async function setNotes(tag, body) {
   try {
     const rel = await releaseByTag(tag);
-    await api('PATCH', `/repos/${owner}/${repo}/releases/${rel.id}`, {body});
+    const patch = {body};
+    if (tag === 'v0.1.9') patch.name = 'v0.1.9 (0.1.8.1 fixes)';
+    await api('PATCH', `/repos/${owner}/${repo}/releases/${rel.id}`, patch);
     report.notes[tag] = 'updated';
     console.log('notes', tag);
     return rel;
