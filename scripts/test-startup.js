@@ -84,6 +84,8 @@ assert.ok(nsh.includes('!macro ppUninstallMutex'));
 assert.ok(nsh.includes('!macro ppWaitAppExit'));
 assert.ok(nsh.includes('!macro ppSkipOldUninstall'));
 assert.ok(nsh.includes('QueryFullProcessImageNameW'));
+assert.ok(nsh.includes('IntOp $R0 $R8 + 8'));
+assert.ok(nsh.includes('close-app-done'));
 assert.ok(nsh.includes('GetCurrentProcessId'));
 assert.ok(nsh.includes('$TEMP\\PromptPicker-Setup.log'));
 assert.ok(!nsh.includes('taskkill'));

@@ -44,10 +44,22 @@ function Show-CrashLog {
 function Show-SetupTrace {
   foreach ($name in @('PromptPicker-Setup.log', 'prompt-picker-setup.log', 'prompt-picker-chosen-dir.txt')) {
     $log = Join-Path $env:TEMP $name
-    if (Test-Path -LiteralPath $log) {
-      Write-Host "--- $name ---"
-      Get-Content -LiteralPath $log -Tail 80
+    if (-not (Test-Path -LiteralPath $log)) { continue }
+    Write-Host "--- $name ---"
+    $bytes = [IO.File]::ReadAllBytes($log)
+    $text = ''
+    if ($bytes.Length -ge 2 -and $bytes[0] -eq 255 -and $bytes[1] -eq 254) {
+      $text = [Text.Encoding]::Unicode.GetString($bytes)
+    } else {
+      $zeros = 0
+      $n = [Math]::Min(80, $bytes.Length)
+      for ($i = 1; $i -lt $n; $i += 2) { if ($bytes[$i] -eq 0) { $zeros++ } }
+      if ($zeros -gt 8) { $text = [Text.Encoding]::Unicode.GetString($bytes) }
+      else { $text = [Text.Encoding]::UTF8.GetString($bytes) }
     }
+    $lines = $text -split "`r?`n"
+    $start = [Math]::Max(0, $lines.Length - 80)
+    for ($i = $start; $i -lt $lines.Length; $i++) { Write-Host $lines[$i] }
   }
   Get-Process -ErrorAction SilentlyContinue | Where-Object {
     $_.ProcessName -match 'Prompt|Setup|Uninstall|nsis|taskkill|makensis'

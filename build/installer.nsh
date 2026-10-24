@@ -21,6 +21,7 @@ Var ppWaitCount
 Var ppSelfPid
 Var ppParentPid
 Var ppClosePath
+Var ppScanCount
 
 ; The stock parameter reader stops at the first space, so "C:\Prompt Picker"
 ; became "C:\Prompt". Read the raw command line and keep everything after /D=.
@@ -205,89 +206,105 @@ Var ppClosePath
 
 ; Close Prompt Picker.exe only when its full path is the install folder.
 ; Never the setup exe, this process, or its parent.
+; Field offsets are read directly. A packed PROCESSENTRY32 read was leaving
+; the running app open, and the copy then waited until the gate killed setup.
 !macro ppWaitAppExit
   !define ppwa ${__COUNTER__}
-  System::Call 'kernel32::GetCurrentProcessId()i.s'
+  System::Call 'kernel32::GetCurrentProcessId()i .s'
   Pop $ppSelfPid
   StrCpy $ppParentPid 0
-  System::Call 'kernel32::CreateToolhelp32Snapshot(i 2, i 0)p.r9'
-  System::Alloc 556
-  Pop $R8
-  IntCmp $R8 0 pp_wa_close_snap_${ppwa}
-  StrCpy $R7 $R9
-  IntCmp $R7 0 pp_wa_free_${ppwa}
-  IntCmp $R7 -1 pp_wa_free_${ppwa}
-  System::Call '*$R8(i 556)'
-  System::Call 'kernel32::Process32FirstW(p r9, p R8)i.r7'
   StrCpy $ppWaitCount 0
-  pp_wa_parent_${ppwa}:
-    IntCmp $R7 0 pp_wa_rescan_${ppwa}
-    System::Call '*$R8(i,i,i.r6,i,i,i,i.r5,i,i,&w260.r4)'
-    StrCmp $R6 $ppSelfPid 0 pp_wa_parent_next_${ppwa}
-      StrCpy $ppParentPid $R5
-      Goto pp_wa_rescan_${ppwa}
-    pp_wa_parent_next_${ppwa}:
-    System::Call 'kernel32::Process32NextW(p r9, p R8)i.r7'
-    IntOp $ppWaitCount $ppWaitCount + 1
-    IntCmp $ppWaitCount 512 pp_wa_rescan_${ppwa} pp_wa_parent_${ppwa} pp_wa_rescan_${ppwa}
-  pp_wa_rescan_${ppwa}:
-  !insertmacro ppTrace "close-app self=$ppSelfPid parent=$ppParentPid"
-  System::Call '*$R8(i 556)'
-  System::Call 'kernel32::Process32FirstW(p r9, p R8)i.r7'
-  StrCpy $ppWaitCount 0
-  pp_wa_scan_${ppwa}:
-    IntCmp $R7 0 pp_wa_free_${ppwa}
-    System::Call '*$R8(i,i,i.r6,i,i,i,i.r5,i,i,&w260.r4)'
-    StrCmp $R4 "${APP_EXECUTABLE_FILENAME}" 0 pp_wa_next_${ppwa}
-    StrCmp $R6 $ppSelfPid pp_wa_next_${ppwa}
-    StrCmp $R6 $ppParentPid pp_wa_next_${ppwa}
-    StrCpy $ppClosePath ""
-    System::Call 'kernel32::OpenProcess(i 0x1000, i 0, i r6)p.r3'
-    IntCmp $R3 0 pp_wa_next_${ppwa}
-    StrCpy $R0 1024
-    System::Call 'kernel32::QueryFullProcessImageNameW(p r3, i 0, t.R4, *i R0)i.R7'
-    System::Call 'kernel32::CloseHandle(p r3)'
-    StrCpy $ppClosePath $R4
-    StrCmp $ppClosePath "" pp_wa_next_${ppwa}
-    StrCpy $R0 "$EXEPATH"
-    Push $R0
-    Push $ppClosePath
-    System::Call 'kernel32::lstrcmpiW(w s, w s)i.R7'
-    IntCmp $R7 0 pp_wa_skip_self_${ppwa}
-    StrCpy $R0 "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
-    Push $R0
-    Push $ppClosePath
-    System::Call 'kernel32::lstrcmpiW(w s, w s)i.R7'
-    IntCmp $R7 0 0 pp_wa_next_${ppwa} pp_wa_next_${ppwa}
-    System::Call 'kernel32::OpenProcess(i 0x0001, i 0, i r6)p.r3'
-    IntCmp $R3 0 pp_wa_next_${ppwa}
-    System::Call 'kernel32::TerminateProcess(p r3, i 0)'
-    System::Call 'kernel32::CloseHandle(p r3)'
-    !insertmacro ppTrace "closed-app $ppClosePath"
-    Goto pp_wa_next_${ppwa}
-    pp_wa_skip_self_${ppwa}:
-    !insertmacro ppTrace "skip-self $ppClosePath"
-    pp_wa_next_${ppwa}:
-    System::Call 'kernel32::Process32NextW(p r9, p R8)i.r7'
-    IntOp $ppWaitCount $ppWaitCount + 1
-    IntCmp $ppWaitCount 512 pp_wa_free_${ppwa} 0 pp_wa_free_${ppwa}
-    Goto pp_wa_scan_${ppwa}
-  pp_wa_free_${ppwa}:
-    IntCmp $R8 0 pp_wa_close_snap_${ppwa}
+  pp_wa_round_${ppwa}:
+    StrCpy $R2 0
+    System::Call 'kernel32::CreateToolhelp32Snapshot(i 2, i 0)p .R9'
+    System::Alloc 556
+    Pop $R8
+    IntCmp $R8 0 pp_wa_round_snap_${ppwa}
+    StrCpy $R7 $R9
+    IntCmp $R7 0 pp_wa_round_free_${ppwa}
+    IntCmp $R7 -1 pp_wa_round_free_${ppwa}
+    System::Call '*$R8(i 556)'
+    System::Call 'kernel32::Process32FirstW(p R9, p R8)i .R7'
+    StrCpy $ppScanCount 0
+    pp_wa_find_${ppwa}:
+      IntCmp $R7 0 pp_wa_killprep_${ppwa}
+      IntOp $R0 $R8 + 8
+      System::Call '*$R0(i .R6)'
+      StrCmp $R6 $ppSelfPid 0 pp_wa_find_next_${ppwa}
+        IntOp $R0 $R8 + 24
+        System::Call '*$R0(i .R5)'
+        StrCpy $ppParentPid $R5
+        Goto pp_wa_killprep_${ppwa}
+      pp_wa_find_next_${ppwa}:
+      System::Call 'kernel32::Process32NextW(p R9, p R8)i .R7'
+      IntOp $ppScanCount $ppScanCount + 1
+      IntCmp $ppScanCount 512 pp_wa_killprep_${ppwa} pp_wa_find_${ppwa} pp_wa_killprep_${ppwa}
+    pp_wa_killprep_${ppwa}:
+    !insertmacro ppTrace "close-app self=$ppSelfPid parent=$ppParentPid"
+    System::Call '*$R8(i 556)'
+    System::Call 'kernel32::Process32FirstW(p R9, p R8)i .R7'
+    StrCpy $ppScanCount 0
+    pp_wa_scan_${ppwa}:
+      IntCmp $R7 0 pp_wa_round_free_${ppwa}
+      IntOp $R0 $R8 + 36
+      System::Call '*$R0(&w260 .R4)'
+      StrCmp $R4 "${APP_EXECUTABLE_FILENAME}" 0 pp_wa_scan_next_${ppwa}
+      IntOp $R0 $R8 + 8
+      System::Call '*$R0(i .R6)'
+      StrCmp $R6 $ppSelfPid pp_wa_scan_next_${ppwa}
+      StrCmp $R6 $ppParentPid pp_wa_scan_next_${ppwa}
+      StrCmp $R6 0 pp_wa_scan_next_${ppwa}
+      System::Call 'kernel32::OpenProcess(i 0x1000, i 0, i R6)p .R3'
+      IntCmp $R3 0 pp_wa_scan_next_${ppwa}
+      StrCpy $R0 1024
+      System::Call 'kernel32::QueryFullProcessImageNameW(p R3, i 0, t .R4, *i R0)i .R5'
+      System::Call 'kernel32::CloseHandle(p R3)'
+      StrCpy $ppClosePath $R4
+      StrCmp $ppClosePath "" pp_wa_scan_next_${ppwa}
+      StrCpy $R0 "$EXEPATH"
+      Push $R0
+      Push $ppClosePath
+      System::Call 'kernel32::lstrcmpiW(w s, w s)i .R5'
+      IntCmp $R5 0 pp_wa_skip_${ppwa}
+      StrCpy $R0 "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
+      Push $R0
+      Push $ppClosePath
+      System::Call 'kernel32::lstrcmpiW(w s, w s)i .R5'
+      IntCmp $R5 0 0 pp_wa_scan_next_${ppwa} pp_wa_scan_next_${ppwa}
+      System::Call 'kernel32::OpenProcess(i 1, i 0, i R6)p .R3'
+      IntCmp $R3 0 pp_wa_scan_next_${ppwa}
+      System::Call 'kernel32::TerminateProcess(p R3, i 0)'
+      System::Call 'kernel32::CloseHandle(p R3)'
+      StrCpy $R2 1
+      !insertmacro ppTrace "closed-app $ppClosePath"
+      Goto pp_wa_scan_next_${ppwa}
+      pp_wa_skip_${ppwa}:
+      !insertmacro ppTrace "skip-self $ppClosePath"
+      pp_wa_scan_next_${ppwa}:
+      System::Call 'kernel32::Process32NextW(p R9, p R8)i .R7'
+      IntOp $ppScanCount $ppScanCount + 1
+      IntCmp $ppScanCount 512 pp_wa_round_free_${ppwa} 0 pp_wa_round_free_${ppwa}
+      Goto pp_wa_scan_${ppwa}
+    pp_wa_round_free_${ppwa}:
+    IntCmp $R8 0 pp_wa_round_snap_${ppwa}
     System::Free $R8
     StrCpy $R8 0
-  pp_wa_close_snap_${ppwa}:
-    IntCmp $R9 0 pp_wa_done_${ppwa}
-    IntCmp $R9 -1 pp_wa_done_${ppwa}
-    System::Call 'kernel32::CloseHandle(p r9)'
+    pp_wa_round_snap_${ppwa}:
+    IntCmp $R9 0 pp_wa_round_next_${ppwa}
+    IntCmp $R9 -1 pp_wa_round_next_${ppwa}
+    System::Call 'kernel32::CloseHandle(p R9)'
     StrCpy $R9 0
-  pp_wa_done_${ppwa}:
+    pp_wa_round_next_${ppwa}:
+    StrCmp $R2 1 0 pp_wa_finish_${ppwa}
+    IntOp $ppWaitCount $ppWaitCount + 1
+    IntCmp $ppWaitCount 8 pp_wa_finish_${ppwa} 0 pp_wa_finish_${ppwa}
+    Sleep 400
+    Goto pp_wa_round_${ppwa}
+    pp_wa_finish_${ppwa}:
+    !insertmacro ppTrace "close-app-done"
   !undef ppwa
 !macroend
 
-; Present so the patched uninstallOldVersion returns without ExecWait.
-; The previous uninstaller (0.1.13) can sit on a window for the whole upgrade.
-; Setup overwrites the existing folder instead.
 !macro ppSkipOldUninstall
 !macroend
 
@@ -444,6 +461,7 @@ Var ppClosePath
 !macroend
 
 !macro customInit
+  Delete "$TEMP\PromptPicker-Setup.log"
   !insertmacro ppTrace "start $EXEPATH"
   StrCpy $ppKeepDir ""
   StrCpy $ppDirChosen "0"
