@@ -16,19 +16,71 @@ jobs:
       - name: Set release repo owner
         shell: bash
         run: node -e "const p=require('./package.json');p.build.publish[0].owner='broplaygame75-ai';require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))"
-      - name: Build and publish to public releases repo
-        env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        run: npx electron-builder --win nsis --publish always
-      - name: Publish install guide zip and release notes
+      - name: Build installer
+        run: npx electron-builder --win nsis --publish never
+      - name: Stage installer
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        run: node scripts/publish-extras.js
+        run: |
+          set -euo pipefail
+          mkdir -p release-files
+          cp -f dist/*.exe dist/latest.yml release-files/
+          shopt -s nullglob
+          maps=(dist/*.blockmap)
+          if [ ${#maps[@]} -gt 0 ]; then cp -f "${maps[@]}" release-files/; fi
+          test -n "$(ls release-files/PromptPicker-Setup-*.exe)"
+          test -f release-files/latest.yml
       - uses: actions/upload-artifact@v4
         with:
           name: installer
-          path: |
-            dist/*.exe
-            dist/latest.yml
-            dist/*.zip
+          path: release-files/*
+          if-no-files-found: error
+
+  clean-machine:
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/download-artifact@v4
+        with:
+          name: installer
+          path: release-files
+      - name: Fresh install, upgrade, and reinstall
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          $exe = @(Get-ChildItem release-files\PromptPicker-Setup-*.exe) | Select-Object -First 1
+          if (-not $exe) { throw 'installer artifact missing' }
+          ./scripts/windows-clean-machine.ps1 -Installer $exe.FullName
+
+  publish:
+    needs: [clean-machine]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/download-artifact@v4
+        with:
+          name: installer
+          path: dist
+      - name: Publish tested installer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          VER=$(node -p "require('./package.json').version")
+          REPO=broplaygame75-ai/prompt-picker-releases
+          TAG="v$VER"
+          files=(dist/PromptPicker-Setup-"$VER".exe dist/latest.yml dist/*.blockmap)
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$REPO" --clobber "${files[@]}"
+          else
+            gh release create "$TAG" --repo "$REPO" --title "$VER" --notes-file "release-notes/$VER.md" "${files[@]}"
+          fi
+          node scripts/publish-extras.js

@@ -1,8 +1,11 @@
 const {app,BrowserWindow,ipcMain,dialog,shell}=require('electron');
 const path=require('path'),fs=require('fs'),https=require('https');
 const {autoUpdater}=require('electron-updater');
-const {execFile}=require('child_process');
+const {execFile,spawn}=require('child_process');
 const {fixedDataDir,adoptExistingData,withActiveDataDir,windowsRememberCommands,APP_ID,MARKER_NAME,normalizeDataPath,reuseSources}=require('./dataDir');
+const {planShortcutRepair,shortcutLocations}=require('./shortcuts');
+const {startupCopy}=require('./startupCopy');
+const {installerUrl,versionFromRelease}=require('./repair');
 const cfgPath=()=>path.join(app.getPath('userData'),'config.json');
 function cfg(){try{return JSON.parse(fs.readFileSync(cfgPath()))}catch(e){return{}}}
 function readText(f){try{return fs.readFileSync(f,'utf8')}catch(e){return ''}}
@@ -25,8 +28,21 @@ const dataFile=()=>path.join(dataDir(),'prompts.json');
 function writeAtomic(f,s){fs.writeFileSync(f+'.tmp',s);fs.renameSync(f+'.tmp',f);}
 let win,settingsWin;
 const winOpts=()=>({backgroundColor:'#0f0d14',icon:path.join(__dirname,'../build/icon.png'),autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true}});
-function create(){win=new BrowserWindow(Object.assign(winOpts(),{width:1500,height:950,minWidth:360,title:'Prompt Picker'}));guardExternal(win);win.loadFile(path.join(__dirname,'index.html'));win.on('closed',()=>{win=null;if(settingsWin&&!settingsWin.isDestroyed())settingsWin.close()});}
-function openSettings(tab){const token=typeof tab==='string'?tab:'';if(settingsWin&&!settingsWin.isDestroyed()){if(settingsWin.isMinimized())settingsWin.restore();settingsWin.focus();settingsWin.webContents.send('settings-tab',token);return}settingsWin=new BrowserWindow(Object.assign(winOpts(),{width:960,height:780,minWidth:560,minHeight:480,title:'Settings'}));guardExternal(settingsWin);settingsWin.loadFile(path.join(__dirname,'index.html'),{query:{view:'settings',tab:token}});settingsWin.on('closed',()=>{settingsWin=null});}
+function watchWindow(w){
+  if(!w||w.isDestroyed())return;
+  w.webContents.on('render-process-gone',(e,details)=>{
+    logCrash('render-process-gone',details);
+    if(!details||details.reason==='clean-exit')return;
+    offerRepair(details);
+  });
+  w.webContents.on('did-fail-load',(e,code,desc,url,isMainFrame)=>{
+    if(!isMainFrame||code===0||code===-3)return;
+    logCrash('did-fail-load',code+' '+desc+' '+url);
+    offerRepair(desc||code);
+  });
+}
+function create(){win=new BrowserWindow(Object.assign(winOpts(),{width:1500,height:950,minWidth:360,title:'Prompt Picker'}));guardExternal(win);watchWindow(win);win.loadFile(path.join(__dirname,'index.html'));win.on('closed',()=>{win=null;if(settingsWin&&!settingsWin.isDestroyed())settingsWin.close()});}
+function openSettings(tab){const token=typeof tab==='string'?tab:'';if(settingsWin&&!settingsWin.isDestroyed()){if(settingsWin.isMinimized())settingsWin.restore();settingsWin.focus();settingsWin.webContents.send('settings-tab',token);return}settingsWin=new BrowserWindow(Object.assign(winOpts(),{width:960,height:780,minWidth:560,minHeight:480,title:'Settings'}));guardExternal(settingsWin);watchWindow(settingsWin);settingsWin.loadFile(path.join(__dirname,'index.html'),{query:{view:'settings',tab:token}});settingsWin.on('closed',()=>{settingsWin=null});}
 function otherWindows(sender){return BrowserWindow.getAllWindows().filter(w=>!w.isDestroyed()&&w.webContents!==sender)}
 ipcMain.handle('version',()=>app.getVersion());
 ipcMain.handle('load',()=>{try{return JSON.parse(fs.readFileSync(dataFile(),'utf8'))}catch(e){return null}});
@@ -59,7 +75,14 @@ autoUpdater.on('update-available',i=>{const version=i&&i.version;if(!version||!i
 autoUpdater.on('update-not-available',()=>send({type:'none'}));
 autoUpdater.on('download-progress',p=>send({type:'progress',percent:p&&p.percent||0}));
 autoUpdater.on('update-downloaded',info=>{const version=info&&info.version;send({type:'downloaded',version:version?String(version).replace(/^v/i,''):''})});
-autoUpdater.on('error',e=>send({type:'error',message:String(e&&e.message||e)}));
+autoUpdater.on('error',e=>{logCrash('updater',e);send({type:'error',message:String(e&&e.message||e)})});
+function checkUpdates(){
+  if(!app.isPackaged)return;
+  try{
+    const pending=autoUpdater.checkForUpdates();
+    if(pending&&typeof pending.catch==='function')pending.catch(e=>logCrash('update-check',e));
+  }catch(e){logCrash('update-check',e)}
+}
 ipcMain.handle('upd-check',()=>app.isPackaged?autoUpdater.checkForUpdates().then(()=>true).catch(e=>{send({type:'error',message:String(e.message)});return false}):(send({type:'error',code:'unpackaged-check'}),false));
 ipcMain.handle('upd-download',async()=>{if(!app.isPackaged){send({type:'error',code:'unpackaged-download'});return false}try{await autoUpdater.downloadUpdate();return true}catch(e){send({type:'error',message:String(e&&e.message||e)});return false}});
 ipcMain.handle('upd-install',()=>{
@@ -93,8 +116,86 @@ function rememberDataLocation(dir){
   try{fs.writeFileSync(path.join(path.dirname(cfgPath()),'data.path'),next.activeDataDir+'\n');}catch(e){}
   if(process.platform!=='win32')return;
   const installDir=app.isPackaged?path.dirname(process.execPath):'';
-  if(installDir)writeInstallMarker(installDir,next.activeDataDir);
-  for(const args of windowsRememberCommands(dir,installDir))execFile('reg',args,{windowsHide:true},()=>{});
+  const installOk=!!(installDir&&fs.existsSync(installDir)&&fs.existsSync(process.execPath));
+  if(installOk)writeInstallMarker(installDir,next.activeDataDir);
+  for(const args of windowsRememberCommands(dir,installOk?installDir:''))execFile('reg',args,{windowsHide:true},()=>{});
 }
-app.whenReady().then(()=>{try{rememberDataLocation(dataDir());}catch(e){}create();if(app.isPackaged){setTimeout(()=>autoUpdater.checkForUpdates().catch(()=>{}),5000);setInterval(()=>autoUpdater.checkForUpdates().catch(()=>{}),30*60*1000);}});
-app.on('window-all-closed',()=>app.quit());
+function crashFile(){
+  try{return path.join(app.getPath('userData'),'crash.log')}
+  catch(e){return path.join(process.env.APPDATA||require('os').tmpdir(),'Prompt Picker','crash.log')}
+}
+function logCrash(kind,err){
+  const text=err&&err.stack?err.stack:(typeof err==='string'?err:(()=>{try{return JSON.stringify(err)}catch(e){return String(err)}} )());
+  const line=new Date().toISOString()+' '+kind+' '+text+'\n';
+  try{const f=crashFile();fs.mkdirSync(path.dirname(f),{recursive:true});fs.appendFileSync(f,line);}catch(e){}
+}
+function downloadTo(url,dest,hops){
+  return new Promise((resolve,reject)=>{
+    if((hops||0)>5)return reject(new Error('redirect'));
+    const req=https.get(url,{headers:{'User-Agent':'PromptPicker'}},res=>{
+      const code=res.statusCode||0;
+      if(code>=300&&code<400&&res.headers.location){res.resume();const next=new URL(res.headers.location,url).href;return downloadTo(next,dest,(hops||0)+1).then(resolve,reject)}
+      if(code!==200){res.resume();return reject(new Error('HTTP '+code))}
+      fs.mkdirSync(path.dirname(dest),{recursive:true});
+      const file=fs.createWriteStream(dest);
+      res.pipe(file);
+      file.on('finish',()=>file.close(()=>resolve(dest)));
+      file.on('error',reject);
+    });
+    req.on('error',reject);
+    req.setTimeout(120000,()=>{req.destroy();reject(new Error('timeout'))});
+  });
+}
+async function downloadAndLaunchInstaller(){
+  const info=await fetchJson('https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases/latest');
+  const version=versionFromRelease(info);
+  const url=installerUrl(version);
+  if(!version){await shell.openExternal(url);return}
+  const dest=path.join(app.getPath('temp'),'PromptPicker-Setup-'+version+'.exe');
+  await downloadTo(url,dest);
+  const child=spawn(dest,[],{detached:true,stdio:'ignore'});
+  child.unref();
+}
+let repairShown=false,repairQueued=false;
+function offerRepair(err){
+  logCrash('startup',err);
+  repairQueued=true;
+  if(!app.isReady()||repairShown)return;
+  repairShown=true;
+  repairQueued=false;
+  const copy=startupCopy(uiLang());
+  dialog.showMessageBox({type:'error',title:copy.repairTitle,message:copy.repairTitle,detail:copy.repairBody,buttons:[copy.repairBtn,copy.repairClose],defaultId:0,cancelId:1,noLink:true}).then(async r=>{
+    if(r.response!==0){repairShown=false;if(!BrowserWindow.getAllWindows().some(w=>!w.isDestroyed()))app.quit();return}
+    try{await downloadAndLaunchInstaller()}
+    catch(e){logCrash('repair',e);try{await shell.openExternal(installerUrl(''))}catch(x){logCrash('repair-open',x)}}
+    app.quit();
+  }).catch(e=>{logCrash('repair-dialog',e);repairShown=false});
+}
+function repairShortcuts(){
+  if(process.platform!=='win32'||!app.isPackaged)return;
+  const locs=shortcutLocations(app.getPath('appData'),app.getPath('desktop'));
+  for(const file of [locs.startMenu,locs.desktop]){
+    let existing=null;
+    const exists=fs.existsSync(file);
+    if(exists){try{existing=shell.readShortcutLink(file)}catch(e){existing=null}}
+    const plan=planShortcutRepair(existing,process.execPath,exists);
+    if(!plan)continue;
+    try{
+      fs.mkdirSync(path.dirname(file),{recursive:true});
+      const ok=shell.writeShortcutLink(file,plan.operation,plan.options);
+      if(!ok)logCrash('shortcut','write failed '+file);
+    }catch(e){logCrash('shortcut',e)}
+  }
+}
+process.on('uncaughtException',err=>offerRepair(err));
+process.on('unhandledRejection',err=>logCrash('unhandledRejection',err));
+app.on('render-process-gone',(e,wc,details)=>{logCrash('render-process-gone',details);if(details&&details.reason!=='clean-exit')offerRepair(details)});
+app.on('child-process-gone',(e,details)=>logCrash('child-process-gone',details));
+app.whenReady().then(()=>{
+  if(repairQueued)offerRepair('queued');
+  try{rememberDataLocation(dataDir())}catch(e){logCrash('data',e)}
+  try{repairShortcuts()}catch(e){logCrash('shortcut',e)}
+  try{create()}catch(e){logCrash('window',e);offerRepair(e)}
+  if(app.isPackaged){setTimeout(checkUpdates,5000);setInterval(checkUpdates,30*60*1000)}
+}).catch(e=>{logCrash('ready',e);offerRepair(e)});
+app.on('window-all-closed',()=>{if(!repairShown)app.quit()});

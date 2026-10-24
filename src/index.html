@@ -132,33 +132,34 @@ body.age-locked header,body.age-locked main,body.age-locked #cfg,body.age-locked
 .startitem .btn{text-align:left}
 .startwhy{color:var(--mu);font-size:12px;line-height:1.4}
 .tipwrap{display:inline-flex;max-width:100%}
-#v-log:not(.hid){display:flex;flex-direction:column;overflow:hidden}
-#v-log .card{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#v-log:not(.hid){display:flex;flex-direction:column;overflow:auto}
+#v-log .card{flex:1 0 auto;min-height:max(100%,min-content);display:flex;flex-direction:column;overflow:visible}
 #v-log .card>h3{flex:none;height:auto;max-height:none;overflow:visible}
-#v-log .logtools{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#v-log .logtools{flex:1 0 auto;min-height:min-content;display:flex;flex-direction:column;overflow:visible}
 #v-log .logbanner{flex:none;height:auto;max-height:none;overflow:visible;margin:0 0 12px}
-#v-log .logsplit{flex:1 1 auto;min-height:0;overflow:hidden;display:grid;grid-template-columns:minmax(220px,.9fr) minmax(0,1.4fr);grid-template-rows:minmax(0,1fr);gap:14px;align-items:stretch}
-#v-log .logcol{min-width:0;min-height:0;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+#v-log .logsplit{flex:1 1 auto;min-height:min-content;overflow:visible;display:grid;grid-template-columns:minmax(220px,.9fr) minmax(0,1.4fr);grid-template-rows:minmax(min-content,1fr);gap:14px;align-items:stretch}
+#v-log .logcol{min-width:0;min-height:min-content;display:flex;flex-direction:column;gap:8px;overflow:visible}
 #v-log .logcol>:not(.logscroll){flex:none;height:auto;max-height:none;overflow:visible}
 #v-log .logcol>.help{margin:0}
 #v-log .logcol>input,#v-log .logsortfld select,#v-log .logclear .fld{width:100%}
-#v-log .logscroll{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--ln);border-radius:8px;background:var(--pn2);overscroll-behavior:contain}
+#v-log .logscroll{flex:1 1 auto;min-height:168px;overflow:auto;contain:size;border:1px solid var(--ln);border-radius:8px;background:var(--pn2);overscroll-behavior:contain}
+#v-log .logscroll>p{margin:0;padding:12px 14px}
 #v-log .logsortfld{flex:none;height:auto;max-height:none;overflow:visible;min-width:0;margin:0}
 #logchars .chopt{align-items:center}
 #logchars .choptname{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex:1;min-width:0;text-align:left;background:transparent;color:inherit;border:0;padding:0;cursor:pointer;font:inherit}
 #logchars .logtick{margin:0;flex:0 0 auto}
-@container page (max-width:960px){#v-log .logsplit{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}}
+@container page (max-width:960px){#v-log .logsplit{grid-template-columns:1fr;grid-template-rows:minmax(min-content,1fr) minmax(min-content,1fr)}}
 @media(max-width:600px){
  body:not(.win-settings) #v-log .logbanner .row{flex-direction:row;flex-wrap:wrap;align-items:center}
  body:not(.win-settings) #v-log .logbanner .btn{width:auto;flex:1 1 auto}
  body:not(.win-settings) #v-log .logbanner .logclear{align-items:stretch}
  body:not(.win-settings) #v-log .logbanner .logclear .fld{width:100%}
  #v-log:not(.hid){overflow:auto}
- #v-log .card{flex:1 0 auto;min-height:100%;height:auto;overflow:visible}
- #v-log .logtools{flex:1 0 auto;min-height:0;overflow:visible}
- #v-log .logsplit{flex:none;height:auto;min-height:0;overflow:visible}
- #v-log .logcol{height:auto;min-height:0;overflow:visible}
- #v-log .logscroll{flex:none;height:auto;min-height:140px;max-height:42vh;overflow:auto}
+ #v-log .card{flex:1 0 auto;min-height:max(100%,min-content);height:auto;overflow:visible}
+ #v-log .logtools{flex:1 0 auto;min-height:min-content;overflow:visible}
+ #v-log .logsplit{flex:none;height:auto;min-height:min-content;overflow:visible}
+ #v-log .logcol{height:auto;min-height:min-content;overflow:visible}
+ #v-log .logscroll{flex:none;height:auto;min-height:168px;max-height:max(168px,42vh);overflow:auto}
 }
 #v-log.is-empty .logtools{display:none}
 #v-log.is-empty #logempty{flex:1;display:flex;align-items:center;justify-content:center}
@@ -481,7 +482,7 @@ logImportNoneSkip:n=>'Không gộp được hàng nào. Bỏ qua '+n+' hàng vì
 logImportBackup:'Đây là file sao lưu đầy đủ, không phải nhật ký.',
 logImportPrompts:'Đây là file prompt, không phải nhật ký. Hãy dùng Nhập trong Cài đặt → Sao lưu & Nhập dữ liệu.',
 logNotPrompts:'Đây là file nhật ký. Hãy dùng Nhập JSON ở tab Nhật ký prompt.',
-logEmpty:'Nhân vật này chưa có hàng nào.',logNeedChar:'Chưa có nhân vật. Hãy copy một prompt kèm Name - Source.',
+logEmpty:'Nhân vật này chưa có hàng nào.',logNeedChar:'Chưa có nhân vật. Hãy copy một prompt kèm Name - Source.',repairTitle:'Prompt Picker cần được sửa',repairBody:'Prompt Picker gặp lỗi khi mở. Sửa sẽ tải bộ cài mới nhất và mở nó. Bạn không cần tự tìm file chương trình.',repairBtn:'Sửa',repairClose:'Đóng',
 confirmDelLog:(row,label)=>'Xoá hàng #'+row+' khỏi nhật ký của '+label+'?',
 confirmClearLog:(rows,chars)=>'Xoá '+rows+' hàng đã ghi trên '+chars+' nhân vật?\nOK = xoá. Huỷ = giữ nguyên.',
 logClearNone:'Không có hàng đã ghi khớp đối tượng và nhãn đó.',
@@ -660,7 +661,7 @@ logImportNoneSkip:n=>'Nothing to merge. Skipped '+n+' rows with no matching prom
 logImportBackup:'This is a full backup, not a prompt log.',
 logImportPrompts:'This is a prompt file, not a log. Use Import in Settings → Backup & Import.',
 logNotPrompts:'This is a log file. Use Import JSON on the Prompt Log tab.',
-logEmpty:'This character has no logged rows.',logNeedChar:'No characters yet. Copy a prompt with a Name - Source.',
+logEmpty:'This character has no logged rows.',logNeedChar:'No characters yet. Copy a prompt with a Name - Source.',repairTitle:'Prompt Picker needs a repair',repairBody:'Prompt Picker hit a startup error. Repair downloads the latest installer and opens it. You do not need to find the program yourself.',repairBtn:'Repair',repairClose:'Close',
 confirmDelLog:(row,label)=>'Remove row #'+row+' from the log for '+label+'?',
 confirmClearLog:(rows,chars)=>'Remove '+rows+' logged rows across '+chars+' characters?\nOK = remove them. Cancel = keep them.',
 logClearNone:'No logged rows match that target and label.',
@@ -839,7 +840,7 @@ logImportNoneSkip:n=>'没有可合并的内容。已跳过 '+n+' 行，因为没
 logImportBackup:'这是完整备份，不是提示词记录。',
 logImportPrompts:'这是提示词文件，不是记录。请在设置 → 备份与导入中使用导入。',
 logNotPrompts:'这是记录文件。请在提示词记录页使用导入 JSON。',
-logEmpty:'这个角色还没有记录。',logNeedChar:'还没有角色。复制提示词时请带上 Name - Source。',
+logEmpty:'这个角色还没有记录。',logNeedChar:'还没有角色。复制提示词时请带上 Name - Source。',repairTitle:'Prompt Picker 需要修复',repairBody:'Prompt Picker 启动时出错。修复会下载最新安装包并打开它。你不需要自己查找程序文件。',repairBtn:'修复',repairClose:'关闭',
 confirmDelLog:(row,label)=>'从 '+label+' 的记录中删除第 #'+row+' 行？',
 confirmClearLog:(rows,chars)=>'清除 '+rows+' 条已记录行，涉及 '+chars+' 个角色？\n确定 = 删除。取消 = 保留。',
 logClearNone:'没有已记录行符合该目标和标注。',
@@ -1018,7 +1019,7 @@ logImportNoneSkip:n=>'합칠 항목이 없습니다. 프롬프트가 없어 '+n+
 logImportBackup:'이것은 전체 백업이며 프롬프트 기록이 아닙니다.',
 logImportPrompts:'이것은 프롬프트 파일이며 기록이 아닙니다. 설정 → 백업 및 가져오기에서 가져오기를 사용하세요.',
 logNotPrompts:'이것은 기록 파일입니다. 프롬프트 기록 탭에서 JSON 가져오기를 사용하세요.',
-logEmpty:'이 캐릭터에는 기록된 행이 없습니다.',logNeedChar:'아직 캐릭터가 없습니다. Name - Source와 함께 프롬프트를 복사하세요.',
+logEmpty:'이 캐릭터에는 기록된 행이 없습니다.',logNeedChar:'아직 캐릭터가 없습니다. Name - Source와 함께 프롬프트를 복사하세요.',repairTitle:'Prompt Picker를 복구해야 합니다',repairBody:'Prompt Picker가 시작 중 오류가 났습니다. 복구는 최신 설치 파일을 받아 엽니다. 프로그램 파일을 직접 찾을 필요가 없습니다.',repairBtn:'복구',repairClose:'닫기',
 confirmDelLog:(row,label)=>label+'의 기록에서 #'+row+'행을 삭제할까요?',
 confirmClearLog:(rows,chars)=>'캐릭터 '+chars+'명의 기록된 행 '+rows+'개를 지울까요?\n확인 = 삭제. 취소 = 유지.',
 logClearNone:'그 대상과 라벨에 맞는 기록된 행이 없습니다.',
