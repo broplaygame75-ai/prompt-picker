@@ -234,6 +234,43 @@ Var ppDesktopCheckbox
         Abort
       ${EndIf}
     FunctionEnd
+
+    ; Same reason as ppDirPre: ${isUpdated} needs StdUtils, which is not
+    ; on the plugin path while this include is still loading.
+    Function ppShortcutPage
+      ${If} ${Silent}
+      ${OrIf} ${isUpdated}
+        Abort
+      ${EndIf}
+      nsDialogs::Create 1018
+      Pop $0
+      ${If} $0 == error
+        Abort
+      ${EndIf}
+      !insertmacro ppText "desktop" $R9
+      ${NSD_CreateCheckbox} 0 0 100% 18u "$R9"
+      Pop $ppDesktopCheckbox
+      ${If} $ppDesktopShortcut == "0"
+        ${NSD_SetState} $ppDesktopCheckbox ${BST_UNCHECKED}
+      ${Else}
+        ${NSD_SetState} $ppDesktopCheckbox ${BST_CHECKED}
+      ${EndIf}
+      !insertmacro ppText "nostart" $R9
+      ${NSD_CreateLabel} 0 28u 100% 32u "$R9"
+      Pop $0
+      nsDialogs::Show
+    FunctionEnd
+
+    Function ppShortcutLeave
+      ${NSD_GetState} $ppDesktopCheckbox $0
+      ${If} $0 == ${BST_CHECKED}
+        StrCpy $ppDesktopShortcut "1"
+      ${Else}
+        StrCpy $ppDesktopShortcut "0"
+      ${EndIf}
+      WriteRegStr HKCU "Software\Prompt Picker" DesktopShortcut "$ppDesktopShortcut"
+      WriteRegStr HKCU "Software\Prompt Picker" StartMenuShortcut "0"
+    FunctionEnd
   !endif
 !macroend
 
@@ -353,43 +390,6 @@ Var ppDesktopCheckbox
     Page custom ppShortcutPage ppShortcutLeave
   !endif
 !macroend
-
-!ifndef BUILD_UNINSTALLER
-Function ppShortcutPage
-  ${If} ${Silent}
-  ${OrIf} ${isUpdated}
-    Abort
-  ${EndIf}
-  nsDialogs::Create 1018
-  Pop $0
-  ${If} $0 == error
-    Abort
-  ${EndIf}
-  !insertmacro ppText "desktop" $R9
-  ${NSD_CreateCheckbox} 0 0 100% 18u "$R9"
-  Pop $ppDesktopCheckbox
-  ${If} $ppDesktopShortcut == "0"
-    ${NSD_SetState} $ppDesktopCheckbox ${BST_UNCHECKED}
-  ${Else}
-    ${NSD_SetState} $ppDesktopCheckbox ${BST_CHECKED}
-  ${EndIf}
-  !insertmacro ppText "nostart" $R9
-  ${NSD_CreateLabel} 0 28u 100% 32u "$R9"
-  Pop $0
-  nsDialogs::Show
-FunctionEnd
-
-Function ppShortcutLeave
-  ${NSD_GetState} $ppDesktopCheckbox $0
-  ${If} $0 == ${BST_CHECKED}
-    StrCpy $ppDesktopShortcut "1"
-  ${Else}
-    StrCpy $ppDesktopShortcut "0"
-  ${EndIf}
-  WriteRegStr HKCU "Software\Prompt Picker" DesktopShortcut "$ppDesktopShortcut"
-  WriteRegStr HKCU "Software\Prompt Picker" StartMenuShortcut "0"
-FunctionEnd
-!endif
 
 ; Desktop shortcut only, with no AppUserModelID. A Start Menu link that carries
 ; that id opens with "Unspecified error" even when the exe is on disk.
