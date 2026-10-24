@@ -1,0 +1,36 @@
+name: Bug report
+description: Something failed while installing or using Prompt Picker.
+title: "[Bug] "
+labels: []
+body:
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: The version shown in Settings, for example 0.1.13.
+      placeholder: 0.1.13
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: For example Windows 11 24H2.
+      placeholder: Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: What you did, and what happened instead.
+      placeholder: Installed to C:\Prompt Picker, opened the Desktop shortcut, then...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste the relevant lines from %APPDATA%\Prompt Picker\startup.log and %APPDATA%\Prompt Picker\crash.log. Do not include prompt text.
+    validations:
+      required: false

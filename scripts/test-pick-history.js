@@ -10,7 +10,7 @@ const api = {version: async () => '0.0.0', load: async () => null, save: async (
 const ctx = {document, location: {search: ''}, navigator: {}, api, URLSearchParams, setTimeout, clearTimeout, console, Map, Set, Date, Math, JSON, Promise};
 ctx.window = ctx;
 vm.createContext(ctx);
-vm.runInContext(script + '\nthis.__defaults=defaultShortcuts();\nthis.__order=SHORTCUT_ORDER.slice();\nthis.__same=sameShortcut;\nthis.__api={createPickHistory:createPickHistory,pickSlice:pickSlice};', ctx);
+vm.runInContext(script + '\nthis.__defaults=defaultShortcuts();\nthis.__order=SHORTCUT_ORDER.slice();\nthis.__same=sameShortcut;\nthis.__api={createPickHistory:createPickHistory,pickSlice:pickSlice,isNewLabel:isNewLabel};', ctx);
 
 const hist = ctx.__order;
 const defaults = ctx.__defaults;
@@ -67,4 +67,25 @@ s.cur[0] = 'p2';
 if (!h.note(s, 0, again)) throw new Error('second pick');
 if (h.canRedo()) throw new Error('new pick clears redo');
 if (h.note(s, 0, pickSlice(s, 0))) throw new Error('noop noted');
+
+const {isNewLabel} = ctx.__api;
+if (!isNewLabel('New') || !isNewLabel('NEW') || !isNewLabel('new') || !isNewLabel('&new&') || !isNewLabel('New Year')) throw new Error('new label match');
+if (isNewLabel('Old') || isNewLabel('Nope')) throw new Error('new label miss');
+const labels = createPickHistory();
+const labeled = state();
+labeled.prompts[0].tags = ['New', 'Halloween'];
+const labelBefore = pickSlice(labeled, 0);
+labeled.prompts[0].tags = ['Halloween'];
+labeled.prompts[0].editedAt = 99;
+if (!labels.note(labeled, 0, labelBefore)) throw new Error('label note');
+if (!labels.undo(labeled)) throw new Error('label undo');
+if (labeled.prompts[0].tags.join(',') !== 'New,Halloween') throw new Error('label restored ' + labeled.prompts[0].tags);
+if (labeled.prompts[0].editedAt) throw new Error('editedAt should clear');
+if (!labels.redo(labeled)) throw new Error('label redo');
+if (labeled.prompts[0].tags.join(',') !== 'Halloween' || labeled.prompts[0].editedAt !== 99) throw new Error('label redo state');
+const plain = pickSlice(labeled, 0);
+labeled.cur[0] = 'p2';
+if (!labels.note(labeled, 0, plain)) throw new Error('plain pick');
+labels.undo(labeled);
+if (labeled.prompts[0].tags.join(',') !== 'Halloween') throw new Error('plain pick changed labels');
 console.log('pick history ok');

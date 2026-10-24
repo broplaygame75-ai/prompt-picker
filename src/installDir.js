@@ -54,6 +54,17 @@ function updateArgs(installDir) {
   return args;
 }
 
+// _?= must be last and unquoted. /WIPE overrides a missing mode. /KEEP keeps
+// prompts, settings, and the install choices the next setup prefills.
+function uninstallArgs(mode, dir) {
+  const raw = String(dir || '').trim().replace(/[\\/]+$/, '');
+  const folder = raw ? normalizeDataPath(raw) : '';
+  const flag = mode === 'keep' ? '/KEEP' : '/WIPE';
+  const args = ['/S', flag];
+  if (folder) args.push('_?=' + folder);
+  return args;
+}
+
 function queryReg(key, name) {
   if (process.platform !== 'win32') return '';
   try {
@@ -78,6 +89,7 @@ module.exports = {
   installDirFromUninstallString,
   chooseInstallDir,
   updateArgs,
+  uninstallArgs,
   readInstallCandidates,
   queryReg
 };

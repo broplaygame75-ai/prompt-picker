@@ -2,10 +2,92 @@
 !include nsDialogs.nsh
 !include /CHARSET=UTF8 "uninstall-logic.nsh"
 
+; The language dialog is shown after this header is included. A saved choice
+; fills $LANGUAGE, and ALWAYSSHOW keeps the dialog on an interactive install.
+; Defines stay off the uninstaller build so its silent generator is unchanged.
 !ifndef BUILD_UNINSTALLER
+  !define MUI_LANGDLL_REGISTRY_ROOT HKCU
+  !define MUI_LANGDLL_REGISTRY_KEY "Software\Prompt Picker"
+  !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
+  !define MUI_LANGDLL_ALWAYSSHOW
 Var ppKeepDir
 Var ppDirChosen
+Var ppDesktopShortcut
+Var ppDesktopCheckbox
 !endif
+
+; The stock parameter reader stops at the first space, so "C:\Prompt Picker"
+; became "C:\Prompt". Read the raw command line and keep everything after /D=.
+!macro ppReadDSwitch OUT
+  !define pprd ${__COUNTER__}
+  StrCpy ${OUT} ""
+  System::Call 'kernel32::GetCommandLineW()w .r1'
+  StrCpy $3 0
+  pp_rd_scan_${pprd}:
+    StrCpy $4 $1 3 $3
+    StrCmp $4 "" pp_rd_end_${pprd}
+    StrCmp $4 "/D=" 0 pp_rd_next_${pprd}
+    ${If} $3 <> 0
+      IntOp $2 $3 - 1
+      StrCpy $2 $1 1 $2
+      StrCmp $2 " " pp_rd_take_${pprd}
+      StrCmp $2 '"' pp_rd_take_${pprd}
+      Goto pp_rd_next_${pprd}
+    ${EndIf}
+    Goto pp_rd_take_${pprd}
+  pp_rd_next_${pprd}:
+    IntOp $3 $3 + 1
+    Goto pp_rd_scan_${pprd}
+  pp_rd_take_${pprd}:
+    IntOp $3 $3 + 3
+    StrCpy ${OUT} $1 "" $3
+    StrCpy $2 ${OUT} 1
+    StrCmp $2 '"' 0 pp_rd_end_${pprd}
+    StrCpy ${OUT} ${OUT} "" 1
+    StrCpy $2 ${OUT} 1 -1
+    StrCmp $2 '"' 0 pp_rd_end_${pprd}
+    StrLen $3 ${OUT}
+    IntOp $3 $3 - 1
+    StrCpy ${OUT} ${OUT} $3
+  pp_rd_end_${pprd}:
+  !undef pprd
+!macroend
+
+; /NAME is present when it is its own switch: end, space, or quote after it.
+; OUT must not be $1-$4. /WIPE and /KEEP are read this way.
+!macro ppHasSwitch NAME OUT
+  !define pphs ${__COUNTER__}
+  StrCpy ${OUT} "0"
+  System::Call 'kernel32::GetCommandLineW()w .r1'
+  StrLen $2 "/${NAME}"
+  StrCpy $3 0
+  pp_hs_scan_${pphs}:
+    StrCpy $4 $1 $2 $3
+    StrCmp $4 "" pp_hs_end_${pphs}
+    StrCmp $4 "/${NAME}" 0 pp_hs_next_${pphs}
+    ${If} $3 <> 0
+      IntOp $4 $3 - 1
+      StrCpy $4 $1 1 $4
+      StrCmp $4 " " pp_hs_edge_${pphs}
+      StrCmp $4 '"' pp_hs_edge_${pphs}
+      Goto pp_hs_next_${pphs}
+    ${EndIf}
+  pp_hs_edge_${pphs}:
+    IntOp $4 $3 + $2
+    StrCpy $4 $1 1 $4
+    StrCmp $4 "" pp_hs_yes_${pphs}
+    StrCmp $4 " " pp_hs_yes_${pphs}
+    StrCmp $4 '"' pp_hs_yes_${pphs}
+    Goto pp_hs_next_${pphs}
+  pp_hs_yes_${pphs}:
+    StrCpy ${OUT} "1"
+    Goto pp_hs_end_${pphs}
+  pp_hs_next_${pphs}:
+    IntOp $3 $3 + 1
+    Goto pp_hs_scan_${pphs}
+  pp_hs_end_${pphs}:
+  !undef pphs
+!macroend
 
 ; C:\Prompt Picker when this user can create it. Otherwise the profile folder.
 ; Never ask for administrator just to reach the default.
@@ -64,7 +146,7 @@ Var ppDirChosen
 !macro ppAfterInstallMode
   !ifndef BUILD_UNINSTALLER
     !define ppa ${__COUNTER__}
-    ${StdUtils.GetParameter} $R0 "D" ""
+    !insertmacro ppReadDSwitch $R0
     ${If} $R0 != ""
       StrCpy $INSTDIR $R0
       StrCpy $ppDirChosen "1"
@@ -185,7 +267,7 @@ Var ppDirChosen
     Goto pp_init_ready
   ${EndIf}
 
-  ${StdUtils.GetParameter} $0 "D" ""
+  !insertmacro ppReadDSwitch $0
   ${If} $0 != ""
     StrCpy $INSTDIR $0
     StrCpy $ppKeepDir $0
@@ -220,6 +302,24 @@ Var ppDirChosen
       StrCpy $hasPerMachineInstallation "0"
   ${EndIf}
 
+  ; A keep-data uninstall leaves the folder and the marker, but the exe is
+  ; already gone, so the per-user key may not have been restored yet.
+  ; Prefill $INSTDIR. Do not set ppDirChosen: the directory page stays visible.
+  ReadRegStr $0 HKCU "Software\Prompt Picker" InstallLocation
+  !insertmacro ppMarkerAccepts $0 $R9
+  ${If} $R9 == "1"
+    StrCpy $INSTDIR $0
+    StrCpy $ppKeepDir $0
+    Goto pp_init_ready
+  ${EndIf}
+  !insertmacro ppReadPointerInstallDir $0
+  !insertmacro ppMarkerAccepts $0 $R9
+  ${If} $R9 == "1"
+    StrCpy $INSTDIR $0
+    StrCpy $ppKeepDir $0
+    Goto pp_init_ready
+  ${EndIf}
+
   !insertmacro ppChooseDefaultDir
 
   pp_init_ready:
@@ -227,6 +327,15 @@ Var ppDirChosen
   ${If} $ppDirChosen == "1"
   ${OrIf} $ppKeepDir != ""
     StrCpy $ppKeepDir $INSTDIR
+  ${EndIf}
+  StrCpy $ppDesktopShortcut "1"
+  ${If} ${isNoDesktopShortcut}
+    StrCpy $ppDesktopShortcut "0"
+  ${Else}
+    ReadRegStr $R8 HKCU "Software\Prompt Picker" DesktopShortcut
+    ${If} $R8 == "0"
+      StrCpy $ppDesktopShortcut "0"
+    ${EndIf}
   ${EndIf}
   ${If} ${Silent}
   ${OrIf} ${isUpdated}
@@ -237,6 +346,50 @@ Var ppDirChosen
     RMDir "C:\Prompt Picker"
   ${EndIf}
 !macroend
+
+; Folder page, then the saved desktop-shortcut choice. Start Menu stays off.
+!macro customPageAfterChangeDir
+  !ifndef BUILD_UNINSTALLER
+    Page custom ppShortcutPage ppShortcutLeave
+  !endif
+!macroend
+
+!ifndef BUILD_UNINSTALLER
+Function ppShortcutPage
+  ${If} ${Silent}
+  ${OrIf} ${isUpdated}
+    Abort
+  ${EndIf}
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
+    Abort
+  ${EndIf}
+  !insertmacro ppText "desktop" $R9
+  ${NSD_CreateCheckbox} 0 0 100% 18u "$R9"
+  Pop $ppDesktopCheckbox
+  ${If} $ppDesktopShortcut == "0"
+    ${NSD_SetState} $ppDesktopCheckbox ${BST_UNCHECKED}
+  ${Else}
+    ${NSD_SetState} $ppDesktopCheckbox ${BST_CHECKED}
+  ${EndIf}
+  !insertmacro ppText "nostart" $R9
+  ${NSD_CreateLabel} 0 28u 100% 32u "$R9"
+  Pop $0
+  nsDialogs::Show
+FunctionEnd
+
+Function ppShortcutLeave
+  ${NSD_GetState} $ppDesktopCheckbox $0
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $ppDesktopShortcut "1"
+  ${Else}
+    StrCpy $ppDesktopShortcut "0"
+  ${EndIf}
+  WriteRegStr HKCU "Software\Prompt Picker" DesktopShortcut "$ppDesktopShortcut"
+  WriteRegStr HKCU "Software\Prompt Picker" StartMenuShortcut "0"
+FunctionEnd
+!endif
 
 ; Desktop shortcut only, with no AppUserModelID. A Start Menu link that carries
 ; that id opens with "Unspecified error" even when the exe is on disk.
@@ -254,23 +407,44 @@ Var ppDirChosen
     SetShellVarContext current
   ${EndIf}
   IfFileExists "$appExe" 0 pp_sc_skip
+    ${If} $ppDesktopShortcut != "0"
+      StrCpy $ppDesktopShortcut "1"
+    ${EndIf}
     Delete "$newDesktopLink"
-    CreateShortCut "$newDesktopLink" "$appExe" "" "$appExe" 0
-    StrCpy $launchLink "$newDesktopLink"
+    ${If} $ppDesktopShortcut != "0"
+      CreateShortCut "$newDesktopLink" "$appExe" "" "$appExe" 0
+      StrCpy $launchLink "$newDesktopLink"
+    ${Else}
+      StrCpy $launchLink "$appExe"
+    ${EndIf}
     IfFileExists "$launchLink" 0 pp_launch_exe
       Goto pp_launch_ok
     pp_launch_exe:
       StrCpy $launchLink "$appExe"
     pp_launch_ok:
     WriteRegStr HKCU "Software\Prompt Picker" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKCU "Software\Prompt Picker" DesktopShortcut "$ppDesktopShortcut"
+    WriteRegStr HKCU "Software\Prompt Picker" StartMenuShortcut "0"
     System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
   pp_sc_skip:
 !macroend
 
 !ifdef BUILD_UNINSTALLER
 
+Var DeleteKeepRadio
+Var DeleteWipeRadio
+
 !macro customUnInit
+  ; Silent with no flag wipes, so a scripted uninstall still starts clean.
+  ; /WIPE overrides /KEEP. An interactive page can still switch to keep.
   StrCpy $DeleteData ${BST_CHECKED}
+  !insertmacro ppHasSwitch "WIPE" $R0
+  !insertmacro ppHasSwitch "KEEP" $R1
+  ${If} $R0 == "1"
+    StrCpy $DeleteData ${BST_CHECKED}
+  ${ElseIf} $R1 == "1"
+    StrCpy $DeleteData ${BST_UNCHECKED}
+  ${EndIf}
   ReadRegStr $0 HKCU "Software\Prompt Picker" "Installer Language"
   ${If} $0 != ""
     StrCpy $LANGUAGE $0
@@ -284,6 +458,9 @@ Var ppDirChosen
 !macroend
 
 Function un.promptDataPage
+  ${If} ${Silent}
+    Abort
+  ${EndIf}
   !insertmacro ppResolveInstallDir
   !insertmacro ppCollectData
   nsDialogs::Create 1018
@@ -292,13 +469,20 @@ Function un.promptDataPage
     Abort
   ${EndIf}
   !insertmacro ppText "warn" $R9
-  ${NSD_CreateLabel} 0 0 100% 52u "$R9"
+  ${NSD_CreateLabel} 0 0 100% 48u "$R9"
   Pop $0
-  !insertmacro ppText "delete" $R9
-  ${NSD_CreateCheckbox} 0 56u 100% 18u "$R9"
-  Pop $DeleteDataCheckbox
-  ${NSD_SetState} $DeleteDataCheckbox ${BST_CHECKED}
-  StrCpy $DeleteData ${BST_CHECKED}
+  !insertmacro ppText "keep" $R9
+  ${NSD_CreateRadioButton} 0 52u 100% 14u "$R9"
+  Pop $DeleteKeepRadio
+  ${NSD_AddStyle} $DeleteKeepRadio 0x00020000
+  !insertmacro ppText "wipe" $R9
+  ${NSD_CreateRadioButton} 0 68u 100% 14u "$R9"
+  Pop $DeleteWipeRadio
+  ${If} $DeleteData == ${BST_CHECKED}
+    ${NSD_SetState} $DeleteWipeRadio ${BST_CHECKED}
+  ${Else}
+    ${NSD_SetState} $DeleteKeepRadio ${BST_CHECKED}
+  ${EndIf}
   !insertmacro ppText "paths" $R9
   ${If} $DataList == ""
     !insertmacro ppText "none" $R8
@@ -306,13 +490,19 @@ Function un.promptDataPage
   ${Else}
     StrCpy $R9 "$R9$\r$\n$DataList"
   ${EndIf}
-  ${NSD_CreateLabel} 0 78u 100% 64u "$R9"
+  ${NSD_CreateLabel} 0 88u 100% 64u "$R9"
   Pop $0
   nsDialogs::Show
 FunctionEnd
 
 Function un.promptDataLeave
-  ${NSD_GetState} $DeleteDataCheckbox $DeleteData
+  ${NSD_GetState} $DeleteWipeRadio $DeleteData
+  ${If} $DeleteData == ${BST_CHECKED}
+    !insertmacro ppText "wipeConfirm" $R9
+    MessageBox MB_ICONEXCLAMATION|MB_YESNO "$R9" /SD IDYES IDYES un_pp_wipe_ok
+    Abort
+  un_pp_wipe_ok:
+  ${EndIf}
 FunctionEnd
 
 ; Replaces electron-builder's RMDir /r $INSTDIR. Known program files are
@@ -326,6 +516,38 @@ FunctionEnd
   ${EndIf}
 !macroend
 
+; The running uninstaller is locked when _?= keeps it in the install folder.
+; A short cmd finishes after this process exits. Keep deletes only that exe.
+; Wipe removes the folder. Skip this during an in-place update.
+!macro ppFinishUninstall
+  ${If} ${isUpdated}
+  ${Else}
+    !insertmacro ppInstallDirOk $R9
+    ${If} $R9 == "1"
+      SetOutPath $TEMP
+      ClearErrors
+      Delete "$TEMP\pp-finish-uninstall.cmd"
+      FileOpen $R4 "$TEMP\pp-finish-uninstall.cmd" w
+      ${IfNot} ${Errors}
+        FileWrite $R4 "@echo off$\r$\n"
+        FileWrite $R4 "ping 127.0.0.1 -n 3 >nul$\r$\n"
+        ${If} $DeleteData == ${BST_CHECKED}
+          FileWrite $R4 'rmdir /s /q "'
+          FileWrite $R4 $InstallDir
+          FileWrite $R4 '"$\r$\n'
+        ${Else}
+          FileWrite $R4 'del /f /q "'
+          FileWrite $R4 "$InstallDir\${PP_UNINSTALL_EXE}"
+          FileWrite $R4 '"$\r$\n'
+        ${EndIf}
+        FileWrite $R4 'del "%~f0"$\r$\n'
+        FileClose $R4
+        Exec '"$SYSDIR\cmd.exe" /c "$TEMP\pp-finish-uninstall.cmd"'
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+!macroend
+
 !macro customUnInstall
   ${ifNot} ${isUpdated}
     !insertmacro ppCleanShortcuts
@@ -336,14 +558,16 @@ FunctionEnd
     ${if} $DeleteData == ${BST_CHECKED}
       !insertmacro ppDeleteDetectedData
       !insertmacro ppDeletePointers
+      RMDir /r "$APPDATA\Prompt Picker"
       !insertmacro ppInstallDirOk $R9
       ${If} $R9 == "1"
         SetOutPath $TEMP
-        RMDir "$InstallDir"
+        RMDir /r "$InstallDir"
       ${EndIf}
     ${else}
       !insertmacro ppWriteKeepPointers
     ${endIf}
+    !insertmacro ppFinishUninstall
   ${endIf}
 !macroend
 

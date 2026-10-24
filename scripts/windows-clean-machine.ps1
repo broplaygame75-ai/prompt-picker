@@ -111,7 +111,15 @@ function Resolve-Uninstaller([string]$InstallDir) {
   return $un
 }
 
-function Invoke-Uninstall([string]$InstallDir) {
+function Wait-Gone([string]$Path, [int]$Seconds) {
+  $deadline = (Get-Date).AddSeconds($Seconds)
+  while ((Test-Path -LiteralPath $Path) -and (Get-Date) -lt $deadline) {
+    Start-Sleep -Seconds 1
+  }
+  return -not (Test-Path -LiteralPath $Path)
+}
+
+function Invoke-Uninstall([string]$InstallDir, [string]$Mode = 'wipe') {
   $installDir = $InstallDir.TrimEnd('\')
   $un = Resolve-Uninstaller $installDir
   if (-not (Test-Path -LiteralPath $un)) {
@@ -127,7 +135,10 @@ function Invoke-Uninstall([string]$InstallDir) {
   # last and unquoted, including when the folder name contains spaces.
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = $un
-  $psi.Arguments = "/S _?=$installDir"
+  $flag = '/WIPE'
+  if ($Mode -eq 'keep') { $flag = '/KEEP' }
+  # /S /KEEP or /S /WIPE, then _?= last and unquoted.
+  $psi.Arguments = "/S $flag _?=$installDir"
   $psi.UseShellExecute = $false
   $psi.WorkingDirectory = $env:TEMP
   Write-Host "uninstall $un"
@@ -150,7 +161,13 @@ function Invoke-Uninstall([string]$InstallDir) {
     $names = @(Get-ChildItem -LiteralPath $installDir -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
     throw "exe still present after uninstall: $exe (left: $($names -join ', '))"
   }
-  Write-Host "uninstalled $installDir"
+  if ($Mode -eq 'keep') {
+    $unLeft = Join-Path $installDir 'Uninstall Prompt Picker.exe'
+    if (-not (Wait-Gone $unLeft 25)) { throw "uninstaller still present after keep: $unLeft" }
+  } else {
+    if (-not (Wait-Gone $installDir 25)) { throw "install folder still present after wipe: $installDir" }
+  }
+  Write-Host "uninstalled $installDir ($Mode)"
 }
 
 function Reset-Machine {
@@ -465,6 +482,80 @@ try {
   Assert-StartMenuGone
   Assert-ShortcutLaunches (Get-ShortcutPaths)[1]
   Stop-PromptPicker
+
+  Write-Host 'keep data, settings, and install choices'
+  $dataDir = Join-Path $env:APPDATA 'Prompt Picker\data'
+  New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+  Set-Content -LiteralPath (Join-Path $dataDir 'KEEP-SENTINEL.txt') -Value 'keep' -Encoding ascii
+  $promptsPath = Join-Path $dataDir 'prompts.json'
+  $kept = @{ prompts = @(); lang = 'vi'; langChosen = $true; themeColors = @{ pri = '#112233' }; showHints = $true; logSort = 'name-desc'; fontScale = 1.3; ageOk = $true }
+  if (Test-Path -LiteralPath $promptsPath) {
+    try {
+      $cur = Get-Content -LiteralPath $promptsPath -Raw -Encoding utf8 | ConvertFrom-Json
+      if ($cur.prompts) { $kept.prompts = @($cur.prompts) }
+    } catch {}
+  }
+  ($kept | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath $promptsPath -Encoding utf8
+  $userRoot = Join-Path $env:APPDATA 'Prompt Picker'
+  @{ activeDataDir = $dataDir } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $userRoot 'config.json') -Encoding utf8
+  foreach ($cache in @(
+    (Join-Path $env:LOCALAPPDATA 'prompt-picker-updater'),
+    (Join-Path $env:TEMP 'prompt-picker-updater')
+  )) {
+    New-Item -ItemType Directory -Force -Path $cache | Out-Null
+    Set-Content -LiteralPath (Join-Path $cache 'stale.txt') -Value 'cache' -Encoding ascii
+  }
+  $marker = Join-Path $custom 'prompt-picker.install.json'
+  if (-not (Test-Path -LiteralPath $marker)) { throw "marker missing before keep: $marker" }
+  Invoke-Uninstall $custom 'keep'
+  Assert-ShortcutsGone
+  if (-not (Test-Path -LiteralPath $dataDir)) { throw 'keep removed the data folder' }
+  if (-not (Test-Path -LiteralPath (Join-Path $dataDir 'KEEP-SENTINEL.txt'))) { throw 'keep removed the data sentinel' }
+  if (-not (Test-Path -LiteralPath $promptsPath)) { throw 'keep removed prompts.json' }
+  $keptNow = Get-Content -LiteralPath $promptsPath -Raw -Encoding utf8 | ConvertFrom-Json
+  if ($keptNow.lang -ne 'vi') { throw "keep removed language $($keptNow.lang)" }
+  if ($keptNow.logSort -ne 'name-desc') { throw 'keep removed sort' }
+  if (-not $keptNow.showHints) { throw 'keep removed hints' }
+  if (-not (Test-Path -LiteralPath (Join-Path $userRoot 'config.json'))) { throw 'keep removed config.json' }
+  if (-not (Test-Path -LiteralPath $marker)) { throw 'keep removed the install marker' }
+  $ppKey = Get-ItemProperty 'HKCU:\Software\Prompt Picker' -ErrorAction SilentlyContinue
+  if (-not $ppKey -or -not (Same-Path $ppKey.InstallLocation $custom)) { throw "kept install location missing: $($ppKey.InstallLocation)" }
+  if ($ppKey.DesktopShortcut -eq '0') { throw 'desktop shortcut choice was not kept' }
+  if (-not $ppKey.'Installer Language') { throw 'installer language was not kept' }
+  $guidKey = 'HKCU:\Software\05ae8bdf-b478-52b5-acc4-ac809166ef4d'
+  if (-not (Test-Path $guidKey)) { throw 'kept install registry key is missing' }
+  $unKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\05ae8bdf-b478-52b5-acc4-ac809166ef4d'
+  if (Test-Path $unKey) { throw 'uninstall key remained after keep' }
+  foreach ($cache in @(
+    (Join-Path $env:LOCALAPPDATA 'prompt-picker-updater'),
+    (Join-Path $env:TEMP 'prompt-picker-updater')
+  )) {
+    if (Test-Path -LiteralPath $cache) { throw "updater cache remained after keep: $cache" }
+  }
+  Install-Silent $Installer
+  $exe = Resolve-AppExe
+  if (-not (Same-Path $exe $customExe)) { throw "keep reinstall landed at $exe" }
+  Assert-Desktop $exe
+  Assert-StartMenuGone
+  Start-Process -FilePath $exe | Out-Null
+  Start-Sleep -Seconds 8
+  Stop-PromptPicker
+  $after = Get-Content -LiteralPath $promptsPath -Raw -Encoding utf8 | ConvertFrom-Json
+  if ($after.lang -ne 'vi' -or $after.logSort -ne 'name-desc' -or -not $after.showHints) { throw 'settings were not restored after reinstall' }
+  if (-not $after.themeColors -or $after.themeColors.pri -ne '#112233') { throw 'theme was not restored after reinstall' }
+
+  Write-Host 'wipe everything'
+  Invoke-Uninstall $custom 'wipe'
+  if (Test-Path -LiteralPath $userRoot) { throw 'userData remained after wipe' }
+  if (Test-Path 'HKCU:\Software\Prompt Picker') { throw 'settings registry remained after wipe' }
+  if (Test-Path $guidKey) { throw 'install registry remained after wipe' }
+  Assert-ShortcutsGone
+  foreach ($cache in @(
+    (Join-Path $env:LOCALAPPDATA 'prompt-picker-updater'),
+    (Join-Path $env:TEMP 'prompt-picker-updater')
+  )) {
+    if (Test-Path -LiteralPath $cache) { throw "updater cache remained after wipe: $cache" }
+  }
 
   Write-Host 'upgrade from the previous release'
   Reset-Machine

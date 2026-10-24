@@ -32,3 +32,25 @@ Bộ cài hỏi thư mục để đặt Prompt Picker. Thư mục gợi ý là `
 Xác nhận bạn từ 18 tuổi trở lên, rồi bốc prompt.
 
 ![Mở lần đầu](vi/04-first-launch.png)
+
+## 5. Cập nhật
+
+Bản cập nhật cài vào đúng thư mục bạn đã chọn. Không hỏi lại thư mục, và không xoá prompt hay cài đặt.
+
+## 6. Gỡ cài đặt
+
+Cài đặt > Khác có hai lựa chọn. Windows Settings > Apps cũng hiện hai lựa chọn đó.
+
+**Gỡ cài đặt, giữ dữ liệu** gỡ app, lối tắt, mục gỡ cài đặt, file tạm và bộ nhớ cập nhật. Prompt, ngôn ngữ, giao diện, cách xếp, gợi ý và mọi tuỳ chọn khác được giữ, cùng thư mục đã chọn và lựa chọn lối tắt Desktop. Lần cài sau mở sẵn thư mục đó và các lựa chọn đó, rồi app khôi phục cài đặt. Hãy xuất bản sao lưu JSON trước (Cài đặt > Sao lưu & Nhập dữ liệu) nếu bạn muốn một bản sao.
+
+**Gỡ cài đặt và xoá tất cả** gỡ app, prompt, cài đặt, thư mục cài và lựa chọn cài đặt đã lưu. Không hoàn tác được.
+
+## 7. Liên hệ
+
+Discord là cách được ưu tiên, trả lời nhanh nhất: https://discord.gg/yH5AAdj5qY
+
+Patreon: https://www.patreon.com/c/linekoaiart447658
+
+X: https://x.com/lyht111222333
+
+Telegram được kiểm tra ít hơn: https://t.me/linekoaiart

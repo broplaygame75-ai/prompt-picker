@@ -1,0 +1,19 @@
+name: Feature request
+description: Describe a change you want in Prompt Picker.
+title: "[Feature] "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What should be easier?
+      description: The situation you are in today.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: What should the app do?
+      description: The behavior you want. Keep the description safe for work.
+    validations:
+      required: true

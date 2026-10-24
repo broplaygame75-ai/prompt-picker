@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const crypto = require('crypto');
 const {execFileSync} = require('child_process');
 
 const root = path.join(__dirname, '..');
@@ -18,6 +19,23 @@ const stage = path.join(root, 'dist', 'guide-stage');
 const report = {version, zip: false, notes: {}, readme: false};
 
 function fill(s) { return String(s).split('{{version}}').join(version); }
+function fillPublic(s, hashes) {
+  return fill(s).split('{{setup_sha256}}').join(hashes.setup).split('{{zip_sha256}}').join(hashes.zip);
+}
+function sha256File(file) {
+  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+function checksumSection(hashes) {
+  return [
+    '## Checksums',
+    '',
+    '| File | SHA-256 |',
+    '| --- | --- |',
+    '| `PromptPicker-Setup-' + version + '.exe` | `' + hashes.setup + '` |',
+    '| `PromptPicker-' + version + '-Windows.zip` | `' + hashes.zip + '` |',
+    ''
+  ].join('\n');
+}
 function writeZip(stageDir, zipFile) {
   const zipRel = path.relative(root, zipFile).split(path.sep).join('/');
   const stageRel = path.relative(root, stageDir).split(path.sep).join('/');
@@ -32,10 +50,6 @@ function writeZip(stageDir, zipFile) {
     execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Compress-Archive -Path ${q(stageDir + '\\*')} -DestinationPath ${q(zipFile)} -Force`], {stdio: 'inherit'});
   }
 }
-function rootize(md) {
-  return md.replace(/\]\(HOW-TO-INSTALL/g, '](guide/HOW-TO-INSTALL').replace(/\]\(([a-z]{2}\/[^)]+)\)/g, '](guide/$1)');
-}
-
 function stageGuide() {
   fs.rmSync(stage, {recursive: true, force: true});
   fs.mkdirSync(stage, {recursive: true});
@@ -151,7 +165,57 @@ async function putFile(repoPath, buf, message) {
   console.log('wrote', repoPath);
 }
 
-async function pushReadme() {
+function publicTree(hashes) {
+  const dir = path.join(root, 'releases-public');
+  const files = [];
+  function walk(abs, prefix) {
+    for (const name of fs.readdirSync(abs)) {
+      const src = path.join(abs, name);
+      const rel = prefix ? prefix + '/' + name : name;
+      if (fs.statSync(src).isDirectory()) walk(src, rel);
+      else {
+        let buf = fs.readFileSync(src);
+        if (/\.(md|yml|txt)$/.test(name)) buf = Buffer.from(fillPublic(buf.toString('utf8'), hashes), 'utf8');
+        files.push({rel, buf});
+      }
+    }
+  }
+  walk(dir, '');
+  return files;
+}
+
+async function trySocialPreview(buf) {
+  try {
+    const headers = {
+      Authorization: 'Bearer ' + token,
+      'User-Agent': 'PromptPicker',
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'image/png',
+      'Content-Length': buf.length
+    };
+    await request('POST', 'https://api.github.com/repos/' + owner + '/' + repo + '/social-preview', headers, buf);
+    console.log('social preview updated');
+  } catch (e) {
+    console.log('social preview upload skipped: ' + (e.status || e.message));
+  }
+}
+
+async function tryRepoMeta() {
+  try {
+    await api('PATCH', '/repos/' + owner + '/' + repo, {
+      description: 'Windows desktop app for picking and organizing prompts. This repository publishes installers only.',
+      homepage: 'https://discord.gg/yH5AAdj5qY'
+    });
+    await api('PUT', '/repos/' + owner + '/' + repo + '/topics', {
+      names: ['windows', 'desktop-app', 'electron', 'installer', 'prompt-picker']
+    });
+    console.log('repo metadata updated');
+  } catch (e) {
+    console.log('repo metadata skipped: ' + (e.status || e.message));
+  }
+}
+
+async function pushReadme(hashes) {
   const files = [];
   function walk(dir, prefix) {
     for (const name of fs.readdirSync(dir)) {
@@ -163,26 +227,11 @@ async function pushReadme() {
     }
   }
   walk(stage, '');
-  const readme = [
-    '# Prompt Picker',
-    '',
-    '**18+.** Prompt Picker is for adults.',
-    '',
-    'Downloads are on the [releases](https://github.com/' + owner + '/' + repo + '/releases) page.',
-    '',
-    'Auto-update uses `PromptPicker-Setup-' + version + '.exe` and `latest.yml`. Leave those file names as they are.',
-    '',
-    '`PromptPicker-' + version + '-Windows.zip` contains the Setup exe, the install guide, and the pictures.',
-    '',
-    'Windows may say "Windows protected your PC" because the app is not code-signed. Click **More info**, then **Run anyway**. Do not turn off SmartScreen or Defender. The pictures are illustrations.',
-    '',
-    rootize(fs.readFileSync(path.join(stage, 'HOW-TO-INSTALL.md'), 'utf8').trim()),
-    '',
-    'The pictures in each guide use paths next to that file, so they display on this site and inside the app for the language you selected.',
-    ''
-  ].join('\n');
-  files.push({rel: 'README.md', buf: Buffer.from(readme, 'utf8')});
+  files.push(...publicTree(hashes));
   for (const file of files) await putFile(file.rel, file.buf, 'Update ' + file.rel + ' for Prompt Picker ' + version);
+  const preview = files.find(file => file.rel === '.github/social-preview.png');
+  if (preview) await trySocialPreview(preview.buf);
+  await tryRepoMeta();
   return true;
 }
 
@@ -204,13 +253,15 @@ async function setNotes(tag, body) {
 
 async function main() {
   const zip = stageGuide();
+  const setup = path.join(root, 'dist', 'PromptPicker-Setup-' + version + '.exe');
+  const hashes = {setup: sha256File(setup), zip: sha256File(zip)};
   if (!token) {
     console.log('GH_TOKEN is not set. Zip is staged only.');
     fs.writeFileSync(path.join(root, 'dist', 'publish-report.json'), JSON.stringify(report, null, 2));
     return;
   }
-  report.readme = await pushReadme();
-  const current = await setNotes('v' + version, notesFor(version) + '\n\n' + guideBody());
+  report.readme = await pushReadme(hashes);
+  const current = await setNotes('v' + version, notesFor(version) + '\n\n' + checksumSection(hashes) + '\n\n' + guideBody());
   if (!current) {
     fs.writeFileSync(path.join(root, 'dist', 'publish-report.json'), JSON.stringify(report, null, 2));
     process.exit(1);

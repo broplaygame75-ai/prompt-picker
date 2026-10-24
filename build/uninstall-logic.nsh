@@ -46,7 +46,6 @@ Var DataPath3
 Var DataPath4
 Var DataList
 Var DeleteData
-Var DeleteDataCheckbox
 !endif
 
 !macro ppDirHasApp DIR RESULT
@@ -424,6 +423,7 @@ Var DeleteDataCheckbox
 !macro ppCleanShortcuts
   SetOutPath $TEMP
   RMDir /r "$LOCALAPPDATA\prompt-picker-updater"
+  RMDir /r "$TEMP\prompt-picker-updater"
   Delete "$DESKTOP\${PP_SHORTCUT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PP_SHORTCUT_NAME}.lnk"
   Delete "$APPDATA\Microsoft\Windows\Start Menu\Programs\${PP_SHORTCUT_NAME}.lnk"
@@ -577,6 +577,10 @@ Var DeleteDataCheckbox
   FileWrite $R4 $R1
   FileWrite $R4 '","dataPath":"'
   FileWrite $R4 $R2
+  FileWrite $R4 '","desktopShortcut":"'
+  FileWrite $R4 $R6
+  FileWrite $R4 '","startMenuShortcut":"0","language":"'
+  FileWrite $R4 $LANGUAGE
   FileWrite $R4 '"}$\r$\n'
   FileClose $R4
   pp_wm_end_${ppwm}:
@@ -589,14 +593,24 @@ Var DeleteDataCheckbox
   !insertmacro ppInstallDirOk $R9
   StrCmp $R9 "1" 0 pp_wk_end_${ppwk}
   !insertmacro ppKeptDataPath $R3
+  ReadRegStr $R8 HKCU "Software\Prompt Picker" DesktopShortcut
+  ${If} $R8 != "0"
+    StrCpy $R8 "1"
+  ${EndIf}
   !insertmacro ppJsonEscape $InstallDir $R1
   !insertmacro ppJsonEscape $R3 $R2
+  StrCpy $R6 $R8
   CreateDirectory "$APPDATA\Prompt Picker"
   !insertmacro ppWriteMarkerFile "$InstallDir\${PP_MARKER_NAME}"
   !insertmacro ppWriteMarkerFile "$APPDATA\Prompt Picker\${PP_MARKER_NAME}"
   WriteRegStr HKCU "Software\Prompt Picker" InstallLocation "$InstallDir"
   WriteRegStr HKCU "Software\Prompt Picker" DataDir "$R3"
   WriteRegStr HKCU "Software\Prompt Picker" AppId "${PP_APP_ID}"
+  WriteRegStr HKCU "Software\Prompt Picker" DesktopShortcut "$R6"
+  WriteRegStr HKCU "Software\Prompt Picker" StartMenuShortcut "0"
+  WriteRegStr HKCU "Software\Prompt Picker" "Installer Language" "$LANGUAGE"
+  WriteRegStr HKCU "${INSTALL_REGISTRY_KEY}" InstallLocation "$InstallDir"
+  WriteRegStr HKCU "${INSTALL_REGISTRY_KEY}" DataDir "$R3"
   ClearErrors
   FileOpen $R4 "$APPDATA\Prompt Picker\data.path" w
   IfErrors pp_wk_end_${ppwk}
@@ -678,7 +692,7 @@ Var DeleteDataCheckbox
     ${EndIf}
     Goto pp_txt_end_${pptxt}
   pp_txt_paths_${pptxt}:
-  StrCmp "${ID}" "paths" 0 pp_txt_none_${pptxt}
+  StrCmp "${ID}" "paths" 0 pp_txt_keep_${pptxt}
     ${If} $LANGUAGE == 1066
       StrCpy ${OUT} "Thư mục dữ liệu tìm thấy:"
     ${ElseIf} $LANGUAGE == 2052
@@ -687,6 +701,66 @@ Var DeleteDataCheckbox
       StrCpy ${OUT} "찾은 데이터 폴더:"
     ${Else}
       StrCpy ${OUT} "Detected data folders:"
+    ${EndIf}
+    Goto pp_txt_end_${pptxt}
+  pp_txt_keep_${pptxt}:
+  StrCmp "${ID}" "keep" 0 pp_txt_wipe_${pptxt}
+    ${If} $LANGUAGE == 1066
+      StrCpy ${OUT} "Gỡ và giữ prompt, cài đặt, cùng lựa chọn cài đặt"
+    ${ElseIf} $LANGUAGE == 2052
+      StrCpy ${OUT} "卸载并保留提示词、设置和安装选择"
+    ${ElseIf} $LANGUAGE == 1042
+      StrCpy ${OUT} "제거하고 프롬프트, 설정, 설치 선택을 유지"
+    ${Else}
+      StrCpy ${OUT} "Uninstall and keep prompts, settings, and install choices"
+    ${EndIf}
+    Goto pp_txt_end_${pptxt}
+  pp_txt_wipe_${pptxt}:
+  StrCmp "${ID}" "wipe" 0 pp_txt_wconf_${pptxt}
+    ${If} $LANGUAGE == 1066
+      StrCpy ${OUT} "Gỡ và xoá tất cả"
+    ${ElseIf} $LANGUAGE == 2052
+      StrCpy ${OUT} "卸载并清除全部内容"
+    ${ElseIf} $LANGUAGE == 1042
+      StrCpy ${OUT} "제거하고 모두 지우기"
+    ${Else}
+      StrCpy ${OUT} "Uninstall and wipe everything"
+    ${EndIf}
+    Goto pp_txt_end_${pptxt}
+  pp_txt_wconf_${pptxt}:
+  StrCmp "${ID}" "wipeConfirm" 0 pp_txt_desk_${pptxt}
+    ${If} $LANGUAGE == 1066
+      StrCpy ${OUT} "Việc này xoá prompt, cài đặt, nhật ký, thư mục cài và lựa chọn cài đặt đã lưu. Không hoàn tác được. Tiếp tục?"
+    ${ElseIf} $LANGUAGE == 2052
+      StrCpy ${OUT} "这将删除提示词、设置、日志、安装文件夹和已保存的安装选择。无法撤销。是否继续？"
+    ${ElseIf} $LANGUAGE == 1042
+      StrCpy ${OUT} "프롬프트, 설정, 로그, 설치 폴더, 저장된 설치 선택을 삭제합니다. 되돌릴 수 없습니다. 계속할까요?"
+    ${Else}
+      StrCpy ${OUT} "This deletes prompts, settings, logs, the install folder, and the saved install choices. It cannot be undone. Continue?"
+    ${EndIf}
+    Goto pp_txt_end_${pptxt}
+  pp_txt_desk_${pptxt}:
+  StrCmp "${ID}" "desktop" 0 pp_txt_nostart_${pptxt}
+    ${If} $LANGUAGE == 1066
+      StrCpy ${OUT} "Tạo lối tắt trên Desktop"
+    ${ElseIf} $LANGUAGE == 2052
+      StrCpy ${OUT} "创建桌面快捷方式"
+    ${ElseIf} $LANGUAGE == 1042
+      StrCpy ${OUT} "바탕 화면에 바로 가기 만들기"
+    ${Else}
+      StrCpy ${OUT} "Create a Desktop shortcut"
+    ${EndIf}
+    Goto pp_txt_end_${pptxt}
+  pp_txt_nostart_${pptxt}:
+  StrCmp "${ID}" "nostart" 0 pp_txt_none_${pptxt}
+    ${If} $LANGUAGE == 1066
+      StrCpy ${OUT} "Không tạo lối tắt Start Menu."
+    ${ElseIf} $LANGUAGE == 2052
+      StrCpy ${OUT} "不会创建开始菜单快捷方式。"
+    ${ElseIf} $LANGUAGE == 1042
+      StrCpy ${OUT} "시작 메뉴 바로 가기는 만들지 않습니다."
+    ${Else}
+      StrCpy ${OUT} "A Start Menu shortcut is not created."
     ${EndIf}
     Goto pp_txt_end_${pptxt}
   pp_txt_none_${pptxt}:

@@ -7,7 +7,8 @@ const {planShortcutRepair, shortcutLocations, samePath, diagnoseShortcut, startM
 const {COPY} = require('../src/startupCopy');
 const {installerUrl, installerName, versionFromRelease} = require('../src/repair');
 const {formatStartupEntry} = require('../src/startupLog');
-const {parseRegSz, installDirFromUninstallString, chooseInstallDir, updateArgs, readInstallCandidates} = require('../src/installDir');
+const {parseRegSz, installDirFromUninstallString, chooseInstallDir, updateArgs, uninstallArgs, readInstallCandidates} = require('../src/installDir');
+const {TELEGRAM_URL, CONTACTS, contactHosts} = require('../src/contact');
 
 const exe = 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Prompt Picker\\Prompt Picker.exe';
 const opts = planShortcutRepair(null, exe, false);
@@ -49,11 +50,11 @@ const html = fs.readFileSync(path.join(__dirname, '../src/index.html'), 'utf8');
 const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
 const stub = () => ({onclick: null, value: '', textContent: '', innerHTML: '', style: {}, dataset: {}, classList: {add() {}, remove() {}, toggle() {}, contains() { return false; }}, addEventListener() {}, setAttribute() {}, focus() {}, appendChild() {}, querySelector: stub, querySelectorAll: () => []});
 const document = {documentElement: {lang: '', style: {setProperty() {}}}, body: {classList: {add() {}, toggle() {}, contains() { return false; }}}, querySelector: stub, querySelectorAll: () => [], addEventListener() {}, createElement: stub};
-const api = {version: async () => '0.0.0', load: async () => null, save: async () => true, dirGet: async () => '', onUpd() {}, onState() {}, onThemePreview() {}, onSettingsTab() {}, setFontScale() {}, pushState() {}, releases: async () => [], updCheck: async () => false, updDownload: async () => false, quit: async () => true, openSettings: async () => true};
+const api = {version: async () => '0.0.0', load: async () => ({prompts: [], lang: 'vi', langChosen: true, themeColors: {pri: '#112233'}, showHints: true, logSort: 'name-desc', fontScale: 1.3, ageOk: true}), save: async () => true, dirGet: async () => '', onUpd() {}, onState() {}, onThemePreview() {}, onSettingsTab() {}, setFontScale() {}, pushState() {}, releases: async () => [], updCheck: async () => false, updDownload: async () => false, quit: async () => true, openSettings: async () => true};
 const ctx = {document, location: {search: ''}, navigator: {}, api, URLSearchParams, setTimeout, clearTimeout, console, Map, Set, Date, Math, JSON, Promise};
 ctx.window = ctx;
 vm.createContext(ctx);
-vm.runInContext(script + '\nthis.I18N=I18N;', ctx);
+vm.runInContext(script + '\nthis.I18N=I18N;this.__snap=function(){return S};', ctx);
 for (const lang of ['en', 'vi', 'zh', 'ko']) {
   for (const key of ['repairTitle', 'repairBody', 'repairBtn', 'repairClose']) {
     assert.strictEqual(ctx.I18N[lang][key], COPY[lang][key], lang + ' ' + key);
@@ -69,6 +70,19 @@ assert.ok(nsh.includes('CreateShortCut "$newDesktopLink"'));
 assert.ok(!nsh.includes('SetLnkAUMI'));
 assert.ok(!nsh.includes('CreateShortCut "$newStartMenuLink"'));
 assert.ok(nsh.includes('PendingInstallDir'));
+assert.ok(nsh.includes('GetCommandLineW'));
+assert.ok(!nsh.includes('GetParameter'));
+assert.ok(nsh.includes('MUI_LANGDLL_ALWAYSSHOW'));
+assert.ok(nsh.includes('ppHasSwitch "KEEP"'));
+assert.ok(nsh.includes('ppHasSwitch "WIPE"'));
+assert.ok(nsh.includes('ppFinishUninstall'));
+assert.strictEqual(TELEGRAM_URL, 'https://t.me/linekoaiart');
+assert.deepStrictEqual(CONTACTS.map(c => c.id), ['discord', 'patreon', 'x', 'telegram']);
+assert.ok(contactHosts().includes('t.me'));
+assert.ok(html.includes('data-contact="discord"'));
+assert.ok(html.includes('id="aboutdiscord"'));
+assert.ok(html.includes('id="unkeep"'));
+assert.ok(html.includes('id="unwipe"'));
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
 assert.strictEqual(pkg.version, '0.1.13');
 assert.strictEqual(pkg.build.nsis.oneClick, false);
@@ -89,13 +103,19 @@ assert.ok(patchSrc.includes('ppAfterInstallMode'));
 assert.ok(patchSrc.includes('StrContains.nsh'));
 assert.ok(/publish:[\s\S]*needs:\s*\[clean-machine\]/.test(wf));
 const main = fs.readFileSync(path.join(__dirname, '../src/main.js'), 'utf8');
+assert.ok(main.includes("mode==='keep'?'keep':'wipe'"));
+assert.ok(main.includes('contactHosts'));
 assert.ok(main.includes('windowsVerbatimArguments:true'));
 assert.ok(!main.includes('quitAndInstall'));
 assert.ok(main.includes("setAppUserModelId('com.lineko.promptpicker')"));
 assert.ok(main.includes('startup.log'));
 
 const clean = fs.readFileSync(path.join(__dirname, 'windows-clean-machine.ps1'), 'utf8');
-assert.ok(clean.includes('/S _?=$installDir'), 'silent uninstall must wait on the NSIS process');
+assert.ok(clean.includes('_?=$installDir'), 'silent uninstall must wait on the NSIS process');
+assert.ok(clean.includes("'/KEEP'"));
+assert.ok(clean.includes("'/WIPE'"));
+assert.ok(clean.includes('keep data, settings, and install choices'));
+assert.ok(clean.includes('wipe everything'));
 assert.ok(clean.includes('function Invoke-Uninstall'));
 assert.ok(clean.includes('for ($try = 1; $try -le 3; $try++)'));
 assert.ok(clean.includes('uninstall then reinstall'));
@@ -116,6 +136,17 @@ assert.strictEqual(args[args.length - 1], '/D=C:\\Prompt Picker');
 assert.ok(args.includes('/currentuser'));
 assert.ok(args.indexOf('/currentuser') < args.length - 1);
 assert.ok(!args[args.length - 1].includes('"'));
+const keepArgs = uninstallArgs('keep', 'C:\\Prompt Picker');
+assert.deepStrictEqual(keepArgs, ['/S', '/KEEP', '_?=C:\\Prompt Picker']);
+assert.deepStrictEqual(uninstallArgs('wipe', 'C:\\Users\\ADMIN\\Prompt Picker'), ['/S', '/WIPE', '_?=C:\\Users\\ADMIN\\Prompt Picker']);
+assert.deepStrictEqual(uninstallArgs('other', ''), ['/S', '/WIPE']);
+const publish = fs.readFileSync(path.join(__dirname, 'publish-extras.js'), 'utf8');
+assert.ok(publish.includes('releases-public'));
+assert.ok(publish.includes('setup_sha256'));
+assert.ok(publish.includes('prompt-picker'));
+assert.ok(publish.includes('https://discord.gg/yH5AAdj5qY'));
+assert.ok(fs.existsSync(path.join(__dirname, '../releases-public/README.md')));
+assert.ok(fs.existsSync(path.join(__dirname, '../releases-public/.github/social-preview.png')));
 const queried = readInstallCandidates('C:\\Users\\ADMIN\\Prompt Picker', (key, name) => {
   if (name === 'UninstallString') return '"C:\\Users\\ADMIN\\Prompt Picker\\Uninstall Prompt Picker.exe" /currentuser';
   if (name === 'InstallLocation' && key.endsWith('Prompt Picker')) return 'C:\\Users\\ADMIN\\Prompt Picker';
@@ -139,4 +170,14 @@ assert.ok(entry.includes('AppUserModelID: com.lineko.promptpicker'));
 assert.ok(entry.includes('TargetExists: false'));
 assert.ok(entry.includes(broken));
 
-console.log('startup ok');
+setImmediate(() => {
+  try {
+    const kept = ctx.__snap();
+    if (!kept || kept.lang !== 'vi' || kept.logSort !== 'name-desc' || kept.showHints !== true) throw new Error('settings were not kept on load ' + JSON.stringify(kept && {lang: kept.lang, logSort: kept.logSort, showHints: kept.showHints}));
+    if (!kept.themeColors || kept.themeColors.pri !== '#112233') throw new Error('theme was not kept on load');
+    console.log('startup ok');
+  } catch (e) {
+    console.error(e);
+    process.exit(1);
+  }
+});

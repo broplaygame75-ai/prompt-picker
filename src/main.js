@@ -7,7 +7,8 @@ const {planShortcutRepair,shortcutLocations,startMenuPaths,diagnoseShortcut}=req
 const {startupCopy}=require('./startupCopy');
 const {installerUrl,versionFromRelease}=require('./repair');
 const {formatStartupEntry}=require('./startupLog');
-const {chooseInstallDir,updateArgs,readInstallCandidates}=require('./installDir');
+const {chooseInstallDir,updateArgs,uninstallArgs,readInstallCandidates}=require('./installDir');
+const {contactHosts}=require('./contact');
 if(process.platform==='win32')app.setAppUserModelId('com.lineko.promptpicker');
 const cfgPath=()=>path.join(app.getPath('userData'),'config.json');
 function cfg(){try{return JSON.parse(fs.readFileSync(cfgPath()))}catch(e){return{}}}
@@ -62,7 +63,7 @@ ipcMain.handle('img-read',(e,id)=>{try{return 'data:image/webp;base64,'+fs.readF
 ipcMain.handle('img-del',(e,id)=>{try{fs.unlinkSync(path.join(dataDir(),'images',id+'.webp'))}catch(x){}return true});
 ipcMain.handle('dir-get',()=>dataDir());
 ipcMain.handle('dir-open',()=>shell.openPath(dataDir()));
-function externalOk(url){try{const u=new URL(String(url));if(u.protocol!=='https:')return false;const host=u.hostname.toLowerCase();return host==='x.com'||host==='www.x.com'||host==='patreon.com'||host==='www.patreon.com'||host==='discord.gg'||host==='github.com'||host==='www.github.com'}catch(e){return false}}
+function externalOk(url){try{const u=new URL(String(url));if(u.protocol!=='https:')return false;const host=u.hostname.toLowerCase();const allow=new Set(['x.com','www.x.com','patreon.com','www.patreon.com','discord.gg','github.com','www.github.com'].concat(contactHosts()));return allow.has(host)}catch(e){return false}}
 function guardExternal(w){if(!w||w.isDestroyed())return;w.webContents.setWindowOpenHandler(({url})=>{if(externalOk(url))shell.openExternal(url);return{action:'deny'}});w.webContents.on('will-navigate',(e,url)=>{if(String(url).startsWith('file:'))return;e.preventDefault();if(externalOk(url))shell.openExternal(url)})}
 ipcMain.handle('open-external',(e,url)=>externalOk(url)?shell.openExternal(String(url)).then(()=>true).catch(()=>false):false);
 function uiLang(){try{const s=JSON.parse(fs.readFileSync(dataFile(),'utf8'));if(s.langChosen===true&&['en','vi','zh','ko'].includes(s.lang))return s.lang}catch(e){}return 'en'}
@@ -113,8 +114,27 @@ ipcMain.handle('upd-install',()=>{
 function fetchJson(url){return new Promise((resolve,reject)=>{const req=https.get(url,{headers:{'User-Agent':'PromptPicker','Accept':'application/vnd.github+json'}},res=>{let d='';res.on('data',c=>{d+=c;if(d.length>2000000)req.destroy()});res.on('end',()=>{const code=res.statusCode||0;if(code>=300&&code<400&&res.headers.location)return fetchJson(res.headers.location).then(resolve,reject);if(code!==200)return reject(new Error('HTTP '+code));try{resolve(JSON.parse(d))}catch(e){reject(e)}})});req.on('error',reject);req.setTimeout(20000,()=>{req.destroy();reject(new Error('timeout'))})})}
 ipcMain.handle('releases',async()=>{const list=await fetchJson('https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases?per_page=20');if(!Array.isArray(list))return [];return list.filter(r=>r&&!r.draft&&!r.prerelease).slice(0,20).map(r=>({version:String(r.tag_name||r.name||'').replace(/^v/i,''),body:String(r.body||''),published:r.published_at||''}))});
 ipcMain.handle('quit',()=>{app.quit();return true});
+ipcMain.handle('uninstall',(e,mode)=>{
+  if(process.platform!=='win32'||!app.isPackaged)return false;
+  const dir=path.dirname(process.execPath);
+  const un=path.join(dir,'Uninstall Prompt Picker.exe');
+  if(!fs.existsSync(un))return false;
+  try{
+    const args=uninstallArgs(mode==='keep'?'keep':'wipe',dir);
+    appendStartup('uninstall '+args.join(' '));
+    const child=spawn(un,args,{detached:true,stdio:'ignore',windowsVerbatimArguments:true});
+    child.unref();
+    setImmediate(()=>app.quit());
+    return true;
+  }catch(err){
+    logCrash('uninstall',err);
+    return false;
+  }
+});
 function writeInstallMarker(installDir,dataPath){
-  const body=JSON.stringify({appId:APP_ID,version:app.getVersion(),installDir:normalizeDataPath(installDir),dataPath:normalizeDataPath(dataPath)});
+  let prev={};
+  try{prev=JSON.parse(fs.readFileSync(path.join(installDir,MARKER_NAME),'utf8'))}catch(e){prev={}}
+  const body=JSON.stringify({appId:APP_ID,version:app.getVersion(),installDir:normalizeDataPath(installDir),dataPath:normalizeDataPath(dataPath),desktopShortcut:prev.desktopShortcut==='0'?'0':'1',startMenuShortcut:'0',language:typeof prev.language==='string'?prev.language:''});
   try{fs.writeFileSync(path.join(installDir,MARKER_NAME),body);}catch(e){}
   try{
     const parent=path.join(app.getPath('appData'),'Prompt Picker');
