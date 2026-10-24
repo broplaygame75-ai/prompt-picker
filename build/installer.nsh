@@ -319,16 +319,16 @@ Var ppScanCount
   !insertmacro ppTrace "check-app $INSTDIR"
   ; Fresh install has no app yet. Walking processes here is what closed
   ; setup before it created the folder. Only an upgrade closes the old exe.
-  !ifndef BUILD_UNINSTALLER
+  !ifdef BUILD_UNINSTALLER
+    !insertmacro ppWaitAppExit
+  !else
     IfFileExists "$INSTDIR\${APP_EXECUTABLE_FILENAME}" 0 pp_check_skip_app
-  !endif
-  !insertmacro ppWaitAppExit
-  !ifndef BUILD_UNINSTALLER
+    !insertmacro ppWaitAppExit
     Goto pp_check_app_done
     pp_check_skip_app:
     !insertmacro ppTrace "check-app-skip"
+    pp_check_app_done:
   !endif
-  pp_check_app_done:
   !insertmacro ppTrace "check-app-done"
 !macroend
 
