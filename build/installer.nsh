@@ -192,11 +192,12 @@ Var ppScanCount
   !undef ppfe
 !macroend
 
-; Installer log in %TEMP%. One line per step so a mid-run stop is still visible.
+; Installer log in %TEMP%. .onInit creates it before anything else runs.
+; One line per step so a mid-run stop is still visible.
 !macro ppTrace MSG
   !define ppt ${__COUNTER__}
   ClearErrors
-  FileOpen $R4 "$TEMP\PromptPicker-Setup.log" a
+  FileOpen $R4 "$TEMP\PromptPicker-install.log" a
   IfErrors pp_tr_end_${ppt}
     FileWrite $R4 "${MSG}$\r$\n"
     FileClose $R4
@@ -210,15 +211,16 @@ Var ppScanCount
 ; the running app open, and the copy then waited until the gate killed setup.
 !macro ppWaitAppExit
   !define ppwa ${__COUNTER__}
-  System::Call 'kernel32::GetCurrentProcessId()i .s'
-  Pop $ppSelfPid
+  ; .R6, not the NSIS stack. A dirty stack was returning the wrong pid
+  ; and the closer then terminated setup itself.
+  System::Call 'kernel32::GetCurrentProcessId()i .R6'
+  StrCpy $ppSelfPid $R6
   StrCpy $ppParentPid 0
   StrCpy $ppWaitCount 0
   pp_wa_round_${ppwa}:
     StrCpy $R2 0
     System::Call 'kernel32::CreateToolhelp32Snapshot(i 2, i 0)p .R9'
-    System::Alloc 556
-    Pop $R8
+    System::Call 'kernel32::GlobalAlloc(i 0x40, i 556)p .R8'
     IntCmp $R8 0 pp_wa_round_snap_${ppwa}
     StrCpy $R7 $R9
     IntCmp $R7 0 pp_wa_round_free_${ppwa}
@@ -254,23 +256,28 @@ Var ppScanCount
       StrCmp $R6 $ppSelfPid pp_wa_scan_next_${ppwa}
       StrCmp $R6 $ppParentPid pp_wa_scan_next_${ppwa}
       StrCmp $R6 0 pp_wa_scan_next_${ppwa}
+      StrCmp $R6 $ppSelfPid pp_wa_scan_next_${ppwa}
+      StrCmp $R6 $ppParentPid pp_wa_scan_next_${ppwa}
       System::Call 'kernel32::OpenProcess(i 0x1000, i 0, i R6)p .R3'
       IntCmp $R3 0 pp_wa_scan_next_${ppwa}
+      StrCpy $R4 ""
       StrCpy $R0 1024
       System::Call 'kernel32::QueryFullProcessImageNameW(p R3, i 0, t .R4, *i R0)i .R5'
       System::Call 'kernel32::CloseHandle(p R3)'
+      IntCmp $R5 0 pp_wa_scan_next_${ppwa}
+      StrCmp $R4 "" pp_wa_scan_next_${ppwa}
       StrCpy $ppClosePath $R4
-      StrCmp $ppClosePath "" pp_wa_scan_next_${ppwa}
-      StrCpy $R0 "$EXEPATH"
-      Push $R0
-      Push $ppClosePath
-      System::Call 'kernel32::lstrcmpiW(w s, w s)i .R5'
+      ; Registers, not the stack. Stack compares were matching setup itself.
+      StrCpy $R0 $ppClosePath
+      StrCpy $R1 "$EXEPATH"
+      System::Call 'kernel32::lstrcmpiW(w R0, w R1)i .R5'
       IntCmp $R5 0 pp_wa_skip_${ppwa}
-      StrCpy $R0 "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
-      Push $R0
-      Push $ppClosePath
-      System::Call 'kernel32::lstrcmpiW(w s, w s)i .R5'
+      StrCpy $R0 $ppClosePath
+      StrCpy $R1 "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
+      System::Call 'kernel32::lstrcmpiW(w R0, w R1)i .R5'
       IntCmp $R5 0 0 pp_wa_scan_next_${ppwa} pp_wa_scan_next_${ppwa}
+      StrCmp $R6 $ppSelfPid pp_wa_scan_next_${ppwa}
+      StrCmp $R6 $ppParentPid pp_wa_scan_next_${ppwa}
       System::Call 'kernel32::OpenProcess(i 1, i 0, i R6)p .R3'
       IntCmp $R3 0 pp_wa_scan_next_${ppwa}
       System::Call 'kernel32::TerminateProcess(p R3, i 0)'
@@ -309,8 +316,19 @@ Var ppScanCount
 !macroend
 
 !macro customCheckAppRunning
-  !insertmacro ppTrace "check-app"
+  !insertmacro ppTrace "check-app $INSTDIR"
+  ; Fresh install has no app yet. Walking processes here is what closed
+  ; setup before it created the folder. Only an upgrade closes the old exe.
+  !ifndef BUILD_UNINSTALLER
+    IfFileExists "$INSTDIR\${APP_EXECUTABLE_FILENAME}" 0 pp_check_skip_app
+  !endif
   !insertmacro ppWaitAppExit
+  !ifndef BUILD_UNINSTALLER
+    Goto pp_check_app_done
+    pp_check_skip_app:
+    !insertmacro ppTrace "check-app-skip"
+  !endif
+  pp_check_app_done:
   !insertmacro ppTrace "check-app-done"
 !macroend
 
@@ -360,26 +378,38 @@ Var ppScanCount
     ${OrIf} $ppKeepDir != ""
       StrCpy $ppKeepDir $INSTDIR
     ${EndIf}
-    ${If} $INSTDIR != "C:\Prompt Picker"
-      RMDir "C:\Prompt Picker"
-    ${EndIf}
     !undef ppa
   !endif
 !macroend
 
-; Keep the folder from the directory page. An unwritable folder goes back to
-; the page. Setup does not relaunch itself to ask for administrator.
+; Keep the folder from the directory page. Never relaunch setup, and never
+; delete the folder. C:\Prompt Picker falls back to the profile when needed.
 !macro ppPrepareInstallDir
   !insertmacro ppNormalizeInstDir
-  ${If} $INSTDIR != "C:\Prompt Picker"
-    RMDir "C:\Prompt Picker"
-  ${EndIf}
+  !insertmacro ppTrace "dir-chosen $INSTDIR"
   !insertmacro ppCanWriteInstDir $R9
+  ${If} $R9 == "0"
+    StrCpy $R7 $INSTDIR
+    StrCpy $R6 "C:\Prompt Picker"
+    System::Call 'kernel32::lstrcmpiW(w R7, w R6)i .R5'
+    ${If} $R5 == 0
+      StrCpy $INSTDIR "$PROFILE\Prompt Picker"
+      !insertmacro ppNormalizeInstDir
+      !insertmacro ppCanWriteInstDir $R9
+      !insertmacro ppTrace "dir-fallback $INSTDIR"
+    ${EndIf}
+  ${EndIf}
   ${If} $R9 == "0"
     !insertmacro ppTrace "dir-not-writable $INSTDIR"
     MessageBox MB_ICONSTOP|MB_OK "Prompt Picker cannot write to $INSTDIR. Choose a folder in your user profile." /SD IDOK
-    Abort
+    ${If} ${Silent}
+      Quit
+    ${Else}
+      Abort
+    ${EndIf}
   ${EndIf}
+  StrCpy $ppKeepDir $INSTDIR
+  StrCpy $ppDirChosen "1"
   !insertmacro ppTrace "dir-ok $INSTDIR"
 !macroend
 
@@ -387,9 +417,24 @@ Var ppScanCount
 !macro ppMaybeElevateSilent
   !insertmacro ppCanWriteInstDir $R9
   ${If} $R9 == "0"
-    !insertmacro ppTrace "cannot-write"
+    StrCpy $R7 $INSTDIR
+    StrCpy $R6 "C:\Prompt Picker"
+    System::Call 'kernel32::lstrcmpiW(w R7, w R6)i .R5'
+    ${If} $R5 == 0
+      StrCpy $INSTDIR "$PROFILE\Prompt Picker"
+      !insertmacro ppNormalizeInstDir
+      !insertmacro ppCanWriteInstDir $R9
+      !insertmacro ppTrace "dir-fallback $INSTDIR"
+    ${EndIf}
+  ${EndIf}
+  ${If} $R9 == "0"
+    !insertmacro ppTrace "cannot-write $INSTDIR"
     MessageBox MB_ICONSTOP|MB_OK "Prompt Picker cannot write to $INSTDIR." /SD IDOK
-    Quit
+    ${If} ${Silent}
+      Quit
+    ${Else}
+      Abort
+    ${EndIf}
   ${EndIf}
 !macroend
 
@@ -432,6 +477,13 @@ Var ppScanCount
       nsDialogs::Show
     FunctionEnd
 
+    Function ppDirLeave
+      !insertmacro ppNormalizeInstDir
+      StrCpy $ppKeepDir $INSTDIR
+      StrCpy $ppDirChosen "1"
+      !insertmacro ppTrace "dir-page $INSTDIR"
+    FunctionEnd
+
     Function ppShortcutLeave
       ${NSD_GetState} $ppDesktopCheckbox $0
       ${If} $0 == ${BST_CHECKED}
@@ -461,7 +513,6 @@ Var ppScanCount
 !macroend
 
 !macro customInit
-  Delete "$TEMP\PromptPicker-Setup.log"
   !insertmacro ppTrace "start $EXEPATH"
   StrCpy $ppKeepDir ""
   StrCpy $ppDirChosen "0"
@@ -533,9 +584,6 @@ Var ppScanCount
   ${OrIf} $ppDirChosen == "1"
     !insertmacro ppMaybeElevateSilent
   ${EndIf}
-  ${If} $INSTDIR != "C:\Prompt Picker"
-    RMDir "C:\Prompt Picker"
-  ${EndIf}
   ClearErrors
   FileOpen $R4 "$TEMP\prompt-picker-chosen-dir.txt" w
   IfErrors pp_init_logged
@@ -555,7 +603,7 @@ Var ppScanCount
 ; Desktop shortcut only, with no AppUserModelID. A Start Menu link that carries
 ; that id opens with "Unspecified error" even when the exe is on disk.
 !macro customInstall
-  !insertmacro ppTrace "files-ready"
+  !insertmacro ppTrace "files-ready $INSTDIR"
   StrCpy $appExe "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
   SetShellVarContext current
   Delete "$SMPROGRAMS\${SHORTCUT_NAME}.lnk"
@@ -577,10 +625,10 @@ Var ppScanCount
       ; CreateShortCut uses $OUTDIR as the shortcut's Start In folder.
       SetOutPath $INSTDIR
       CreateShortCut "$newDesktopLink" "$appExe" "" "$appExe" 0
-      StrCpy $launchLink "$newDesktopLink"
-    ${Else}
-      StrCpy $launchLink "$appExe"
+      SetOutPath $TEMP
     ${EndIf}
+    ; Launch the exe. A missing shortcut must not be what setup starts.
+    StrCpy $launchLink "$appExe"
     IfFileExists "$launchLink" 0 pp_launch_exe
       Goto pp_launch_ok
     pp_launch_exe:
@@ -602,7 +650,7 @@ Var ppScanCount
   ; The installed app must be gone before --force-run starts the new one.
   ; Only that exe is closed. The setup process is left running.
   !insertmacro ppWaitAppExit
-  !insertmacro ppTrace "install-done"
+  !insertmacro ppTrace "install-done $INSTDIR"
 !macroend
 
 !ifdef BUILD_UNINSTALLER

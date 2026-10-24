@@ -42,7 +42,7 @@ function Show-CrashLog {
 }
 
 function Show-SetupTrace {
-  foreach ($name in @('PromptPicker-Setup.log', 'prompt-picker-setup.log', 'prompt-picker-chosen-dir.txt')) {
+  foreach ($name in @('PromptPicker-install.log', 'PromptPicker-Setup.log', 'prompt-picker-setup.log', 'prompt-picker-chosen-dir.txt')) {
     $log = Join-Path $env:TEMP $name
     if (-not (Test-Path -LiteralPath $log)) { continue }
     Write-Host "--- $name ---"
@@ -64,6 +64,72 @@ function Show-SetupTrace {
   Get-Process -ErrorAction SilentlyContinue | Where-Object {
     $_.ProcessName -match 'Prompt|Setup|Uninstall|nsis|taskkill|makensis'
   } | ForEach-Object { Write-Host "proc $($_.Id) $($_.ProcessName)" }
+}
+
+function Read-SetupText([string]$Path) {
+  $bytes = [IO.File]::ReadAllBytes($Path)
+  if ($bytes.Length -eq 0) { return '' }
+  if ($bytes.Length -ge 2 -and $bytes[0] -eq 255 -and $bytes[1] -eq 254) {
+    return [Text.Encoding]::Unicode.GetString($bytes).TrimStart([char]0xFEFF)
+  }
+  $zeros = 0
+  $n = [Math]::Min(80, $bytes.Length)
+  for ($i = 1; $i -lt $n; $i += 2) { if ($bytes[$i] -eq 0) { $zeros++ } }
+  if ($zeros -gt 8) { return [Text.Encoding]::Unicode.GetString($bytes).TrimStart([char]0xFEFF) }
+  return [Text.Encoding]::UTF8.GetString($bytes).TrimStart([char]0xFEFF)
+}
+
+function Assert-InstallLog([string]$Dir) {
+  $log = Join-Path $env:TEMP 'PromptPicker-install.log'
+  if (-not (Test-Path -LiteralPath $log)) { throw 'PromptPicker-install.log was not written' }
+  $text = Read-SetupText $log
+  $lines = @($text -split "`r?`n" | Where-Object { $_.Trim() -ne '' })
+  if ($lines.Count -eq 0 -or $lines[0].Trim() -ne 'start') {
+    throw "install log did not start with the first instruction: $($lines | Select-Object -First 4)"
+  }
+  if ($text -notmatch 'install-done') { throw 'install log missing install-done' }
+  if ($text -notlike "*$Dir*") { throw "install log does not record $Dir" }
+  Write-Host "install log ok $Dir"
+}
+
+function Assert-InstallMarker([string]$Dir) {
+  $marker = Join-Path $Dir 'prompt-picker.install.json'
+  if (-not (Test-Path -LiteralPath $marker)) { throw "marker missing: $marker" }
+  $raw = Read-SetupText $marker
+  $escaped = $Dir.Replace('\', '\\')
+  if ($raw -notlike "*$escaped*" -and $raw -notlike "*$Dir*") {
+    throw "marker does not record ${Dir}: $raw"
+  }
+  $ppKey = Get-ItemProperty 'HKCU:\Software\Prompt Picker' -ErrorAction SilentlyContinue
+  if (-not $ppKey -or -not (Same-Path ([string]$ppKey.InstallLocation) $Dir)) {
+    throw "InstallLocation is '$($ppKey.InstallLocation)', expected $Dir"
+  }
+  $guid = 'HKCU:\Software\05ae8bdf-b478-52b5-acc4-ac809166ef4d'
+  $guidKey = Get-ItemProperty $guid -ErrorAction SilentlyContinue
+  if (-not $guidKey -or -not (Same-Path ([string]$guidKey.InstallLocation) $Dir)) {
+    throw "registry install location is '$($guidKey.InstallLocation)', expected $Dir"
+  }
+  Write-Host "marker ok $Dir"
+}
+
+function Use-PromptPickerDrive {
+  $script:ppSubst = $false
+  if (Test-Path -LiteralPath 'D:\') {
+    Write-Host 'using existing D:'
+    return
+  }
+  $root = Join-Path $env:TEMP 'pp-subst-d'
+  New-Item -ItemType Directory -Force -Path $root | Out-Null
+  & cmd.exe /c "subst D: `"$root`""
+  if (-not (Test-Path -LiteralPath 'D:\')) { throw "subst D: failed: $root" }
+  $script:ppSubst = $true
+  Write-Host "subst D: $root"
+}
+
+function Remove-PromptPickerDrive {
+  if (-not $script:ppSubst) { return }
+  & cmd.exe /c 'subst D: /d'
+  $script:ppSubst = $false
 }
 
 function Stop-PromptPicker {
@@ -554,6 +620,8 @@ try {
   Assert-Version $exe $version
   Assert-Desktop $exe
   Assert-StartMenuGone
+  Assert-InstallLog 'C:\Prompt Picker'
+  Assert-InstallMarker 'C:\Prompt Picker'
   Assert-StaysOpen -Exe $exe -Seconds $HoldSeconds -CheckUi
   Assert-StartupLog $exe
   Stop-PromptPicker
@@ -740,6 +808,42 @@ try {
   Assert-OneUninstallPage (Split-Path -Parent $exe)
   Invoke-Uninstall (Split-Path -Parent $exe)
   Assert-ShortcutsGone
+
+  Write-Host 'other drive, new folder, and non-ascii path'
+  Reset-Machine
+  Use-PromptPickerDrive
+  try {
+    $cases = @(
+      @{ Name = 'other-drive'; Dir = 'D:\Test Folder\Prompt Picker'; Create = $false },
+      @{ Name = 'new-folder'; Dir = 'D:\New Folder\Prompt Picker'; Create = $true },
+      @{ Name = 'unicode'; Dir = 'D:\Thư Mục\Prompt Picker'; Create = $true }
+    )
+    foreach ($case in $cases) {
+      Write-Host "install $($case.Name) $($case.Dir)"
+      if (Test-Path -LiteralPath $case.Dir) { Remove-Tree $case.Dir }
+      if ($case.Create) { New-Item -ItemType Directory -Force -Path $case.Dir | Out-Null }
+      Install-Silent $Installer -Directory $case.Dir
+      $exe = Join-Path $case.Dir 'Prompt Picker.exe'
+      if (-not (Test-Path -LiteralPath $exe)) { throw "missing $exe" }
+      $resolved = Resolve-AppExe
+      if (-not (Same-Path $resolved $exe)) { throw "$($case.Name) landed at $resolved" }
+      if (Test-Path -LiteralPath 'C:\Prompt Picker\Prompt Picker.exe') {
+        throw "$($case.Name) also installed to C:\Prompt Picker"
+      }
+      Assert-Version $exe $version
+      Assert-Desktop $exe -RequireCwd
+      Assert-StartMenuGone
+      Assert-InstallLog $case.Dir
+      Assert-InstallMarker $case.Dir
+      Assert-ShortcutLaunches (Get-ShortcutPaths)[1]
+      Stop-PromptPicker
+      Invoke-Uninstall $case.Dir
+      Assert-ShortcutsGone
+      if (Test-Path -LiteralPath $exe) { throw "$exe remained after uninstall" }
+    }
+  } finally {
+    Remove-PromptPickerDrive
+  }
   Write-Host 'clean-machine ok'
 } catch {
   Write-Host "CLEAN MACHINE FAILED: $($_.Exception.Message)"
