@@ -51,6 +51,9 @@ function Stop-PromptPicker {
     Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object {
       $exePath = [string]$_.ExecutablePath
       if (-not $exePath) { return }
+      # The uninstaller runs from the install folder when _?= is set.
+      # Killing it leaves the app exe in place.
+      if ([IO.Path]::GetFileName($exePath) -like 'Uninstall*.exe') { return }
       foreach ($root in $roots) {
         if ($exePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
           Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
@@ -94,20 +97,64 @@ function Remove-PromptPickerRegistry {
   }
 }
 
+function Resolve-Uninstaller([string]$InstallDir) {
+  $un = Join-Path $InstallDir 'Uninstall Prompt Picker.exe'
+  if (Test-Path -LiteralPath $un) { return $un }
+  if (Test-Path -LiteralPath $InstallDir) {
+    $found = Get-ChildItem -LiteralPath $InstallDir -Filter 'Uninstall*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) { return $found.FullName }
+  }
+  return $un
+}
+
+function Invoke-Uninstall([string]$InstallDir) {
+  $installDir = $InstallDir.TrimEnd('\')
+  $un = Resolve-Uninstaller $installDir
+  if (-not (Test-Path -LiteralPath $un)) {
+    if (Test-Path -LiteralPath $installDir) {
+      Write-Host ((Get-ChildItem -LiteralPath $installDir | ForEach-Object { $_.Name }) -join ', ')
+    }
+    throw "uninstaller missing: $un"
+  }
+  Stop-PromptPicker
+  if (Get-Command Unblock-File -ErrorAction SilentlyContinue) { Unblock-File -LiteralPath $un }
+  # Without _?=, NSIS copies itself to %TEMP% and the process we started
+  # exits immediately, before Prompt Picker.exe is deleted. _?= must be
+  # last and unquoted, including when the folder name contains spaces.
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $un
+  $psi.Arguments = "/S _?=$installDir"
+  $psi.UseShellExecute = $false
+  $psi.WorkingDirectory = $env:TEMP
+  Write-Host "uninstall $un"
+  try {
+    $p = [Diagnostics.Process]::Start($psi)
+  } catch {
+    throw "uninstall failed to start: $($_.Exception.Message)"
+  }
+  if (-not $p.WaitForExit(180000)) {
+    try { $p.Kill() } catch {}
+    throw 'uninstall timed out'
+  }
+  if ($p.ExitCode -ne 0) { throw "uninstall exit $($p.ExitCode)" }
+  $exe = Join-Path $installDir 'Prompt Picker.exe'
+  $deadline = (Get-Date).AddSeconds(15)
+  while ((Test-Path -LiteralPath $exe) -and (Get-Date) -lt $deadline) {
+    Start-Sleep -Seconds 1
+  }
+  if (Test-Path -LiteralPath $exe) {
+    $names = @(Get-ChildItem -LiteralPath $installDir -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+    throw "exe still present after uninstall: $exe (left: $($names -join ', '))"
+  }
+  Write-Host "uninstalled $installDir"
+}
+
 function Reset-Machine {
   Write-Host 'reset machine'
   Stop-PromptPicker
   $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker'
-  $un = Join-Path $installDir 'Uninstall Prompt Picker.exe'
-  if (-not (Test-Path -LiteralPath $un) -and (Test-Path -LiteralPath $installDir)) {
-    $found = Get-ChildItem -LiteralPath $installDir -Filter 'Uninstall*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($found) { $un = $found.FullName }
-  }
-  if (Test-Path -LiteralPath $un) {
-    if (Get-Command Unblock-File -ErrorAction SilentlyContinue) { Unblock-File -LiteralPath $un }
-    $p = Start-Process -FilePath $un -ArgumentList '/S' -PassThru
-    if (-not $p.WaitForExit(120000)) { throw 'uninstall timed out during reset' }
-  }
+  $un = Resolve-Uninstaller $installDir
+  if (Test-Path -LiteralPath $un) { Invoke-Uninstall $installDir }
   Stop-PromptPicker
   foreach ($dir in @(
     (Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker'),
@@ -325,12 +372,8 @@ try {
   Stop-PromptPicker
 
   Write-Host 'uninstall then reinstall'
-  $un = Join-Path (Split-Path -Parent $exe) 'Uninstall Prompt Picker.exe'
-  if (-not (Test-Path -LiteralPath $un)) { throw "uninstaller missing: $un" }
-  $p = Start-Process -FilePath $un -ArgumentList '/S' -PassThru
-  if (-not $p.WaitForExit(180000)) { throw 'uninstall timed out' }
-  if ($p.ExitCode -ne 0) { throw "uninstall exit $($p.ExitCode)" }
-  if (Test-Path -LiteralPath $exe) { throw "exe still present after uninstall: $exe" }
+  $installDir = Split-Path -Parent $exe
+  Invoke-Uninstall $installDir
   Assert-ShortcutsGone
   Install-Silent $Installer
   $exe = Resolve-AppExe
