@@ -40,12 +40,42 @@ function Show-CrashLog {
 }
 
 function Stop-PromptPicker {
-  $procs = @(Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue)
-  if ($procs.Count -eq 0) { return }
-  $procs | Stop-Process -Force -ErrorAction SilentlyContinue
-  Start-Sleep -Seconds 2
-  $left = @(Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue)
-  if ($left.Count -gt 0) { throw 'Prompt Picker did not exit' }
+  $roots = @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker'),
+    (Join-Path $env:APPDATA 'Prompt Picker')
+  )
+  for ($try = 0; $try -lt 6; $try++) {
+    foreach ($name in @('Prompt Picker', 'crashpad_handler')) {
+      Get-Process -Name $name -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    }
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object {
+      $exePath = [string]$_.ExecutablePath
+      if (-not $exePath) { return }
+      foreach ($root in $roots) {
+        if ($exePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
+          Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+      }
+    }
+    Start-Sleep -Seconds 1
+    $left = @(Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue)
+    if ($left.Count -eq 0) { return }
+  }
+  throw 'Prompt Picker did not exit'
+}
+
+function Remove-Tree([string]$Dir) {
+  if (-not (Test-Path -LiteralPath $Dir)) { return }
+  for ($try = 0; $try -lt 8; $try++) {
+    try {
+      Remove-Item -LiteralPath $Dir -Recurse -Force -ErrorAction Stop
+      return
+    } catch {
+      Stop-PromptPicker
+      Start-Sleep -Seconds 1
+      if ($try -eq 7) { throw }
+    }
+  }
 }
 
 function Remove-PromptPickerRegistry {
@@ -67,7 +97,12 @@ function Remove-PromptPickerRegistry {
 function Reset-Machine {
   Write-Host 'reset machine'
   Stop-PromptPicker
-  $un = Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker\Uninstall Prompt Picker.exe'
+  $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker'
+  $un = Join-Path $installDir 'Uninstall Prompt Picker.exe'
+  if (-not (Test-Path -LiteralPath $un) -and (Test-Path -LiteralPath $installDir)) {
+    $found = Get-ChildItem -LiteralPath $installDir -Filter 'Uninstall*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) { $un = $found.FullName }
+  }
   if (Test-Path -LiteralPath $un) {
     if (Get-Command Unblock-File -ErrorAction SilentlyContinue) { Unblock-File -LiteralPath $un }
     $p = Start-Process -FilePath $un -ArgumentList '/S' -PassThru
@@ -79,7 +114,7 @@ function Reset-Machine {
     (Join-Path $env:APPDATA 'Prompt Picker'),
     (Join-Path $env:LOCALAPPDATA 'prompt-picker-updater')
   )) {
-    if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
+    Remove-Tree $dir
   }
   foreach ($lnk in (Get-ShortcutPaths)) {
     if (Test-Path -LiteralPath $lnk) { Remove-Item -LiteralPath $lnk -Force }
