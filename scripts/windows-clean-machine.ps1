@@ -491,7 +491,10 @@ try {
   }
   # Stop before writing settings so a late save cannot replace them.
   Stop-PromptPicker
-  if (-not (Test-Path -LiteralPath $marker)) { throw "marker missing before keep: $marker" }
+  if (-not (Test-Path -LiteralPath $marker)) {
+    $names = @(Get-ChildItem -LiteralPath $custom -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+    throw "marker missing before keep: $marker (left: $($names -join ', '))"
+  }
   $dataDir = Join-Path $env:APPDATA 'Prompt Picker\data'
   New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
   Set-Content -LiteralPath (Join-Path $dataDir 'KEEP-SENTINEL.txt') -Value 'keep' -Encoding ascii

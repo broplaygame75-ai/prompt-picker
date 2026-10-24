@@ -76,6 +76,8 @@ assert.ok(nsh.includes('MUI_LANGDLL_ALWAYSSHOW'));
 assert.ok(nsh.includes('ppHasSwitch "KEEP"'));
 assert.ok(nsh.includes('ppHasSwitch "WIPE"'));
 assert.ok(nsh.includes('ppFinishUninstall'));
+assert.ok(nsh.includes('SetOutPath $INSTDIR'));
+assert.ok(nsh.includes('ppWriteMarkerFile "$INSTDIR\\${PP_MARKER_NAME}"'));
 assert.strictEqual(TELEGRAM_URL, 'https://t.me/linekoaiart');
 assert.deepStrictEqual(CONTACTS.map(c => c.id), ['discord', 'patreon', 'x', 'telegram']);
 assert.ok(contactHosts().includes('t.me'));

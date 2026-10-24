@@ -412,6 +412,8 @@ Var ppDesktopCheckbox
     ${EndIf}
     Delete "$newDesktopLink"
     ${If} $ppDesktopShortcut != "0"
+      ; CreateShortCut uses $OUTDIR as the shortcut's Start In folder.
+      SetOutPath $INSTDIR
       CreateShortCut "$newDesktopLink" "$appExe" "" "$appExe" 0
       StrCpy $launchLink "$newDesktopLink"
     ${Else}
@@ -425,6 +427,14 @@ Var ppDesktopCheckbox
     WriteRegStr HKCU "Software\Prompt Picker" "InstallLocation" "$INSTDIR"
     WriteRegStr HKCU "Software\Prompt Picker" DesktopShortcut "$ppDesktopShortcut"
     WriteRegStr HKCU "Software\Prompt Picker" StartMenuShortcut "0"
+    ; Remember the folder even if the app has not finished opening yet.
+    StrCpy $R3 "$APPDATA\Prompt Picker\data"
+    !insertmacro ppJsonEscape $INSTDIR $R1
+    !insertmacro ppJsonEscape $R3 $R2
+    StrCpy $R6 "$ppDesktopShortcut"
+    CreateDirectory "$APPDATA\Prompt Picker"
+    !insertmacro ppWriteMarkerFile "$INSTDIR\${PP_MARKER_NAME}"
+    !insertmacro ppWriteMarkerFile "$APPDATA\Prompt Picker\${PP_MARKER_NAME}"
     System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
   pp_sc_skip:
 !macroend
