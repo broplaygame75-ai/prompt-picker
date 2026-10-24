@@ -8,7 +8,7 @@ const {startupCopy}=require('./startupCopy');
 const {installerUrl,versionFromRelease}=require('./repair');
 const {formatStartupEntry}=require('./startupLog');
 const {chooseInstallDir,updateArgs,uninstallArgs,readInstallCandidates}=require('./installDir');
-const {contactHosts}=require('./contact');
+const {contactHosts,CONTACTS}=require('./contact');
 if(process.platform==='win32')app.setAppUserModelId('com.lineko.promptpicker');
 const cfgPath=()=>path.join(app.getPath('userData'),'config.json');
 function cfg(){try{return JSON.parse(fs.readFileSync(cfgPath()))}catch(e){return{}}}
@@ -114,6 +114,7 @@ ipcMain.handle('upd-install',()=>{
 function fetchJson(url){return new Promise((resolve,reject)=>{const req=https.get(url,{headers:{'User-Agent':'PromptPicker','Accept':'application/vnd.github+json'}},res=>{let d='';res.on('data',c=>{d+=c;if(d.length>2000000)req.destroy()});res.on('end',()=>{const code=res.statusCode||0;if(code>=300&&code<400&&res.headers.location)return fetchJson(res.headers.location).then(resolve,reject);if(code!==200)return reject(new Error('HTTP '+code));try{resolve(JSON.parse(d))}catch(e){reject(e)}})});req.on('error',reject);req.setTimeout(20000,()=>{req.destroy();reject(new Error('timeout'))})})}
 ipcMain.handle('releases',async()=>{const list=await fetchJson('https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases?per_page=20');if(!Array.isArray(list))return [];return list.filter(r=>r&&!r.draft&&!r.prerelease).slice(0,20).map(r=>({version:String(r.tag_name||r.name||'').replace(/^v/i,''),body:String(r.body||''),published:r.published_at||''}))});
 ipcMain.handle('quit',()=>{app.quit();return true});
+ipcMain.on('contacts-sync',e=>{e.returnValue=CONTACTS});
 ipcMain.handle('uninstall',(e,mode)=>{
   if(process.platform!=='win32'||!app.isPackaged)return false;
   const dir=path.dirname(process.execPath);
