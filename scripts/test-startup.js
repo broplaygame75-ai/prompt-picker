@@ -7,7 +7,7 @@ const {planShortcutRepair, shortcutLocations, samePath, diagnoseShortcut, startM
 const {COPY} = require('../src/startupCopy');
 const {installerUrl, installerName, versionFromRelease} = require('../src/repair');
 const {formatStartupEntry} = require('../src/startupLog');
-const {parseRegSz, installDirFromUninstallString, chooseInstallDir, updateArgs, uninstallArgs, readInstallCandidates} = require('../src/installDir');
+const {parseRegSz, installDirFromUninstallString, chooseInstallDir, updateArgs, uninstallArgs, readInstallCandidates, planDuplicateRemoval} = require('../src/installDir');
 const {TELEGRAM_URL, CONTACTS, contactHosts} = require('../src/contact');
 
 const exe = 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Prompt Picker\\Prompt Picker.exe';
@@ -78,6 +78,12 @@ assert.ok(nsh.includes('ppHasSwitch "WIPE"'));
 assert.ok(nsh.includes('ppFinishUninstall'));
 assert.ok(nsh.includes('SetOutPath $INSTDIR'));
 assert.ok(nsh.includes('ppWriteMarkerFile "$INSTDIR\\${PP_MARKER_NAME}"'));
+assert.ok(nsh.includes('!macro ppFindExistingInstall'));
+assert.ok(nsh.includes('$LOCALAPPDATA\\Programs\\Prompt Picker'));
+assert.ok(nsh.includes('!macro ppUninstallMutex'));
+assert.ok(nsh.includes('!macro ppWaitAppExit'));
+assert.ok(nsh.includes('Local\\PromptPickerUninstall'));
+assert.ok(nsh.includes('${IfNot} ${isUpdated}'));
 assert.strictEqual(TELEGRAM_URL, 'https://t.me/linekoaiart');
 assert.deepStrictEqual(CONTACTS.map(c => c.id), ['discord', 'patreon', 'x', 'telegram']);
 assert.ok(contactHosts().includes('t.me'));
@@ -86,7 +92,7 @@ assert.ok(html.includes('id="aboutdiscord"'));
 assert.ok(html.includes('id="unkeep"'));
 assert.ok(html.includes('id="unwipe"'));
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
-assert.strictEqual(pkg.version, '0.1.13');
+assert.strictEqual(pkg.version, '0.1.14');
 assert.strictEqual(pkg.build.nsis.oneClick, false);
 assert.strictEqual(pkg.build.nsis.perMachine, false);
 assert.strictEqual(pkg.build.nsis.allowToChangeInstallationDirectory, true);
@@ -114,6 +120,10 @@ assert.ok(!preload.includes("require('./contact')"));
 assert.ok(main.includes('windowsVerbatimArguments:true'));
 assert.ok(!main.includes('quitAndInstall'));
 assert.ok(main.includes("setAppUserModelId('com.lineko.promptpicker')"));
+assert.ok(main.includes('requestSingleInstanceLock'));
+assert.ok(main.includes('planDuplicateRemoval'));
+assert.ok(main.includes('remove duplicate'));
+assert.ok(main.includes('second instance quit'));
 assert.ok(main.includes('startup.log'));
 
 const clean = fs.readFileSync(path.join(__dirname, 'windows-clean-machine.ps1'), 'utf8');
@@ -130,6 +140,10 @@ assert.ok(clean.includes('Assert-ShortcutsGone'));
 assert.ok(clean.includes('C:\\Prompt Picker'));
 assert.ok(clean.includes('custom folder'));
 assert.ok(clean.includes('upgrade did not stay'));
+assert.ok(clean.includes("Get-ReleaseInstaller '0.1.12'"));
+assert.ok(clean.includes('--updated /S --force-run'));
+assert.ok(clean.includes('Assert-OneUninstallPage'));
+assert.ok(clean.includes('-Seconds 120'));
 assert.ok(clean.includes('startup.log'));
 assert.ok(clean.includes('com.lineko.promptpicker'));
 
@@ -160,6 +174,12 @@ const queried = readInstallCandidates('C:\\Users\\ADMIN\\Prompt Picker', (key, n
   return '';
 });
 assert.strictEqual(chooseInstallDir(queried), 'C:\\Users\\ADMIN\\Prompt Picker');
+assert.deepStrictEqual(planDuplicateRemoval('C:\\Users\\A\\AppData\\Local\\Programs\\Prompt Picker', [
+  'C:\\Users\\A\\AppData\\Local\\Programs\\Prompt Picker',
+  'C:\\Prompt Picker',
+  'C:\\Users\\A\\AppData\\Local\\Programs'
+], []), ['C:\\Prompt Picker']);
+assert.deepStrictEqual(planDuplicateRemoval('C:\\Prompt Picker', ['C:\\Prompt Picker\\resources', 'D:\\Prompt Picker'], []), ['D:\\Prompt Picker']);
 const entry = formatStartupEntry({
   at: '2026-10-24T00:00:00.000Z',
   version: '0.1.13',

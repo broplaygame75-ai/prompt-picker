@@ -339,13 +339,23 @@ function Set-BadShortcut([string]$Path) {
 }
 
 function Assert-StaysOpen {
-  param([string]$Exe, [int]$Seconds, [switch]$CheckUi, [string]$Launch)
+  param([string]$Exe, [int]$Seconds, [switch]$CheckUi, [string]$Launch, [switch]$AlreadyRunning)
   $file = if ($Launch) { $Launch } else { $Exe }
-  Write-Host "launch $file for ${Seconds}s"
-  if ($CheckUi -and -not $Launch) {
-    $proc = Start-Process -FilePath $file -ArgumentList '--remote-debugging-port=9224' -PassThru
+  if ($AlreadyRunning) {
+    Write-Host "watch running app for ${Seconds}s"
+    $deadline = (Get-Date).AddSeconds(30)
+    while (-not (Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) {
+      Start-Sleep -Seconds 1
+    }
+    $proc = Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $proc) { throw 'app was not running after the update' }
   } else {
-    $proc = Start-Process -FilePath $file -PassThru
+    Write-Host "launch $file for ${Seconds}s"
+    if ($CheckUi -and -not $Launch) {
+      $proc = Start-Process -FilePath $file -ArgumentList '--remote-debugging-port=9224' -PassThru
+    } else {
+      $proc = Start-Process -FilePath $file -PassThru
+    }
   }
   $sw = [Diagnostics.Stopwatch]::StartNew()
   try {
@@ -383,6 +393,83 @@ function Compare-Version([string]$A, [string]$B) {
     if ($da -ne $db) { return $da - $db }
   }
   return 0
+}
+
+function Get-ReleaseInstaller([string]$Version) {
+  $headers = @{ 'User-Agent' = 'PromptPicker'; Accept = 'application/vnd.github+json' }
+  if ($env:GH_TOKEN) { $headers.Authorization = "Bearer $($env:GH_TOKEN)" }
+  $rel = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases/tags/v$Version"
+  $asset = $rel.assets | Where-Object { $_.name -eq "PromptPicker-Setup-$Version.exe" } | Select-Object -First 1
+  if (-not $asset) { throw "no installer asset for $Version" }
+  $dest = Join-Path $env:TEMP "PromptPicker-Setup-$Version.exe"
+  Write-Host "download $Version"
+  Invoke-WebRequest -Headers @{ 'User-Agent' = 'PromptPicker' } -Uri ([string]$asset.browser_download_url) -OutFile $dest
+  return $dest
+}
+
+# 0.1.12 calls quitAndInstall(true, true): --updated /S --force-run, no /D=.
+function Install-LikeOldUpdater([string]$Path) {
+  if (Get-Command Unblock-File -ErrorAction SilentlyContinue) { Unblock-File -LiteralPath $Path }
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $Path
+  $psi.Arguments = '--updated /S --force-run'
+  $psi.UseShellExecute = $false
+  $psi.WorkingDirectory = $env:TEMP
+  Write-Host "old-updater $($psi.Arguments)"
+  $p = [Diagnostics.Process]::Start($psi)
+  if (-not $p.WaitForExit(300000)) {
+    try { $p.Kill() } catch {}
+    throw 'old updater install timed out'
+  }
+  if ($p.ExitCode -ne 0) {
+    $chosen = Join-Path $env:TEMP 'prompt-picker-chosen-dir.txt'
+    if (Test-Path -LiteralPath $chosen) { Write-Host (Get-Content -LiteralPath $chosen -Raw) }
+    throw "old updater install exit $($p.ExitCode)"
+  }
+}
+
+function Assert-OneUninstallPage([string]$InstallDir) {
+  $installDir = $InstallDir.TrimEnd('\')
+  $un = Resolve-Uninstaller $installDir
+  $exe = Join-Path $installDir 'Prompt Picker.exe'
+  if (-not (Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue)) {
+    Start-Process -FilePath $exe | Out-Null
+    $deadline = (Get-Date).AddSeconds(20)
+    while (-not (Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) {
+      Start-Sleep -Seconds 1
+    }
+  }
+  if (-not (Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue)) { throw 'app did not start before uninstall' }
+  Start-Sleep -Seconds 2
+  $before = @(Get-Process | ForEach-Object { $_.Id })
+  Write-Host "uninstall page from $un"
+  $started = Start-Process -FilePath $un -WorkingDirectory $installDir -PassThru
+  $stable = 0
+  $high = 0
+  $deadline = (Get-Date).AddSeconds(30)
+  $ok = $false
+  while ((Get-Date) -lt $deadline) {
+    Start-Sleep -Seconds 1
+    $app = @(Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue)
+    $wins = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
+      $before -notcontains $_.Id -and $_.MainWindowHandle -ne 0 -and $_.ProcessName -ne 'Prompt Picker'
+    })
+    Write-Host "uninstall windows=$($wins.Count) app=$($app.Count)"
+    if ($wins.Count -gt 1) {
+      $high++
+      if ($high -ge 3) { throw "uninstall opened $($wins.Count) windows" }
+    } else { $high = 0 }
+    if ($app.Count -eq 0 -and $wins.Count -eq 1) {
+      $stable++
+      if ($stable -ge 3) { $ok = $true; break }
+    } else { $stable = 0 }
+  }
+  Get-Process -ErrorAction SilentlyContinue | Where-Object { $before -notcontains $_.Id -and $_.ProcessName -ne 'Prompt Picker' } | Stop-Process -Force -ErrorAction SilentlyContinue
+  if ($started -and -not $started.HasExited) { try { $started.Kill() } catch {} }
+  Start-Sleep -Seconds 1
+  if (Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue) { throw 'uninstall launched the app' }
+  if (-not $ok) { throw 'uninstall did not show exactly one window' }
+  Write-Host 'one uninstall window, app stayed closed'
 }
 
 function Get-PreviousInstaller([string]$CurrentVersion) {
@@ -593,6 +680,38 @@ try {
   Assert-StartMenuGone
   Assert-StaysOpen -Exe $exe -Seconds $HoldSeconds -CheckUi
   Stop-PromptPicker
+
+  Write-Host 'upgrade 0.1.12 in place, the way its updater launches setup'
+  Reset-Machine
+  $oldSetup = Get-ReleaseInstaller '0.1.12'
+  Install-Silent $oldSetup
+  $oldExe = Resolve-AppExe
+  $legacy = Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker\Prompt Picker.exe'
+  if (-not (Same-Path $oldExe $legacy)) { throw "0.1.12 landed at $oldExe" }
+  Start-Process -FilePath $oldExe | Out-Null
+  Start-Sleep -Seconds 4
+  Install-LikeOldUpdater $Installer
+  $chosenFile = Join-Path $env:TEMP 'prompt-picker-chosen-dir.txt'
+  if (-not (Test-Path -LiteralPath $chosenFile)) { throw 'setup did not record the install folder' }
+  $chosen = (Get-Content -LiteralPath $chosenFile -Raw).Trim()
+  if (-not (Same-Path $chosen (Split-Path -Parent $legacy))) { throw "setup chose $chosen" }
+  $exe = Resolve-AppExe
+  if (-not (Same-Path $exe $legacy)) { throw "0.1.12 update moved the install to $exe" }
+  foreach ($extra in @(
+    'C:\Prompt Picker\Prompt Picker.exe',
+    (Join-Path $env:USERPROFILE 'Prompt Picker\Prompt Picker.exe')
+  )) {
+    if (Test-Path -LiteralPath $extra) { throw "second install left at $extra" }
+  }
+  Assert-Version $exe $version
+  Assert-Desktop $exe -RequireCwd
+  Assert-StartMenuGone
+  Assert-StaysOpen -Exe $exe -Seconds 120 -AlreadyRunning
+  Assert-StartupLog $exe
+  Stop-PromptPicker
+  Assert-OneUninstallPage (Split-Path -Parent $exe)
+  Invoke-Uninstall (Split-Path -Parent $exe)
+  Assert-ShortcutsGone
   Write-Host 'clean-machine ok'
 } catch {
   Write-Host "CLEAN MACHINE FAILED: $($_.Exception.Message)"

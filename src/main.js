@@ -1,15 +1,14 @@
 const {app,BrowserWindow,ipcMain,dialog,shell}=require('electron');
 const path=require('path'),fs=require('fs'),https=require('https');
 const {autoUpdater}=require('electron-updater');
-const {execFile,spawn}=require('child_process');
+const {execFile,execFileSync,spawn}=require('child_process');
 const {fixedDataDir,adoptExistingData,withActiveDataDir,windowsRememberCommands,APP_ID,MARKER_NAME,normalizeDataPath,reuseSources}=require('./dataDir');
-const {planShortcutRepair,shortcutLocations,startMenuPaths,diagnoseShortcut}=require('./shortcuts');
+const {planShortcutRepair,shortcutLocations,startMenuPaths,diagnoseShortcut,samePath}=require('./shortcuts');
 const {startupCopy}=require('./startupCopy');
 const {installerUrl,versionFromRelease}=require('./repair');
 const {formatStartupEntry}=require('./startupLog');
-const {chooseInstallDir,updateArgs,uninstallArgs,readInstallCandidates}=require('./installDir');
+const {chooseInstallDir,updateArgs,uninstallArgs,readInstallCandidates,planDuplicateRemoval}=require('./installDir');
 const {contactHosts,CONTACTS}=require('./contact');
-if(process.platform==='win32')app.setAppUserModelId('com.lineko.promptpicker');
 const cfgPath=()=>path.join(app.getPath('userData'),'config.json');
 function cfg(){try{return JSON.parse(fs.readFileSync(cfgPath()))}catch(e){return{}}}
 function readText(f){try{return fs.readFileSync(f,'utf8')}catch(e){return ''}}
@@ -115,7 +114,9 @@ function fetchJson(url){return new Promise((resolve,reject)=>{const req=https.ge
 ipcMain.handle('releases',async()=>{const list=await fetchJson('https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases?per_page=20');if(!Array.isArray(list))return [];return list.filter(r=>r&&!r.draft&&!r.prerelease).slice(0,20).map(r=>({version:String(r.tag_name||r.name||'').replace(/^v/i,''),body:String(r.body||''),published:r.published_at||''}))});
 ipcMain.handle('quit',()=>{app.quit();return true});
 ipcMain.on('contacts-sync',e=>{e.returnValue=CONTACTS});
+let uninstalling=false;
 ipcMain.handle('uninstall',(e,mode)=>{
+  if(uninstalling)return false;
   if(process.platform!=='win32'||!app.isPackaged)return false;
   const dir=path.dirname(process.execPath);
   const un=path.join(dir,'Uninstall Prompt Picker.exe');
@@ -123,11 +124,13 @@ ipcMain.handle('uninstall',(e,mode)=>{
   try{
     const args=uninstallArgs(mode==='keep'?'keep':'wipe',dir);
     appendStartup('uninstall '+args.join(' '));
+    uninstalling=true;
     const child=spawn(un,args,{detached:true,stdio:'ignore',windowsVerbatimArguments:true});
     child.unref();
     setImmediate(()=>app.quit());
     return true;
   }catch(err){
+    uninstalling=false;
     logCrash('uninstall',err);
     return false;
   }
@@ -266,6 +269,80 @@ function offerRepair(err){
     app.quit();
   }).catch(e=>{logCrash('repair-dialog',e);repairShown=false});
 }
+function sleepMs(ms){
+  try{Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,ms)}catch(e){const end=Date.now()+ms;while(Date.now()<end){}}
+}
+function listPickerProcesses(){
+  if(process.platform!=='win32')return [];
+  try{
+    const out=execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',"Get-CimInstance Win32_Process -Filter \"Name = 'Prompt Picker.exe'\" | ForEach-Object { $_.ProcessId.ToString() + '|' + $_.ExecutablePath }"],{encoding:'utf8',windowsHide:true,timeout:8000});
+    return String(out||'').split(/\r?\n/).map(line=>{
+      const cut=line.indexOf('|');
+      if(cut<1)return null;
+      const pid=parseInt(line.slice(0,cut),10);
+      const exe=line.slice(cut+1).trim();
+      if(!pid||!exe)return null;
+      return {pid,exe};
+    }).filter(Boolean);
+  }catch(e){return []}
+}
+// The copy started by the installer waits out the old process instead of
+// exiting. A second folder is closed. A second launch of this same folder
+// leaves the first window in front.
+function takeSingleInstance(){
+  const deadline=Date.now()+20000;
+  while(Date.now()<deadline){
+    if(app.requestSingleInstanceLock())return true;
+    const others=listPickerProcesses().filter(row=>row.pid!==process.pid);
+    const foreign=others.filter(row=>!samePath(path.dirname(row.exe),path.dirname(process.execPath)));
+    foreign.forEach(row=>{try{process.kill(row.pid)}catch(e){}});
+    sleepMs(400);
+  }
+  return app.requestSingleInstanceLock();
+}
+if(!takeSingleInstance()){
+  try{appendStartup('second instance quit')}catch(e){}
+  app.exit(0);
+}
+app.on('second-instance',()=>{
+  const w=BrowserWindow.getAllWindows().find(win=>!win.isDestroyed());
+  if(!w)return;
+  if(w.isMinimized())w.restore();
+  w.show();
+  w.focus();
+});
+const KNOWN_APP_FILES=['Prompt Picker.exe','Uninstall Prompt Picker.exe','uninstallerIcon.ico','chrome_100_percent.pak','chrome_200_percent.pak','resources.pak','icudtl.dat','snapshot_blob.bin','v8_context_snapshot.bin','vk_swiftshader_icd.json','LICENSE.electron.txt','LICENSES.chromium.html','LICENSE','d3dcompiler_47.dll','ffmpeg.dll','libEGL.dll','libGLESv2.dll','vk_swiftshader.dll','vulkan-1.dll','dxcompiler.dll','dxil.dll','chrome_elf.dll'];
+function removeKnownAppFiles(dir){
+  for(const name of KNOWN_APP_FILES){try{fs.unlinkSync(path.join(dir,name))}catch(e){}}
+  for(const sub of ['locales','resources']){try{fs.rmSync(path.join(dir,sub),{recursive:true,force:true})}catch(e){}}
+  try{fs.rmdirSync(dir)}catch(e){}
+}
+function removeDuplicateInstalls(){
+  if(process.platform!=='win32'||!app.isPackaged)return;
+  const running=path.dirname(process.execPath);
+  const local=process.env.LOCALAPPDATA||'';
+  const profile=process.env.USERPROFILE||'';
+  const found=readInstallCandidates(running);
+  let shortcutDir='';
+  try{
+    const file=shortcutLocations(app.getPath('appData'),app.getPath('desktop')).desktop;
+    if(fs.existsSync(file)){
+      const link=shell.readShortcutLink(file);
+      if(link&&link.target)shortcutDir=path.dirname(link.target);
+    }
+  }catch(e){}
+  const candidates=[found.registryDir,found.uninstallDir,shortcutDir];
+  if(local)candidates.push(path.join(local,'Programs','Prompt Picker'));
+  candidates.push('C:\\Prompt Picker');
+  if(profile)candidates.push(path.join(profile,'Prompt Picker'));
+  const existing=candidates.filter(dir=>dir&&(fs.existsSync(path.join(dir,'Prompt Picker.exe'))||fs.existsSync(path.join(dir,'Uninstall Prompt Picker.exe'))));
+  const blocked=[process.env.APPDATA,local,profile,process.env.SystemRoot,process.env.WINDIR].filter(Boolean);
+  for(const dir of planDuplicateRemoval(running,existing,blocked)){
+    appendStartup('remove duplicate '+dir);
+    listPickerProcesses().filter(row=>row.pid!==process.pid&&samePath(path.dirname(row.exe),dir)).forEach(row=>{try{process.kill(row.pid)}catch(e){}});
+    removeKnownAppFiles(dir);
+  }
+}
 function repairShortcuts(){
   if(process.platform!=='win32'||!app.isPackaged)return;
   for(const file of startMenuPaths(app.getPath('appData'),process.env.PROGRAMDATA||'')){
@@ -296,11 +373,14 @@ app.on('render-process-gone',(e,wc,details)=>{logCrash('render-process-gone',det
 app.on('child-process-gone',(e,details)=>logCrash('child-process-gone',details));
 app.whenReady().then(()=>{
   if(repairQueued)offerRepair('queued');
+  try{repairShortcuts()}catch(e){logCrash('shortcut',e)}
+  try{if(process.platform==='win32')app.setAppUserModelId('com.lineko.promptpicker')}catch(e){logCrash('aumid',e)}
+  try{removeDuplicateInstalls()}catch(e){logCrash('duplicate',e)}
   try{rememberDataLocation(dataDir())}catch(e){logCrash('data',e)}
   try{logStartup()}catch(e){logCrash('startup-log',e)}
   try{logDefender()}catch(e){logCrash('defender',e)}
-  try{repairShortcuts()}catch(e){logCrash('shortcut',e)}
   try{create()}catch(e){logCrash('window',e);offerRepair(e)}
   if(app.isPackaged){setTimeout(checkUpdates,5000);setInterval(checkUpdates,30*60*1000)}
 }).catch(e=>{logCrash('ready',e);offerRepair(e)});
-app.on('window-all-closed',()=>{if(!repairShown)app.quit()});
+app.on('window-all-closed',()=>{appendStartup('window-all-closed');if(!repairShown)app.quit()});
+app.on('before-quit',()=>appendStartup('before-quit'));

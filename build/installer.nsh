@@ -140,6 +140,85 @@ Var ppDesktopCheckbox
   !undef ppcw
 !macroend
 
+; OUT is DIR when Prompt Picker.exe is there, otherwise empty.
+; OUT must not be $R8 or $R9.
+!macro ppExeIn DIR OUT
+  !define ppei ${__COUNTER__}
+  StrCpy ${OUT} ""
+  StrCmp "${DIR}" "" pp_ei_end_${ppei}
+  IfFileExists "${DIR}\${APP_EXECUTABLE_FILENAME}" 0 pp_ei_end_${ppei}
+    StrCpy ${OUT} "${DIR}"
+  pp_ei_end_${ppei}:
+  !undef ppei
+!macroend
+
+; An existing copy wins over the fresh-install default. 0.1.12 lives in
+; %LocalAppData%\Programs\Prompt Picker and its updater does not pass /D=.
+; OUT must not be $R8 or $R9.
+!macro ppFindExistingInstall OUT
+  !define ppfe ${__COUNTER__}
+  StrCpy ${OUT} ""
+  !insertmacro ppExeIn "$INSTDIR" $R9
+  StrCmp $R9 "" 0 pp_fe_yes_${ppfe}
+  !insertmacro ppExeIn "$perUserInstallationFolder" $R9
+  StrCmp $R9 "" 0 pp_fe_yes_${ppfe}
+  ReadRegStr $R8 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  !insertmacro ppExeIn "$R8" $R9
+  StrCmp $R9 "" 0 pp_fe_yes_${ppfe}
+  ClearErrors
+  ReadRegStr $R8 HKLM "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ClearErrors
+  !insertmacro ppExeIn "$R8" $R9
+  StrCmp $R9 "" 0 pp_fe_yes_${ppfe}
+  ReadRegStr $R8 HKCU "Software\Prompt Picker" "InstallLocation"
+  !insertmacro ppExeIn "$R8" $R9
+  StrCmp $R9 "" 0 pp_fe_yes_${ppfe}
+  !insertmacro ppExeIn "$LOCALAPPDATA\Programs\Prompt Picker" $R9
+  StrCmp $R9 "" 0 pp_fe_yes_${ppfe}
+  !insertmacro ppExeIn "$PROFILE\Prompt Picker" $R9
+  StrCmp $R9 "" 0 pp_fe_yes_${ppfe}
+  !insertmacro ppExeIn "C:\Prompt Picker" $R9
+  StrCmp $R9 "" pp_fe_end_${ppfe}
+  pp_fe_yes_${ppfe}:
+    StrCpy ${OUT} $R9
+  pp_fe_end_${ppfe}:
+  !undef ppfe
+!macroend
+
+; Close every Prompt Picker.exe and wait until none remain. The image name
+; is not the uninstaller. Called before a new copy is started, and at the
+; start of uninstall so the page never sits beside a running app.
+!macro ppWaitAppExit
+  !define ppwa ${__COUNTER__}
+  StrCpy $R1 0
+  pp_wa_${ppwa}:
+    nsExec::Exec `"$SYSDIR\taskkill.exe" /f /im "${APP_EXECUTABLE_FILENAME}"`
+    Pop $R0
+    IntCmp $R0 0 0 pp_wa_done_${ppwa} pp_wa_done_${ppwa}
+    Sleep 400
+    IntOp $R1 $R1 + 1
+    IntCmp $R1 15 pp_wa_done_${ppwa} pp_wa_${ppwa} pp_wa_done_${ppwa}
+  pp_wa_done_${ppwa}:
+  !undef ppwa
+!macroend
+
+!macro customCheckAppRunning
+  !insertmacro ppWaitAppExit
+!macroend
+
+; Second uninstall UI (double-click plus the NSIS temp copy, or in-app plus
+; _?=) quits before it draws a page.
+!macro ppUninstallMutex
+  !define ppum ${__COUNTER__}
+  System::Call 'kernel32::CreateMutex(p 0, i 1, t "Local\PromptPickerUninstall")?e'
+  Pop $R9
+  IntCmpU $R9 183 pp_um_busy_${ppum} pp_um_ok_${ppum} pp_um_ok_${ppum}
+  pp_um_busy_${ppum}:
+    Quit
+  pp_um_ok_${ppum}:
+  !undef ppum
+!macroend
+
 ; Runs at the end of setInstallModePerUser, which would otherwise put a fresh
 ; install in %LocalAppData%\Programs. /D= and an existing folder already won.
 ; A writable probe of C:\Prompt Picker is removed when that is not the folder.
@@ -160,7 +239,12 @@ Var ppDesktopCheckbox
       StrCpy $INSTDIR $ppKeepDir
       Goto pp_after_norm_${ppa}
     ${EndIf}
-    IfFileExists "$INSTDIR\${APP_EXECUTABLE_FILENAME}" pp_after_norm_${ppa}
+    !insertmacro ppFindExistingInstall $R0
+    ${If} $R0 != ""
+      StrCpy $INSTDIR $R0
+      StrCpy $ppKeepDir $R0
+      Goto pp_after_norm_${ppa}
+    ${EndIf}
     !insertmacro ppChooseDefaultDir
     pp_after_norm_${ppa}:
     !insertmacro ppNormalizeInstDir
@@ -280,13 +364,12 @@ Var ppDesktopCheckbox
   !ifndef BUILD_UNINSTALLER
     StrCpy $isForceCurrentInstall "1"
   !else
-    ${if} $hasPerUserInstallation == "1"
-    ${andIf} $hasPerMachineInstallation == "0"
-      StrCpy $isForceCurrentInstall "1"
-    ${elseif} $hasPerMachineInstallation == "1"
-    ${andIf} $hasPerUserInstallation == "0"
-      StrCpy $isForceMachineInstall "1"
-    ${endIf}
+    ; Always per-user. The install-mode page elevates and restarts the
+    ; uninstaller, which showed a second page and could start the app.
+    StrCpy $hasPerMachineInstallation "0"
+    StrCpy $hasPerUserInstallation "1"
+    StrCpy $isForceCurrentInstall "1"
+    StrCpy $isForceMachineInstall "0"
   !endif
 !macroend
 
@@ -312,31 +395,13 @@ Var ppDesktopCheckbox
     Goto pp_init_ready
   ${EndIf}
 
-  ${If} $hasPerUserInstallation == "1"
-    IfFileExists "$perUserInstallationFolder\*.*" 0 pp_stale_user
-      StrCpy $ppKeepDir $perUserInstallationFolder
-      StrCpy $INSTDIR $perUserInstallationFolder
-      Goto pp_init_ready
-    pp_stale_user:
-      DeleteRegValue HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
-      DeleteRegValue HKCU "Software\Prompt Picker" "InstallLocation"
-      ClearErrors
-      DeleteRegValue HKLM "${INSTALL_REGISTRY_KEY}" "InstallLocation"
-      ClearErrors
-      StrCpy $hasPerUserInstallation "0"
-      StrCpy $perUserInstallationFolder ""
-  ${EndIf}
-
-  ${If} $hasPerMachineInstallation == "1"
-    IfFileExists "$perMachineInstallationFolder\*.*" 0 pp_stale_machine
-      StrCpy $ppKeepDir $perMachineInstallationFolder
-      StrCpy $INSTDIR $perMachineInstallationFolder
-      Goto pp_init_ready
-    pp_stale_machine:
-      ClearErrors
-      DeleteRegValue HKLM "${INSTALL_REGISTRY_KEY}" "InstallLocation"
-      ClearErrors
-      StrCpy $hasPerMachineInstallation "0"
+  ; Registry, the 0.1.12 per-user folder, or any other folder that already
+  ; contains Prompt Picker.exe. Never fall through to a second copy.
+  !insertmacro ppFindExistingInstall $0
+  ${If} $0 != ""
+    StrCpy $INSTDIR $0
+    StrCpy $ppKeepDir $0
+    Goto pp_init_ready
   ${EndIf}
 
   ; A keep-data uninstall leaves the folder and the marker, but the exe is
@@ -382,6 +447,12 @@ Var ppDesktopCheckbox
   ${If} $INSTDIR != "C:\Prompt Picker"
     RMDir "C:\Prompt Picker"
   ${EndIf}
+  ClearErrors
+  FileOpen $R4 "$TEMP\prompt-picker-chosen-dir.txt" w
+  IfErrors pp_init_logged
+  FileWrite $R4 "$INSTDIR$\r$\n"
+  FileClose $R4
+  pp_init_logged:
 !macroend
 
 ; Folder page, then the saved desktop-shortcut choice. Start Menu stays off.
@@ -437,6 +508,9 @@ Var ppDesktopCheckbox
     !insertmacro ppWriteMarkerFile "$APPDATA\Prompt Picker\${PP_MARKER_NAME}"
     System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
   pp_sc_skip:
+  ; The old process must be gone before --force-run starts the new one.
+  ; A late taskkill was closing 0.1.13 with no message.
+  !insertmacro ppWaitAppExit
 !macroend
 
 !ifdef BUILD_UNINSTALLER
@@ -445,6 +519,10 @@ Var DeleteKeepRadio
 Var DeleteWipeRadio
 
 !macro customUnInit
+  !insertmacro ppUninstallMutex
+  ; Leave the install folder so a relative exec cannot start Prompt Picker.exe.
+  SetOutPath $TEMP
+  !insertmacro ppWaitAppExit
   ; Silent with no flag wipes, so a scripted uninstall still starts clean.
   ; /WIPE overrides /KEEP. An interactive page can still switch to keep.
   StrCpy $DeleteData ${BST_CHECKED}
@@ -519,10 +597,15 @@ FunctionEnd
 ; removed in place. The folder itself is removed only when data deletion
 ; was requested and nothing the user added is still inside it.
 !macro customRemoveFiles
-  !insertmacro ppResolveInstallDir
-  !insertmacro ppInstallDirOk $R9
-  ${If} $R9 == "1"
-    !insertmacro ppDeleteKnownAppFiles
+  ; --updated is an in-place upgrade. Deleting the program files here removed
+  ; the copy the new installer was about to replace, and a second folder was
+  ; left behind when the destination differed.
+  ${IfNot} ${isUpdated}
+    !insertmacro ppResolveInstallDir
+    !insertmacro ppInstallDirOk $R9
+    ${If} $R9 == "1"
+      !insertmacro ppDeleteKnownAppFiles
+    ${EndIf}
   ${EndIf}
 !macroend
 

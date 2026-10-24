@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.14
+
+- Cập nhật từ 0.1.12 ghi đè đúng thư mục đang cài, kể cả `%LOCALAPPDATA%\Programs\Prompt Picker`. Không tạo thêm một bản ở `C:\Prompt Picker`.
+- Lần mở đầu của bản mới gỡ bản cài trùng ở thư mục khác và trỏ lối tắt Desktop vào file đang chạy.
+- Bộ gỡ chỉ mở một cửa sổ, đóng app trước, và không mở lại app.
+- App chờ bản cũ thoát khi được mở lại sau cập nhật, nên không tự đóng giữa chừng.
+
 ## 0.1.13
 
 - Bộ cài hỏi thư mục. Mặc định là `C:\Prompt Picker` nếu tạo được, không thì thư mục Prompt Picker trong hồ sơ. Quyền quản trị chỉ được hỏi khi thư mục đã chọn không ghi được. File chương trình nằm trong thư mục đó.

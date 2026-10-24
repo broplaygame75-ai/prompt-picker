@@ -83,6 +83,32 @@ function readInstallCandidates(exeDir, query) {
   return {registryDir, uninstallDir, exeDir: exeDir || ''};
 }
 
+function normDir(dir) {
+  return normalizeDataPath(String(dir || '')).replace(/[\\/]+$/, '');
+}
+
+// Other Prompt Picker folders to delete after an upgrade. The running folder
+// stays. A parent such as %LocalAppData%\Programs stays. Drive roots stay.
+function planDuplicateRemoval(runningDir, candidates, blocked) {
+  const running = normDir(runningDir).toLowerCase();
+  const deny = new Set((blocked || []).map(dir => normDir(dir).toLowerCase()).filter(Boolean));
+  const seen = new Set();
+  const out = [];
+  for (const raw of candidates || []) {
+    const dir = normDir(raw);
+    if (!dir) continue;
+    const key = dir.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!running || key === running) continue;
+    if (running.startsWith(key + '\\') || key.startsWith(running + '\\')) continue;
+    if (deny.has(key)) continue;
+    if (/^[a-z]:\\?$/.test(key)) continue;
+    out.push(dir);
+  }
+  return out;
+}
+
 module.exports = {
   UNINSTALL_KEY,
   parseRegSz,
@@ -91,5 +117,6 @@ module.exports = {
   updateArgs,
   uninstallArgs,
   readInstallCandidates,
-  queryReg
+  queryReg,
+  planDuplicateRemoval
 };
