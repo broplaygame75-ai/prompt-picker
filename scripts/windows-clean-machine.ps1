@@ -42,7 +42,7 @@ function Show-CrashLog {
 }
 
 function Show-SetupTrace {
-  foreach ($name in @('prompt-picker-setup.log', 'prompt-picker-chosen-dir.txt')) {
+  foreach ($name in @('PromptPicker-Setup.log', 'prompt-picker-setup.log', 'prompt-picker-chosen-dir.txt')) {
     $log = Join-Path $env:TEMP $name
     if (Test-Path -LiteralPath $log) {
       Write-Host "--- $name ---"

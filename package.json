@@ -1,6 +1,6 @@
 {
   "name": "prompt-picker",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Prompt Picker - bốc và quản lý prompt",
   "main": "src/main.js",
   "scripts": {
@@ -33,6 +33,7 @@
       "output": "dist"
     },
     "copyright": "Copyright © Lineko",
+    "compression": "normal",
     "win": {
       "target": [
         "nsis"
@@ -54,7 +55,10 @@
       "include": "build/installer.nsh",
       "installerLanguages": ["en_US", "vi_VN", "zh_CN", "ko_KR"],
       "displayLanguageSelector": true,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "packElevateHelper": false,
+      "differentialPackage": false,
+      "useZip": true
     },
     "publish": [
       {

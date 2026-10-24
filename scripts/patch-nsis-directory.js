@@ -123,21 +123,52 @@ const skipOldTo = `Function uninstallOldVersion
   !endif
   Var /GLOBAL uninstallerFileName`;
 
-// A stale per-machine registry value must not open a UAC dialog during
-// /currentuser setup. Nobody is there to click it, so the install waits forever.
-const noSilentUacFrom = `          \${if} $hasPerMachineInstallation == "1" # set in onInit by initMultiUser
+// Setup must not ShellExecute itself. That relaunch is the Windows dialog
+// "cannot access the specified device, path, or file" once the exe is locked.
+function dropInstallerRelaunch(file) {
+  let text = fs.readFileSync(file, 'utf8');
+  if (text.includes('Never relaunch setup.exe')) return false;
+  const begin = text.indexOf('          ${if} $hasPerMachineInstallation == "1"');
+  const end = text.indexOf('      !endif\n    !endif\n    !include "installSection.nsh"');
+  if (begin < 0 || end < 0 || begin > end) {
+    throw new Error('install section elevation block missing: ' + path.basename(file));
+  }
+  const replacement = `          # Never relaunch setup.exe. A second start of that file is the Windows
+          # "cannot access the specified device, path, or file" dialog.
+          \${if} $hasPerMachineInstallation == "1"
           \${andIf} \${Silent}
-            \${ifNot} \${UAC_IsAdmin}`;
+            StrCpy $hasPerMachineInstallation "0"
+            StrCpy $hasPerUserInstallation "1"
+            !insertmacro setInstallModePerUser
+          \${endIf}
+`;
+  text = text.slice(0, begin) + replacement + text.slice(end);
+  if (text.includes('UAC_RunElevated')) {
+    throw new Error('setup still relaunches itself');
+  }
+  fs.writeFileSync(file, text);
+  return true;
+}
 
-const noSilentUacTo = `          \${if} $hasPerMachineInstallation == "1" # set in onInit by initMultiUser
-          \${andIf} \${Silent}
-          \${andIfNot} \${isForCurrentUser}
-            \${ifNot} \${UAC_IsAdmin}`;
+function dropSelfCopy(file) {
+  let text = fs.readFileSync(file, 'utf8');
+  const marker = 'Leave the running setup exe where it was launched';
+  if (text.includes(marker)) return false;
+  const needle = '!insertmacro copyFile "$EXEPATH"';
+  const at = text.indexOf(needle);
+  if (at < 0) throw new Error('setup self-copy missing');
+  const lineEnd = text.indexOf('\n', at);
+  text = text.slice(0, at) + '# ' + marker + '. Do not copy or move it.' + text.slice(lineEnd);
+  if (text.includes('copyFile "$EXEPATH"')) throw new Error('setup still copies itself');
+  fs.writeFileSync(file, text);
+  return true;
+}
 
 const assistedChanged = patch(assisted, [[assistedFrom, assistedTo]]);
 const strChanged = dropUnusedStrContains(assisted);
 const modeChanged = patchPerUserMode(multi);
 assertPerUserHook(multi);
 const skipChanged = patch(installUtil, [[skipOldFrom, skipOldTo]]);
-const uacChanged = patch(installerNsi, [[noSilentUacFrom, noSilentUacTo]]);
-console.log('nsis directory patch', assistedChanged || strChanged || modeChanged || skipChanged || uacChanged ? 'applied' : 'already applied');
+const uacChanged = dropInstallerRelaunch(installerNsi);
+const copyChanged = dropSelfCopy(path.join(nsisDir, 'include', 'installer.nsh'));
+console.log('nsis directory patch', assistedChanged || strChanged || modeChanged || skipChanged || uacChanged || copyChanged ? 'applied' : 'already applied');

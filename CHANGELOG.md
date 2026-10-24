@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.15
+
+- Bộ cài không tự tắt giữa chừng. Nó không chạy lại chính file setup, không xoá hay di chuyển file đó, và không dùng taskkill.
+- Nhật ký cài nằm ở `%TEMP%\PromptPicker-Setup.log`.
+
 ## 0.1.14
 
 - Cập nhật từ 0.1.12 ghi đè đúng thư mục đang cài, kể cả `%LOCALAPPDATA%\Programs\Prompt Picker`. Không tạo thêm một bản ở `C:\Prompt Picker`.

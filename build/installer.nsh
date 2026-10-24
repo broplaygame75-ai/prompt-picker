@@ -16,9 +16,11 @@ Var ppDesktopShortcut
 Var ppDesktopCheckbox
 !endif
 
-; Shared by the installer and the uninstaller. A plugin must not be able to
-; reset this counter, so the wait loop keeps it on the stack.
+; Shared by the installer and the uninstaller.
 Var ppWaitCount
+Var ppSelfPid
+Var ppParentPid
+Var ppClosePath
 
 ; The stock parameter reader stops at the first space, so "C:\Prompt Picker"
 ; became "C:\Prompt". Read the raw command line and keep everything after /D=.
@@ -189,11 +191,11 @@ Var ppWaitCount
   !undef ppfe
 !macroend
 
-; Append one line the clean-machine gate can print if setup stops.
+; Installer log in %TEMP%. One line per step so a mid-run stop is still visible.
 !macro ppTrace MSG
   !define ppt ${__COUNTER__}
   ClearErrors
-  FileOpen $R4 "$TEMP\prompt-picker-setup.log" a
+  FileOpen $R4 "$TEMP\PromptPicker-Setup.log" a
   IfErrors pp_tr_end_${ppt}
     FileWrite $R4 "${MSG}$\r$\n"
     FileClose $R4
@@ -201,23 +203,84 @@ Var ppWaitCount
   !undef ppt
 !macroend
 
-; Close every Prompt Picker.exe and wait until none remain. The image name
-; is not the uninstaller. Called before a new copy is started, and at the
-; start of uninstall so the page never sits beside a running app.
-; taskkill is capped: a stuck call must not hold setup until the gate kills it.
+; Close Prompt Picker.exe only when its full path is the install folder.
+; Never the setup exe, this process, or its parent.
 !macro ppWaitAppExit
   !define ppwa ${__COUNTER__}
+  System::Call 'kernel32::GetCurrentProcessId()i.s'
+  Pop $ppSelfPid
+  StrCpy $ppParentPid 0
+  System::Call 'kernel32::CreateToolhelp32Snapshot(i 2, i 0)p.r9'
+  System::Alloc 556
+  Pop $R8
+  IntCmp $R8 0 pp_wa_close_snap_${ppwa}
+  StrCpy $R7 $R9
+  IntCmp $R7 0 pp_wa_free_${ppwa}
+  IntCmp $R7 -1 pp_wa_free_${ppwa}
+  System::Call '*$R8(i 556)'
+  System::Call 'kernel32::Process32FirstW(p r9, p R8)i.r7'
   StrCpy $ppWaitCount 0
-  pp_wa_${ppwa}:
-    Push $ppWaitCount
-    nsExec::Exec /TIMEOUT=8000 `"$SYSDIR\taskkill.exe" /f /im "${APP_EXECUTABLE_FILENAME}"`
-    Pop $R0
-    Pop $ppWaitCount
-    IntCmp $R0 0 0 pp_wa_done_${ppwa} pp_wa_done_${ppwa}
+  pp_wa_parent_${ppwa}:
+    IntCmp $R7 0 pp_wa_rescan_${ppwa}
+    System::Call '*$R8(i,i,i.r6,i,i,i,i.r5,i,i,&w260.r4)'
+    StrCmp $R6 $ppSelfPid 0 pp_wa_parent_next_${ppwa}
+      StrCpy $ppParentPid $R5
+      Goto pp_wa_rescan_${ppwa}
+    pp_wa_parent_next_${ppwa}:
+    System::Call 'kernel32::Process32NextW(p r9, p R8)i.r7'
     IntOp $ppWaitCount $ppWaitCount + 1
-    IntCmp $ppWaitCount 8 pp_wa_done_${ppwa} 0 pp_wa_done_${ppwa}
-    Sleep 300
-    Goto pp_wa_${ppwa}
+    IntCmp $ppWaitCount 512 pp_wa_rescan_${ppwa} pp_wa_parent_${ppwa} pp_wa_rescan_${ppwa}
+  pp_wa_rescan_${ppwa}:
+  !insertmacro ppTrace "close-app self=$ppSelfPid parent=$ppParentPid"
+  System::Call '*$R8(i 556)'
+  System::Call 'kernel32::Process32FirstW(p r9, p R8)i.r7'
+  StrCpy $ppWaitCount 0
+  pp_wa_scan_${ppwa}:
+    IntCmp $R7 0 pp_wa_free_${ppwa}
+    System::Call '*$R8(i,i,i.r6,i,i,i,i.r5,i,i,&w260.r4)'
+    StrCmp $R4 "${APP_EXECUTABLE_FILENAME}" 0 pp_wa_next_${ppwa}
+    StrCmp $R6 $ppSelfPid pp_wa_next_${ppwa}
+    StrCmp $R6 $ppParentPid pp_wa_next_${ppwa}
+    StrCpy $ppClosePath ""
+    System::Call 'kernel32::OpenProcess(i 0x1000, i 0, i r6)p.r3'
+    IntCmp $R3 0 pp_wa_next_${ppwa}
+    StrCpy $R0 1024
+    System::Call 'kernel32::QueryFullProcessImageNameW(p r3, i 0, t.R4, *i R0)i.R7'
+    System::Call 'kernel32::CloseHandle(p r3)'
+    StrCpy $ppClosePath $R4
+    StrCmp $ppClosePath "" pp_wa_next_${ppwa}
+    StrCpy $R0 "$EXEPATH"
+    Push $R0
+    Push $ppClosePath
+    System::Call 'kernel32::lstrcmpiW(w s, w s)i.R7'
+    IntCmp $R7 0 pp_wa_skip_self_${ppwa}
+    StrCpy $R0 "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
+    Push $R0
+    Push $ppClosePath
+    System::Call 'kernel32::lstrcmpiW(w s, w s)i.R7'
+    IntCmp $R7 0 0 pp_wa_next_${ppwa} pp_wa_next_${ppwa}
+    System::Call 'kernel32::OpenProcess(i 0x0001, i 0, i r6)p.r3'
+    IntCmp $R3 0 pp_wa_next_${ppwa}
+    System::Call 'kernel32::TerminateProcess(p r3, i 0)'
+    System::Call 'kernel32::CloseHandle(p r3)'
+    !insertmacro ppTrace "closed-app $ppClosePath"
+    Goto pp_wa_next_${ppwa}
+    pp_wa_skip_self_${ppwa}:
+    !insertmacro ppTrace "skip-self $ppClosePath"
+    pp_wa_next_${ppwa}:
+    System::Call 'kernel32::Process32NextW(p r9, p R8)i.r7'
+    IntOp $ppWaitCount $ppWaitCount + 1
+    IntCmp $ppWaitCount 512 pp_wa_free_${ppwa} 0 pp_wa_free_${ppwa}
+    Goto pp_wa_scan_${ppwa}
+  pp_wa_free_${ppwa}:
+    IntCmp $R8 0 pp_wa_close_snap_${ppwa}
+    System::Free $R8
+    StrCpy $R8 0
+  pp_wa_close_snap_${ppwa}:
+    IntCmp $R9 0 pp_wa_done_${ppwa}
+    IntCmp $R9 -1 pp_wa_done_${ppwa}
+    System::Call 'kernel32::CloseHandle(p r9)'
+    StrCpy $R9 0
   pp_wa_done_${ppwa}:
   !undef ppwa
 !macroend
@@ -287,7 +350,8 @@ Var ppWaitCount
   !endif
 !macroend
 
-; Keep the folder from the directory page. Elevate only when it cannot be written.
+; Keep the folder from the directory page. An unwritable folder goes back to
+; the page. Setup does not relaunch itself to ask for administrator.
 !macro ppPrepareInstallDir
   !insertmacro ppNormalizeInstDir
   ${If} $INSTDIR != "C:\Prompt Picker"
@@ -295,27 +359,14 @@ Var ppWaitCount
   ${EndIf}
   !insertmacro ppCanWriteInstDir $R9
   ${If} $R9 == "0"
-    ${IfNot} ${UAC_IsAdmin}
-      WriteRegStr HKCU "Software\Prompt Picker" "PendingInstallDir" "$INSTDIR"
-      ShowWindow $HWNDPARENT ${SW_HIDE}
-      !insertmacro UAC_RunElevated
-      ${If} $0 = 0
-      ${AndIf} $1 = 1
-        Quit
-      ${EndIf}
-      DeleteRegValue HKCU "Software\Prompt Picker" "PendingInstallDir"
-      MessageBox MB_ICONSTOP|MB_OK "Prompt Picker could not get permission to install in $INSTDIR." /SD IDOK
-      ShowWindow $HWNDPARENT ${SW_SHOW}
-      Abort
-    ${Else}
-      MessageBox MB_ICONSTOP|MB_OK "Prompt Picker cannot write to $INSTDIR." /SD IDOK
-      Abort
-    ${EndIf}
+    !insertmacro ppTrace "dir-not-writable $INSTDIR"
+    MessageBox MB_ICONSTOP|MB_OK "Prompt Picker cannot write to $INSTDIR. Choose a folder in your user profile." /SD IDOK
+    Abort
   ${EndIf}
+  !insertmacro ppTrace "dir-ok $INSTDIR"
 !macroend
 
-; Silent setup must not sit on a UAC consent dialog. Interactive installs
-; still elevate from the directory page when the chosen folder is protected.
+; Silent setup must not relaunch itself or sit on a permission dialog.
 !macro ppMaybeElevateSilent
   !insertmacro ppCanWriteInstDir $R9
   ${If} $R9 == "0"
@@ -393,6 +444,7 @@ Var ppWaitCount
 !macroend
 
 !macro customInit
+  !insertmacro ppTrace "start $EXEPATH"
   StrCpy $ppKeepDir ""
   StrCpy $ppDirChosen "0"
   WriteRegStr HKCU "Software\Prompt Picker" "Installer Language" "$LANGUAGE"
@@ -529,8 +581,8 @@ Var ppWaitCount
     !insertmacro ppWriteMarkerFile "$APPDATA\Prompt Picker\${PP_MARKER_NAME}"
     System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
   pp_sc_skip:
-  ; The old process must be gone before --force-run starts the new one.
-  ; A late taskkill was closing 0.1.13 with no message.
+  ; The installed app must be gone before --force-run starts the new one.
+  ; Only that exe is closed. The setup process is left running.
   !insertmacro ppWaitAppExit
   !insertmacro ppTrace "install-done"
 !macroend
