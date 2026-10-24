@@ -43,7 +43,7 @@ ipcMain.handle('img-read',(e,id)=>{try{return 'data:image/webp;base64,'+fs.readF
 ipcMain.handle('img-del',(e,id)=>{try{fs.unlinkSync(path.join(dataDir(),'images',id+'.webp'))}catch(x){}return true});
 ipcMain.handle('dir-get',()=>dataDir());
 ipcMain.handle('dir-open',()=>shell.openPath(dataDir()));
-function externalOk(url){try{const u=new URL(String(url));if(u.protocol!=='https:')return false;const host=u.hostname.toLowerCase();return host==='x.com'||host==='www.x.com'||host==='patreon.com'||host==='www.patreon.com'||host==='discord.gg'}catch(e){return false}}
+function externalOk(url){try{const u=new URL(String(url));if(u.protocol!=='https:')return false;const host=u.hostname.toLowerCase();return host==='x.com'||host==='www.x.com'||host==='patreon.com'||host==='www.patreon.com'||host==='discord.gg'||host==='github.com'||host==='www.github.com'}catch(e){return false}}
 function guardExternal(w){if(!w||w.isDestroyed())return;w.webContents.setWindowOpenHandler(({url})=>{if(externalOk(url))shell.openExternal(url);return{action:'deny'}});w.webContents.on('will-navigate',(e,url)=>{if(String(url).startsWith('file:'))return;e.preventDefault();if(externalOk(url))shell.openExternal(url)})}
 ipcMain.handle('open-external',(e,url)=>externalOk(url)?shell.openExternal(String(url)).then(()=>true).catch(()=>false):false);
 function uiLang(){try{const s=JSON.parse(fs.readFileSync(dataFile(),'utf8'));if(s.langChosen===true&&['en','vi','zh','ko'].includes(s.lang))return s.lang}catch(e){}return 'en'}
@@ -58,10 +58,23 @@ const send=msg=>{BrowserWindow.getAllWindows().forEach(w=>{if(!w.isDestroyed())w
 autoUpdater.on('update-available',i=>{const version=i&&i.version;if(!version||!isNewerVersion(version,app.getVersion()))return;send({type:'available',version})});
 autoUpdater.on('update-not-available',()=>send({type:'none'}));
 autoUpdater.on('download-progress',p=>send({type:'progress',percent:p&&p.percent||0}));
-autoUpdater.on('update-downloaded',()=>{send({type:'progress',percent:100});if(app.isPackaged)autoUpdater.installDirectory=path.dirname(process.execPath);autoUpdater.quitAndInstall(true,true)});
+autoUpdater.on('update-downloaded',info=>{const version=info&&info.version;send({type:'downloaded',version:version?String(version).replace(/^v/i,''):''})});
 autoUpdater.on('error',e=>send({type:'error',message:String(e&&e.message||e)}));
 ipcMain.handle('upd-check',()=>app.isPackaged?autoUpdater.checkForUpdates().then(()=>true).catch(e=>{send({type:'error',message:String(e.message)});return false}):(send({type:'error',code:'unpackaged-check'}),false));
 ipcMain.handle('upd-download',async()=>{if(!app.isPackaged){send({type:'error',code:'unpackaged-download'});return false}try{await autoUpdater.downloadUpdate();return true}catch(e){send({type:'error',message:String(e&&e.message||e)});return false}});
+ipcMain.handle('upd-install',()=>{
+  if(!app.isPackaged){send({type:'error',code:'unpackaged-download'});return false}
+  // NSIS only honors /D= as the last argument, and it must be unquoted.
+  // electron-updater puts /D= before --package-file, and "Prompt Picker" has a
+  // space, so the quoted /D= makes a silent install miss the shortcut's folder.
+  // Leave installDirectory unset and let the per-user registry path stand.
+  autoUpdater.installDirectory=undefined;
+  autoUpdater.autoInstallOnAppQuit=false;
+  autoUpdater.autoRunAppAfterInstall=true;
+  if(autoUpdater.quitAndInstallCalled)autoUpdater.quitAndInstallCalled=false;
+  autoUpdater.quitAndInstall(true,true);
+  return true;
+});
 function fetchJson(url){return new Promise((resolve,reject)=>{const req=https.get(url,{headers:{'User-Agent':'PromptPicker','Accept':'application/vnd.github+json'}},res=>{let d='';res.on('data',c=>{d+=c;if(d.length>2000000)req.destroy()});res.on('end',()=>{const code=res.statusCode||0;if(code>=300&&code<400&&res.headers.location)return fetchJson(res.headers.location).then(resolve,reject);if(code!==200)return reject(new Error('HTTP '+code));try{resolve(JSON.parse(d))}catch(e){reject(e)}})});req.on('error',reject);req.setTimeout(20000,()=>{req.destroy();reject(new Error('timeout'))})})}
 ipcMain.handle('releases',async()=>{const list=await fetchJson('https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases?per_page=20');if(!Array.isArray(list))return [];return list.filter(r=>r&&!r.draft&&!r.prerelease).slice(0,20).map(r=>({version:String(r.tag_name||r.name||'').replace(/^v/i,''),body:String(r.body||''),published:r.published_at||''}))});
 ipcMain.handle('quit',()=>{app.quit();return true});
@@ -83,5 +96,5 @@ function rememberDataLocation(dir){
   if(installDir)writeInstallMarker(installDir,next.activeDataDir);
   for(const args of windowsRememberCommands(dir,installDir))execFile('reg',args,{windowsHide:true},()=>{});
 }
-app.whenReady().then(()=>{try{rememberDataLocation(dataDir());}catch(e){}if(app.isPackaged)autoUpdater.installDirectory=path.dirname(process.execPath);create();if(app.isPackaged){setTimeout(()=>autoUpdater.checkForUpdates().catch(()=>{}),5000);setInterval(()=>autoUpdater.checkForUpdates().catch(()=>{}),30*60*1000);}});
+app.whenReady().then(()=>{try{rememberDataLocation(dataDir());}catch(e){}create();if(app.isPackaged){setTimeout(()=>autoUpdater.checkForUpdates().catch(()=>{}),5000);setInterval(()=>autoUpdater.checkForUpdates().catch(()=>{}),30*60*1000);}});
 app.on('window-all-closed',()=>app.quit());

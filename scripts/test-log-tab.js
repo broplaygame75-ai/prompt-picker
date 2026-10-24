@@ -10,7 +10,7 @@ const api = {version: async () => '0.0.0', load: async () => null, save: async (
 const ctx = {document, location: {search: ''}, navigator: {}, api, URLSearchParams, setTimeout, clearTimeout, console, Map, Set, Date, Math, JSON, Promise};
 ctx.window = ctx;
 vm.createContext(ctx);
-vm.runInContext(script + '\nthis.__api={logCharHit,logEntryHit,labelLike,promptHasLabel,planLogClear,applyLogClear,createLogHistory,compareLogCharacters,normCharacters,newCharacter,touchCharacter,logSortMode,uiKeep,restoreUi,fresh};this.__setS=function(v){S=v};this.__getS=function(){return S};', ctx);
+vm.runInContext(script + '\nthis.__api={logCharHit,logEntryHit,labelLike,promptHasLabel,planLogClear,applyLogClear,createLogHistory,compareLogCharacters,normCharacters,newCharacter,touchCharacter,logSortMode,logRowSortMode,visibleEntries,doneRows,charRowSpan,charRowHit,characterFromJson,characterLogFromJson,parseLogLines,formatLogLines,exportLogDoc,planLogImport,applyLogImport,manualUpdateUrl,shouldAutoPrompt,rememberUpdLater,uiKeep,restoreUi,fresh};this.__setS=function(v){S=v};this.__getS=function(){return S};this.__setPrompted=function(v){updPrompted=v};', ctx);
 const A = ctx.__api;
 
 function fail(msg) { throw new Error(msg); }
@@ -97,5 +97,81 @@ if (ctx.__getS().logSort !== 'modified-oldest') fail('sort remembered');
 if (A.fresh().logSort != null) fail('fresh has sort');
 ctx.__getS().logSort = 'nope';
 if (A.logSortMode() !== 'name-asc') fail('default sort');
+
+const orderState = {
+  prompts: [
+    {id: 'p70', row: 70, name: 'Later', tags: [], prompt: 'a'},
+    {id: 'p63', row: 63, name: 'Early', tags: [], prompt: 'b'},
+    {id: 'p64', row: 64, name: 'Mid', tags: [], prompt: 'c'}
+  ],
+  characters: [{id: 'c1', label: 'Boothill - HSR', createdAt: 1, updatedAt: 1}],
+  used: [
+    {promptId: 'p70', characterId: 'c1', at: 1, row: 70},
+    {promptId: 'p63', characterId: 'c1', at: 2, row: 63},
+    {promptId: 'p64', characterId: 'c1', at: 3, row: 64}
+  ],
+  activeCharacter: 'c1',
+  logRowSort: 'pick-oldest'
+};
+ctx.__setS(orderState);
+if (A.doneRows('c1').join() !== '70,63,64') fail('logged order ' + A.doneRows('c1'));
+if (!A.formatLogLines().includes('[70, 63, 64]')) fail('copy order ' + A.formatLogLines());
+const exported = A.exportLogDoc().characters[0].entries.map(e => e.row).join();
+if (exported !== '70,63,64') fail('export order ' + exported);
+if (A.visibleEntries(orderState.characters[0], '').map(x => x.p.row).join() !== '70,63,64') fail('pick oldest');
+ctx.__getS().logRowSort = 'pick-newest';
+if (A.visibleEntries(orderState.characters[0], '').map(x => x.p.row).join() !== '64,63,70') fail('pick newest');
+ctx.__getS().logRowSort = 'row-asc';
+if (A.visibleEntries(orderState.characters[0], '').map(x => x.p.row).join() !== '63,64,70') fail('row asc');
+ctx.__getS().logRowSort = 'row-desc';
+if (A.visibleEntries(orderState.characters[0], '').map(x => x.p.row).join() !== '70,64,63') fail('row desc');
+const fromFile = A.characterFromJson({name: 'Boothill', source: 'HSR', doneRows: [70, 63, 64]});
+if (!fromFile || fromFile.doneRows.join() !== '70,63,64') fail('import keeps order');
+const parsed = A.parseLogLines('[Boothill][HSR][70, 63, 64]');
+if (parsed.length !== 1 || parsed[0].rows.join() !== '70,63,64') fail('paste order ' + JSON.stringify(parsed));
+const logged = A.characterLogFromJson({name: 'Boothill', source: 'HSR', entries: [{row: 70}, {row: 63}, {row: 64}]});
+if (!logged || logged.entries.map(e => e.row).join() !== '70,63,64') fail('log json order');
+
+const clearOrder = {
+  prompts: orderState.prompts,
+  characters: [{id: 'c1', label: 'Boothill - HSR', createdAt: 1, updatedAt: 1}],
+  used: orderState.used.map(u => Object.assign({}, u))
+};
+const mid = A.applyLogClear(clearOrder, [clearOrder.used[1]], 50);
+if (clearOrder.used.map(u => u.row).join() !== '70,64') fail('cleared middle');
+const hist2 = A.createLogHistory();
+hist2.note(mid);
+if (!hist2.undo(clearOrder)) fail('undo order');
+if (clearOrder.used.map(u => u.row).join() !== '70,63,64') fail('restored order ' + clearOrder.used.map(u => u.row));
+if (clearOrder.used.some(u => u._i != null)) fail('index leaked');
+
+if (A.charRowSpan('') !== null || A.charRowSpan('   ') !== null) fail('empty span');
+const single = A.charRowSpan('#63');
+if (!single || single.a !== 63 || single.b !== 63) fail('single row');
+const range = A.charRowSpan('64–63');
+if (!range || range.a !== 63 || range.b !== 64) fail('range ' + JSON.stringify(range));
+if (!A.charRowSpan('abc').none || !A.charRowSpan('63-').none || !A.charRowSpan('63-64-65').none) fail('bad span');
+if (!A.charRowHit([12], '') || A.charRowHit([12], '1') || !A.charRowHit([63, 80], '63-64') || A.charRowHit([12], '63-64') || A.charRowHit([63], 'abc')) fail('row hit');
+const booth = {id: 'c1', label: 'Boothill - HSR'};
+if (!(A.logCharHit(booth, 'hsr') && A.charRowHit([63, 80], '63-64'))) fail('and match');
+if (A.logCharHit(booth, 'hsr') && A.charRowHit([12], '63-64')) fail('and row miss');
+if (A.logCharHit(booth, 'nope') && A.charRowHit([63], '')) fail('and name miss');
+
+ctx.__setS(A.fresh());
+ctx.__getS().logRowSort = 'row-desc';
+ctx.__getS().updLater = '0.1.11';
+const keep2 = A.uiKeep();
+ctx.__setS(A.fresh());
+A.restoreUi(keep2, false);
+if (ctx.__getS().logRowSort !== 'row-desc' || ctx.__getS().updLater !== '0.1.11') fail('ui keep ' + ctx.__getS().logRowSort + ' ' + ctx.__getS().updLater);
+if (A.fresh().logRowSort != null || A.fresh().updLater != null) fail('fresh prefs');
+ctx.__setS(A.fresh());
+if (!A.shouldAutoPrompt('0.1.11')) fail('auto before later');
+A.rememberUpdLater('v0.1.11');
+if (A.shouldAutoPrompt('0.1.11') || !A.shouldAutoPrompt('0.1.12')) fail('later version');
+ctx.__setPrompted('0.1.12');
+if (A.shouldAutoPrompt('0.1.12')) fail('once per version');
+if (A.manualUpdateUrl('0.1.11') !== 'https://github.com/broplaygame75-ai/prompt-picker-releases/releases/download/v0.1.11/PromptPicker-Setup-0.1.11.exe') fail('manual url');
+if (A.manualUpdateUrl('nope') !== 'https://github.com/broplaygame75-ai/prompt-picker-releases/releases') fail('manual fallback');
 
 console.log('log tab ok');
