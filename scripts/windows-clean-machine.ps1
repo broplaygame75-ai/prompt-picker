@@ -484,6 +484,14 @@ try {
   Stop-PromptPicker
 
   Write-Host 'keep data, settings, and install choices'
+  $marker = Join-Path $custom 'prompt-picker.install.json'
+  $markerDeadline = (Get-Date).AddSeconds(20)
+  while (-not (Test-Path -LiteralPath $marker) -and (Get-Date) -lt $markerDeadline) {
+    Start-Sleep -Seconds 1
+  }
+  # Stop before writing settings so a late save cannot replace them.
+  Stop-PromptPicker
+  if (-not (Test-Path -LiteralPath $marker)) { throw "marker missing before keep: $marker" }
   $dataDir = Join-Path $env:APPDATA 'Prompt Picker\data'
   New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
   Set-Content -LiteralPath (Join-Path $dataDir 'KEEP-SENTINEL.txt') -Value 'keep' -Encoding ascii
@@ -505,8 +513,6 @@ try {
     New-Item -ItemType Directory -Force -Path $cache | Out-Null
     Set-Content -LiteralPath (Join-Path $cache 'stale.txt') -Value 'cache' -Encoding ascii
   }
-  $marker = Join-Path $custom 'prompt-picker.install.json'
-  if (-not (Test-Path -LiteralPath $marker)) { throw "marker missing before keep: $marker" }
   Invoke-Uninstall $custom 'keep'
   Assert-ShortcutsGone
   if (-not (Test-Path -LiteralPath $dataDir)) { throw 'keep removed the data folder' }

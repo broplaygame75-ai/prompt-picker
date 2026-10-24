@@ -119,6 +119,7 @@ assert.ok(clean.includes('_?=$installDir'), 'silent uninstall must wait on the N
 assert.ok(clean.includes("'/KEEP'"));
 assert.ok(clean.includes("'/WIPE'"));
 assert.ok(clean.includes('keep data, settings, and install choices'));
+assert.ok(clean.includes('markerDeadline'));
 assert.ok(clean.includes('wipe everything'));
 assert.ok(clean.includes('function Invoke-Uninstall'));
 assert.ok(clean.includes('for ($try = 1; $try -le 3; $try++)'));
