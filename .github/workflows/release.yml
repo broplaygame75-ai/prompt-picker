@@ -13,6 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
       - run: npm ci
+      - run: node scripts/patch-nsis-directory.js
       - name: Set release repo owner
         shell: bash
         run: node -e "const p=require('./package.json');p.build.publish[0].owner='broplaygame75-ai';require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))"

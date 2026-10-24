@@ -3,16 +3,18 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const {planShortcutRepair, shortcutLocations, samePath} = require('../src/shortcuts');
+const {planShortcutRepair, shortcutLocations, samePath, diagnoseShortcut, startMenuPaths} = require('../src/shortcuts');
 const {COPY} = require('../src/startupCopy');
 const {installerUrl, installerName, versionFromRelease} = require('../src/repair');
+const {formatStartupEntry} = require('../src/startupLog');
+const {parseRegSz, installDirFromUninstallString, chooseInstallDir, updateArgs, readInstallCandidates} = require('../src/installDir');
 
 const exe = 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Prompt Picker\\Prompt Picker.exe';
 const opts = planShortcutRepair(null, exe, false);
 assert.strictEqual(opts.operation, 'create');
 assert.strictEqual(opts.options.target, exe);
 assert.strictEqual(opts.options.cwd, 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Prompt Picker');
-assert.strictEqual(opts.options.appUserModelId, 'com.lineko.promptpicker');
+assert.strictEqual(opts.options.appUserModelId, undefined);
 
 const stale = planShortcutRepair({target: 'C:\\missing\\Prompt Picker.exe', cwd: 'C:\\missing'}, exe, true);
 assert.strictEqual(stale.operation, 'replace');
@@ -23,6 +25,13 @@ assert.strictEqual(wrongCwd.operation, 'replace');
 
 const ok = planShortcutRepair({target: exe, cwd: 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Prompt Picker'}, exe, true);
 assert.strictEqual(ok, null);
+const aumi = planShortcutRepair({target: exe, cwd: 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Prompt Picker', appUserModelId: 'com.lineko.promptpicker'}, exe, true);
+assert.strictEqual(aumi.operation, 'replace');
+assert.strictEqual(aumi.options.appUserModelId, undefined);
+const broken = diagnoseShortcut({exists: true, appUserModelId: 'com.lineko.promptpicker', target: exe, targetExists: true});
+assert.ok(broken.includes('Unspecified error'));
+assert.ok(diagnoseShortcut({exists: true, target: exe, targetExists: false}).includes('does not exist'));
+assert.strictEqual(startMenuPaths('C:\\Users\\ADMIN\\AppData\\Roaming', 'C:\\ProgramData')[1], 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Prompt Picker.lnk');
 assert.strictEqual(planShortcutRepair({target: exe.replace(/\\/g, '/'), cwd: opts.options.cwd + '\\'}, exe, true), null);
 assert.strictEqual(samePath(exe, exe.toLowerCase()), true);
 
@@ -52,18 +61,38 @@ for (const lang of ['en', 'vi', 'zh', 'ko']) {
 }
 
 const nsh = fs.readFileSync(path.join(__dirname, '../build/installer.nsh'), 'utf8');
-assert.ok(nsh.includes('!macro ppRejectMissingInstall'));
-assert.ok(nsh.includes('DeleteRegValue HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"'));
-assert.ok(nsh.includes('!macro customInstall'));
-assert.ok(nsh.includes('CreateShortCut "$newStartMenuLink"'));
+assert.ok(nsh.includes('!macro ppChooseDefaultDir'));
+assert.ok(nsh.includes('CreateDirectory "C:\\Prompt Picker"'));
+assert.ok(nsh.includes('StrCpy $INSTDIR "$PROFILE\\Prompt Picker"'));
+assert.ok(nsh.includes('Delete "$SMPROGRAMS\\${SHORTCUT_NAME}.lnk"'));
 assert.ok(nsh.includes('CreateShortCut "$newDesktopLink"'));
-assert.ok(nsh.includes('IfFileExists "$appExe"'));
-assert.ok(!/publisherName/.test(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')));
+assert.ok(!nsh.includes('SetLnkAUMI'));
+assert.ok(!nsh.includes('CreateShortCut "$newStartMenuLink"'));
+assert.ok(nsh.includes('PendingInstallDir'));
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
+assert.strictEqual(pkg.version, '0.1.13');
+assert.strictEqual(pkg.build.nsis.oneClick, false);
+assert.strictEqual(pkg.build.nsis.perMachine, false);
+assert.strictEqual(pkg.build.nsis.allowToChangeInstallationDirectory, true);
+assert.strictEqual(pkg.build.nsis.createDesktopShortcut, 'always');
+assert.strictEqual(pkg.build.nsis.createStartMenuShortcut, false);
+assert.ok(!/publisherName/.test(JSON.stringify(pkg)));
 
 const wf = fs.readFileSync(path.join(__dirname, '../.github/workflows/release.yml'), 'utf8');
 assert.ok(wf.includes('clean-machine'));
 assert.ok(wf.includes('windows-clean-machine.ps1'));
+assert.ok(wf.includes('patch-nsis-directory.js'));
+const patchSrc = fs.readFileSync(path.join(__dirname, 'patch-nsis-directory.js'), 'utf8');
+assert.ok(patchSrc.includes('ppDirPre'));
+assert.ok(patchSrc.includes('ppPrepareInstallDir'));
+assert.ok(patchSrc.includes('ppAfterInstallMode'));
+assert.ok(patchSrc.includes('StrContains.nsh'));
 assert.ok(/publish:[\s\S]*needs:\s*\[clean-machine\]/.test(wf));
+const main = fs.readFileSync(path.join(__dirname, '../src/main.js'), 'utf8');
+assert.ok(main.includes('windowsVerbatimArguments:true'));
+assert.ok(!main.includes('quitAndInstall'));
+assert.ok(main.includes("setAppUserModelId('com.lineko.promptpicker')"));
+assert.ok(main.includes('startup.log'));
 
 const clean = fs.readFileSync(path.join(__dirname, 'windows-clean-machine.ps1'), 'utf8');
 assert.ok(clean.includes('/S _?=$installDir'), 'silent uninstall must wait on the NSIS process');
@@ -71,5 +100,43 @@ assert.ok(clean.includes('function Invoke-Uninstall'));
 assert.ok(clean.includes('for ($try = 1; $try -le 3; $try++)'));
 assert.ok(clean.includes('uninstall then reinstall'));
 assert.ok(clean.includes('Assert-ShortcutsGone'));
+assert.ok(clean.includes('C:\\Prompt Picker'));
+assert.ok(clean.includes('custom folder'));
+assert.ok(clean.includes('upgrade did not stay'));
+assert.ok(clean.includes('startup.log'));
+assert.ok(clean.includes('com.lineko.promptpicker'));
+
+assert.strictEqual(parseRegSz('    InstallLocation    REG_SZ    C:\\Prompt Picker\r\n', 'InstallLocation'), 'C:\\Prompt Picker');
+assert.strictEqual(installDirFromUninstallString('"C:\\Prompt Picker\\Uninstall Prompt Picker.exe" /currentuser'), 'C:\\Prompt Picker');
+assert.strictEqual(chooseInstallDir({registryDir: 'C:\\Prompt Picker', uninstallDir: 'C:\\Prompt Picker', exeDir: 'C:\\Prompt Picker'}), 'C:\\Prompt Picker');
+assert.strictEqual(chooseInstallDir({registryDir: 'C:\\missing', exeDir: 'C:\\Users\\ADMIN\\Prompt Picker'}), 'C:\\Users\\ADMIN\\Prompt Picker');
+assert.strictEqual(chooseInstallDir({registryDir: 'C:\\Prompt Picker', uninstallDir: '', exeDir: ''}), 'C:\\Prompt Picker');
+const args = updateArgs('C:\\Prompt Picker');
+assert.strictEqual(args[args.length - 1], '/D=C:\\Prompt Picker');
+assert.ok(args.includes('/currentuser'));
+assert.ok(args.indexOf('/currentuser') < args.length - 1);
+assert.ok(!args[args.length - 1].includes('"'));
+const queried = readInstallCandidates('C:\\Users\\ADMIN\\Prompt Picker', (key, name) => {
+  if (name === 'UninstallString') return '"C:\\Users\\ADMIN\\Prompt Picker\\Uninstall Prompt Picker.exe" /currentuser';
+  if (name === 'InstallLocation' && key.endsWith('Prompt Picker')) return 'C:\\Users\\ADMIN\\Prompt Picker';
+  return '';
+});
+assert.strictEqual(chooseInstallDir(queried), 'C:\\Users\\ADMIN\\Prompt Picker');
+const entry = formatStartupEntry({
+  at: '2026-10-24T00:00:00.000Z',
+  version: '0.1.13',
+  execPath: exe,
+  execExists: true,
+  execBytes: 10,
+  zone: 'absent',
+  registryDir: 'C:\\Prompt Picker',
+  installDir: 'C:\\Prompt Picker',
+  startMenu: {path: locs.startMenu, exists: true, appUserModelId: 'com.lineko.promptpicker', target: exe, targetExists: false, diagnosis: broken},
+  desktop: {path: locs.desktop, exists: true, target: exe, targetExists: true, diagnosis: 'Target exists and AppUserModelID is empty.'}
+});
+assert.ok(entry.includes('startup.log') === false);
+assert.ok(entry.includes('AppUserModelID: com.lineko.promptpicker'));
+assert.ok(entry.includes('TargetExists: false'));
+assert.ok(entry.includes(broken));
 
 console.log('startup ok');

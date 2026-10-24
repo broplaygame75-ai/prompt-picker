@@ -23,7 +23,7 @@ Mở file Setup. Nếu Windows báo "Windows protected your PC":
 
 ## 3. Cài đặt
 
-Làm theo bộ cài. Nếu máy đã có Prompt Picker, bộ cài ghi đè đúng bản đó. Prompt vẫn nằm ở `%APPDATA%\Prompt Picker\data`.
+Bộ cài hỏi thư mục để đặt Prompt Picker. Thư mục gợi ý là `C:\Prompt Picker` nếu tạo được, không thì là thư mục Prompt Picker trong hồ sơ người dùng. File chương trình nằm trong thư mục bạn chọn. Chỉ tạo lối tắt trên Desktop. Không tạo lối tắt Start Menu, và lối tắt Start Menu cũ tên Prompt Picker sẽ bị xóa. Nếu máy đã có Prompt Picker, bộ cài ghi đè đúng bản đó. Prompt vẫn nằm ở `%APPDATA%\Prompt Picker\data`.
 
 ![Cài đặt](vi/03-installer.png)
 

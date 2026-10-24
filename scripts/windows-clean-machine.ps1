@@ -32,15 +32,19 @@ function Get-ShortcutPaths {
 }
 
 function Show-CrashLog {
-  $log = Join-Path $env:APPDATA 'Prompt Picker\crash.log'
-  if (Test-Path -LiteralPath $log) {
-    Write-Host '--- crash.log ---'
-    Get-Content -LiteralPath $log -Tail 120
+  foreach ($name in @('crash.log', 'startup.log')) {
+    $log = Join-Path $env:APPDATA "Prompt Picker\$name"
+    if (Test-Path -LiteralPath $log) {
+      Write-Host "--- $name ---"
+      Get-Content -LiteralPath $log -Tail 120
+    }
   }
 }
 
 function Stop-PromptPicker {
   $roots = @(
+    'C:\Prompt Picker',
+    (Join-Path $env:USERPROFILE 'Prompt Picker'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker'),
     (Join-Path $env:APPDATA 'Prompt Picker')
   )
@@ -152,11 +156,18 @@ function Invoke-Uninstall([string]$InstallDir) {
 function Reset-Machine {
   Write-Host 'reset machine'
   Stop-PromptPicker
-  $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker'
-  $un = Resolve-Uninstaller $installDir
-  if (Test-Path -LiteralPath $un) { Invoke-Uninstall $installDir }
+  foreach ($installDir in @(
+    'C:\Prompt Picker',
+    (Join-Path $env:USERPROFILE 'Prompt Picker'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker')
+  )) {
+    $un = Resolve-Uninstaller $installDir
+    if (Test-Path -LiteralPath $un) { Invoke-Uninstall $installDir }
+  }
   Stop-PromptPicker
   foreach ($dir in @(
+    'C:\Prompt Picker',
+    (Join-Path $env:USERPROFILE 'Prompt Picker'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker'),
     (Join-Path $env:APPDATA 'Prompt Picker'),
     (Join-Path $env:LOCALAPPDATA 'prompt-picker-updater')
@@ -180,12 +191,22 @@ function Show-CrashEvents {
   }
 }
 
-function Install-Silent([string]$Path) {
+function Install-Silent([string]$Path, [string]$Directory) {
   Stop-PromptPicker
   if (Get-Command Unblock-File -ErrorAction SilentlyContinue) { Unblock-File -LiteralPath $Path }
+  $dir = ''
+  if ($Directory) { $dir = $Directory.TrimEnd('\') }
   for ($try = 1; $try -le 3; $try++) {
-    Write-Host "install $Path (try $try)"
-    $p = Start-Process -FilePath $Path -ArgumentList '/S','/currentuser' -PassThru
+    # /D= is last and unquoted, including when the folder name contains spaces.
+    $argLine = '/S /currentuser'
+    if ($dir) { $argLine = "/S /currentuser /D=$dir" }
+    Write-Host "install $Path (try $try) $argLine"
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $Path
+    $psi.Arguments = $argLine
+    $psi.UseShellExecute = $false
+    $psi.WorkingDirectory = $env:TEMP
+    $p = [Diagnostics.Process]::Start($psi)
     if (-not $p.WaitForExit(300000)) {
       try { $p.Kill() } catch {}
       throw "installer timed out: $Path"
@@ -205,7 +226,6 @@ function Install-Silent([string]$Path) {
 
 function Resolve-AppExe {
   $candidates = New-Object System.Collections.Generic.List[string]
-  $candidates.Add((Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker\Prompt Picker.exe'))
   foreach ($key in @(
     'HKCU:\Software\05ae8bdf-b478-52b5-acc4-ac809166ef4d',
     'HKCU:\Software\Prompt Picker'
@@ -214,6 +234,9 @@ function Resolve-AppExe {
     $props = Get-ItemProperty $key -ErrorAction SilentlyContinue
     if ($props.InstallLocation) { $candidates.Add((Join-Path $props.InstallLocation 'Prompt Picker.exe')) }
   }
+  $candidates.Add('C:\Prompt Picker\Prompt Picker.exe')
+  $candidates.Add((Join-Path $env:USERPROFILE 'Prompt Picker\Prompt Picker.exe'))
+  $candidates.Add((Join-Path $env:LOCALAPPDATA 'Programs\Prompt Picker\Prompt Picker.exe'))
   foreach ($c in $candidates) {
     if ($c -and (Test-Path -LiteralPath $c)) { return (Resolve-Path -LiteralPath $c).Path }
   }
@@ -234,11 +257,52 @@ function Assert-Shortcut([string]$Path, [string]$Exe, [switch]$RequireCwd) {
       throw "shortcut working directory is stale: $Path -> $($lnk.WorkingDirectory) expected $want"
     }
   }
+  $raw = [Text.Encoding]::Unicode.GetString([IO.File]::ReadAllBytes($Path))
+  if ($raw.Contains('com.lineko.promptpicker')) {
+    throw "shortcut carries AppUserModelID: $Path"
+  }
   Write-Host "shortcut ok $Path"
 }
 
-function Assert-Shortcuts([string]$Exe, [switch]$RequireCwd) {
-  foreach ($lnk in (Get-ShortcutPaths)) { Assert-Shortcut $lnk $Exe -RequireCwd:$RequireCwd }
+function Assert-Desktop([string]$Exe, [switch]$RequireCwd) {
+  Assert-Shortcut (Get-ShortcutPaths)[1] $Exe -RequireCwd:$RequireCwd
+}
+
+function Assert-StartMenuGone {
+  $paths = @(
+    (Get-ShortcutPaths)[0],
+    (Join-Path $env:PROGRAMDATA 'Microsoft\Windows\Start Menu\Programs\Prompt Picker.lnk')
+  )
+  foreach ($lnk in $paths) {
+    if (Test-Path -LiteralPath $lnk) { throw "start menu shortcut still present: $lnk" }
+  }
+  Write-Host 'start menu absent'
+}
+
+function Assert-StartupLog([string]$Exe) {
+  $log = Join-Path $env:APPDATA 'Prompt Picker\startup.log'
+  if (-not (Test-Path -LiteralPath $log)) { throw 'startup.log was not written' }
+  $text = Get-Content -LiteralPath $log -Raw
+  if ($text -notlike "*$Exe*") { throw "startup.log does not mention $Exe" }
+  if ($text -notmatch 'execExists: true') { throw 'startup.log missing execExists' }
+  if ($text -notmatch 'AppUserModelID:') { throw 'startup.log missing AppUserModelID' }
+  if ($text -notmatch 'defender ') { throw 'startup.log missing defender check' }
+  Write-Host 'startup.log ok'
+}
+
+function Assert-ShortcutLaunches([string]$Lnk) {
+  Write-Host "open shortcut $Lnk"
+  Start-Process -FilePath $Lnk -ErrorAction Stop | Out-Null
+  $sw = [Diagnostics.Stopwatch]::StartNew()
+  while ($sw.Elapsed.TotalSeconds -lt 20) {
+    $alive = @(Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue)
+    if ($alive.Count -gt 0) {
+      Write-Host 'shortcut launched the app'
+      return
+    }
+    Start-Sleep -Seconds 1
+  }
+  throw "shortcut did not launch Prompt Picker: $Lnk"
 }
 
 function Assert-ShortcutsGone {
@@ -328,17 +392,17 @@ function Get-PreviousInstaller([string]$CurrentVersion) {
 
 function Wait-ShortcutRepair([string]$Exe) {
   $deadline = (Get-Date).AddSeconds(20)
+  $start = (Get-ShortcutPaths)[0]
+  $desktop = (Get-ShortcutPaths)[1]
   while ((Get-Date) -lt $deadline) {
     $alive = @(Get-Process -Name 'Prompt Picker' -ErrorAction SilentlyContinue)
     if ($alive.Count -eq 0) { throw 'app exited before shortcuts were repaired' }
-    $ready = $true
-    foreach ($lnk in (Get-ShortcutPaths)) {
-      if (-not (Test-Path -LiteralPath $lnk)) { $ready = $false; break }
-      $shell = New-Object -ComObject WScript.Shell
-      $target = [string]$shell.CreateShortcut($lnk).TargetPath
-      if (-not (Same-Path $target $Exe)) { $ready = $false; break }
+    $shell = New-Object -ComObject WScript.Shell
+    $desktopOk = $false
+    if (Test-Path -LiteralPath $desktop) {
+      $desktopOk = Same-Path ([string]$shell.CreateShortcut($desktop).TargetPath) $Exe
     }
-    if ($ready) { return }
+    if (-not (Test-Path -LiteralPath $start) -and $desktopOk) { return }
     Start-Sleep -Seconds 1
   }
   throw 'shortcuts were not repaired to the running exe'
@@ -354,17 +418,23 @@ try {
   Reset-Machine
   Install-Silent $Installer
   $exe = Resolve-AppExe
+  if (-not (Same-Path $exe 'C:\Prompt Picker\Prompt Picker.exe')) { throw "default folder is $exe" }
   Assert-Version $exe $version
-  Assert-Shortcuts $exe
+  Assert-Desktop $exe
+  Assert-StartMenuGone
   Assert-StaysOpen -Exe $exe -Seconds $HoldSeconds -CheckUi
+  Assert-StartupLog $exe
   Stop-PromptPicker
-  Assert-Shortcuts $exe -RequireCwd
+  Assert-Desktop $exe -RequireCwd
+  Assert-ShortcutLaunches (Get-ShortcutPaths)[1]
+  Stop-PromptPicker
 
   Write-Host 'self-heal stale shortcuts'
   foreach ($lnk in (Get-ShortcutPaths)) { Set-BadShortcut $lnk }
   Start-Process -FilePath $exe | Out-Null
   Wait-ShortcutRepair $exe
-  Assert-Shortcuts $exe -RequireCwd
+  Assert-Desktop $exe -RequireCwd
+  Assert-StartMenuGone
   Stop-PromptPicker
 
   Write-Host 'reinstall when the saved install folder is gone'
@@ -376,20 +446,38 @@ try {
   if (Test-Path -LiteralPath $exe) { throw "deleted install folder still has $exe" }
   Install-Silent $Installer
   $exe = Resolve-AppExe
+  if (-not (Same-Path $exe 'C:\Prompt Picker\Prompt Picker.exe')) { throw "reinstall folder is $exe" }
   Assert-Version $exe $version
-  Assert-Shortcuts $exe
-  $start = (Get-ShortcutPaths)[0]
-  Assert-StaysOpen -Exe $exe -Seconds $HoldSeconds -Launch $start
+  Assert-Desktop $exe
+  Assert-StartMenuGone
+  Assert-StaysOpen -Exe $exe -Seconds $HoldSeconds -Launch (Get-ShortcutPaths)[1]
+  Stop-PromptPicker
+
+  Write-Host 'custom folder'
+  Reset-Machine
+  $custom = Join-Path $env:USERPROFILE 'Prompt Picker'
+  Install-Silent $Installer -Directory $custom
+  $exe = Resolve-AppExe
+  $customExe = Join-Path $custom 'Prompt Picker.exe'
+  if (-not (Same-Path $exe $customExe)) { throw "custom folder install landed at $exe" }
+  Assert-Version $exe $version
+  Assert-Desktop $exe -RequireCwd
+  Assert-StartMenuGone
+  Assert-ShortcutLaunches (Get-ShortcutPaths)[1]
   Stop-PromptPicker
 
   Write-Host 'upgrade from the previous release'
   Reset-Machine
   $previous = Get-PreviousInstaller $version
   Install-Silent $previous
+  $oldExe = Resolve-AppExe
+  $oldDir = Split-Path -Parent $oldExe
   Install-Silent $Installer
   $exe = Resolve-AppExe
+  if (-not (Same-Path (Split-Path -Parent $exe) $oldDir)) { throw "upgrade did not stay in $oldDir (now $exe)" }
   Assert-Version $exe $version
-  Assert-Shortcuts $exe
+  Assert-Desktop $exe
+  Assert-StartMenuGone
   Assert-StaysOpen -Exe $exe -Seconds $HoldSeconds
   Stop-PromptPicker
 
@@ -399,8 +487,10 @@ try {
   Assert-ShortcutsGone
   Install-Silent $Installer
   $exe = Resolve-AppExe
+  if (-not (Same-Path $exe 'C:\Prompt Picker\Prompt Picker.exe')) { throw "reinstall after uninstall landed at $exe" }
   Assert-Version $exe $version
-  Assert-Shortcuts $exe
+  Assert-Desktop $exe
+  Assert-StartMenuGone
   Assert-StaysOpen -Exe $exe -Seconds $HoldSeconds -CheckUi
   Stop-PromptPicker
   Write-Host 'clean-machine ok'

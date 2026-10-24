@@ -3,9 +3,12 @@ const path=require('path'),fs=require('fs'),https=require('https');
 const {autoUpdater}=require('electron-updater');
 const {execFile,spawn}=require('child_process');
 const {fixedDataDir,adoptExistingData,withActiveDataDir,windowsRememberCommands,APP_ID,MARKER_NAME,normalizeDataPath,reuseSources}=require('./dataDir');
-const {planShortcutRepair,shortcutLocations}=require('./shortcuts');
+const {planShortcutRepair,shortcutLocations,startMenuPaths,diagnoseShortcut}=require('./shortcuts');
 const {startupCopy}=require('./startupCopy');
 const {installerUrl,versionFromRelease}=require('./repair');
+const {formatStartupEntry}=require('./startupLog');
+const {chooseInstallDir,updateArgs,readInstallCandidates}=require('./installDir');
+if(process.platform==='win32')app.setAppUserModelId('com.lineko.promptpicker');
 const cfgPath=()=>path.join(app.getPath('userData'),'config.json');
 function cfg(){try{return JSON.parse(fs.readFileSync(cfgPath()))}catch(e){return{}}}
 function readText(f){try{return fs.readFileSync(f,'utf8')}catch(e){return ''}}
@@ -87,16 +90,25 @@ ipcMain.handle('upd-check',()=>app.isPackaged?autoUpdater.checkForUpdates().then
 ipcMain.handle('upd-download',async()=>{if(!app.isPackaged){send({type:'error',code:'unpackaged-download'});return false}try{await autoUpdater.downloadUpdate();return true}catch(e){send({type:'error',message:String(e&&e.message||e)});return false}});
 ipcMain.handle('upd-install',()=>{
   if(!app.isPackaged){send({type:'error',code:'unpackaged-download'});return false}
-  // NSIS only honors /D= as the last argument, and it must be unquoted.
-  // electron-updater puts /D= before --package-file, and "Prompt Picker" has a
-  // space, so the quoted /D= makes a silent install miss the shortcut's folder.
-  // Leave installDirectory unset and let the per-user registry path stand.
-  autoUpdater.installDirectory=undefined;
-  autoUpdater.autoInstallOnAppQuit=false;
-  autoUpdater.autoRunAppAfterInstall=true;
-  if(autoUpdater.quitAndInstallCalled)autoUpdater.quitAndInstallCalled=false;
-  autoUpdater.quitAndInstall(true,true);
-  return true;
+  try{
+    const installerPath=autoUpdater.installerPath;
+    if(!installerPath)throw new Error('no installer');
+    const dirs=readInstallCandidates(path.dirname(process.execPath));
+    const dir=chooseInstallDir(dirs);
+    if(!dir)throw new Error('no install folder');
+    // /D= must be last and unquoted. electron-updater places it before
+    // --package-file and quotes paths that contain a space.
+    const args=updateArgs(dir);
+    appendStartup('update '+dir+' '+args.join(' '));
+    const child=spawn(installerPath,args,{detached:true,stdio:'ignore',windowsVerbatimArguments:true});
+    child.unref();
+    setImmediate(()=>app.quit());
+    return true;
+  }catch(e){
+    logCrash('upd-install',e);
+    send({type:'error',message:String(e&&e.message||e)});
+    return false;
+  }
 });
 function fetchJson(url){return new Promise((resolve,reject)=>{const req=https.get(url,{headers:{'User-Agent':'PromptPicker','Accept':'application/vnd.github+json'}},res=>{let d='';res.on('data',c=>{d+=c;if(d.length>2000000)req.destroy()});res.on('end',()=>{const code=res.statusCode||0;if(code>=300&&code<400&&res.headers.location)return fetchJson(res.headers.location).then(resolve,reject);if(code!==200)return reject(new Error('HTTP '+code));try{resolve(JSON.parse(d))}catch(e){reject(e)}})});req.on('error',reject);req.setTimeout(20000,()=>{req.destroy();reject(new Error('timeout'))})})}
 ipcMain.handle('releases',async()=>{const list=await fetchJson('https://api.github.com/repos/broplaygame75-ai/prompt-picker-releases/releases?per_page=20');if(!Array.isArray(list))return [];return list.filter(r=>r&&!r.draft&&!r.prerelease).slice(0,20).map(r=>({version:String(r.tag_name||r.name||'').replace(/^v/i,''),body:String(r.body||''),published:r.published_at||''}))});
@@ -123,6 +135,68 @@ function rememberDataLocation(dir){
 function crashFile(){
   try{return path.join(app.getPath('userData'),'crash.log')}
   catch(e){return path.join(process.env.APPDATA||require('os').tmpdir(),'Prompt Picker','crash.log')}
+}
+function startupFile(){
+  try{return path.join(app.getPath('userData'),'startup.log')}
+  catch(e){return path.join(process.env.APPDATA||require('os').tmpdir(),'Prompt Picker','startup.log')}
+}
+function appendStartup(text){
+  const line=String(text||'');
+  try{const f=startupFile();fs.mkdirSync(path.dirname(f),{recursive:true});fs.appendFileSync(f,line.endsWith('\n')?line:line+'\n');}catch(e){}
+}
+function zoneText(file){
+  if(process.platform!=='win32'||!file)return '';
+  try{return fs.readFileSync(file+':Zone.Identifier','utf8').replace(/\s+/g,' ').trim()}catch(e){return ''}
+}
+function inspectShortcut(file){
+  const info={path:file,exists:false,target:'',targetExists:false,cwd:'',appUserModelId:'',readError:''};
+  if(!file||!fs.existsSync(file)){info.diagnosis=diagnoseShortcut(info);return info}
+  info.exists=true;
+  try{
+    const link=shell.readShortcutLink(file);
+    info.target=link&&link.target||'';
+    info.cwd=link&&link.cwd||'';
+    info.appUserModelId=link&&link.appUserModelId||'';
+    info.targetExists=!!(info.target&&fs.existsSync(info.target));
+  }catch(e){info.readError=String(e&&e.message||e)}
+  info.diagnosis=diagnoseShortcut(info);
+  return info;
+}
+function logDefender(){
+  if(process.platform!=='win32')return;
+  const command="$ErrorActionPreference='SilentlyContinue'; $hits=@(); Get-MpThreatDetection | ForEach-Object { $r=[string]$_.Resources; if ($r -match 'Prompt Picker' -or $r -match 'PromptPicker') { $hits += $r } }; $q='C:\\ProgramData\\Microsoft\\Windows Defender\\Quarantine'; if (Test-Path -LiteralPath $q) { $qstate='present' } else { $qstate='absent' }; if ($hits.Count -gt 0) { 'threat=' + ($hits -join ' | ') } else { 'threat=none' }; 'quarantine=' + $qstate";
+  execFile('powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{windowsHide:true,timeout:8000},(err,stdout,stderr)=>{
+    const text=String(stdout||'').trim()||String(stderr||(err&&err.message)||'').trim()||'defender check failed';
+    appendStartup('defender '+text.replace(/\r?\n/g,' ').slice(0,800));
+  });
+}
+function logStartup(note){
+  if(process.platform!=='win32')return;
+  let execBytes='';
+  try{execBytes=fs.statSync(process.execPath).size}catch(e){execBytes=''}
+  const locs=shortcutLocations(app.getPath('appData'),app.getPath('desktop'));
+  const menus=startMenuPaths(app.getPath('appData'),process.env.PROGRAMDATA||'');
+  const exeDir=app.isPackaged?path.dirname(process.execPath):'';
+  const dirs=readInstallCandidates(exeDir);
+  const startMenu=inspectShortcut(menus[0]);
+  appendStartup(formatStartupEntry({
+    at:new Date().toISOString(),
+    version:app.getVersion(),
+    execPath:process.execPath,
+    execExists:fs.existsSync(process.execPath),
+    execBytes,
+    zone:zoneText(process.execPath)||'absent',
+    registryDir:dirs.registryDir,
+    uninstallDir:dirs.uninstallDir,
+    installDir:chooseInstallDir(dirs),
+    startMenu,
+    desktop:inspectShortcut(locs.desktop),
+    note:note||''
+  }));
+  for(const file of menus.slice(1)){
+    const extra=inspectShortcut(file);
+    if(extra.exists)appendStartup('startMenuExtra '+file+' '+extra.diagnosis);
+  }
 }
 function logCrash(kind,err){
   const text=err&&err.stack?err.stack:(typeof err==='string'?err:(()=>{try{return JSON.stringify(err)}catch(e){return String(err)}} )());
@@ -173,19 +247,27 @@ function offerRepair(err){
 }
 function repairShortcuts(){
   if(process.platform!=='win32'||!app.isPackaged)return;
-  const locs=shortcutLocations(app.getPath('appData'),app.getPath('desktop'));
-  for(const file of [locs.startMenu,locs.desktop]){
-    let existing=null;
-    const exists=fs.existsSync(file);
-    if(exists){try{existing=shell.readShortcutLink(file)}catch(e){existing=null}}
-    const plan=planShortcutRepair(existing,process.execPath,exists);
-    if(!plan)continue;
-    try{
-      fs.mkdirSync(path.dirname(file),{recursive:true});
-      const ok=shell.writeShortcutLink(file,plan.operation,plan.options);
-      if(!ok)logCrash('shortcut','write failed '+file);
-    }catch(e){logCrash('shortcut',e)}
+  for(const file of startMenuPaths(app.getPath('appData'),process.env.PROGRAMDATA||'')){
+    if(!fs.existsSync(file))continue;
+    try{fs.unlinkSync(file);appendStartup('removed start menu shortcut '+file)}
+    catch(e){logCrash('shortcut',e)}
   }
+  const file=shortcutLocations(app.getPath('appData'),app.getPath('desktop')).desktop;
+  let existing=null;
+  let exists=fs.existsSync(file);
+  if(exists){try{existing=shell.readShortcutLink(file)}catch(e){existing=null}}
+  // Replace keeps an old AppUserModelID on some Windows builds. Delete first.
+  if(exists&&existing&&String(existing.appUserModelId||'').trim()){
+    try{fs.unlinkSync(file);exists=false;existing=null;appendStartup('removed desktop shortcut AppUserModelID '+file)}
+    catch(e){logCrash('shortcut',e)}
+  }
+  const plan=planShortcutRepair(existing,process.execPath,exists);
+  if(!plan)return;
+  try{
+    fs.mkdirSync(path.dirname(file),{recursive:true});
+    const ok=shell.writeShortcutLink(file,plan.operation,plan.options);
+    if(!ok)logCrash('shortcut','write failed '+file);
+  }catch(e){logCrash('shortcut',e)}
 }
 process.on('uncaughtException',err=>offerRepair(err));
 process.on('unhandledRejection',err=>logCrash('unhandledRejection',err));
@@ -194,6 +276,8 @@ app.on('child-process-gone',(e,details)=>logCrash('child-process-gone',details))
 app.whenReady().then(()=>{
   if(repairQueued)offerRepair('queued');
   try{rememberDataLocation(dataDir())}catch(e){logCrash('data',e)}
+  try{logStartup()}catch(e){logCrash('startup-log',e)}
+  try{logDefender()}catch(e){logCrash('defender',e)}
   try{repairShortcuts()}catch(e){logCrash('shortcut',e)}
   try{create()}catch(e){logCrash('window',e);offerRepair(e)}
   if(app.isPackaged){setTimeout(checkUpdates,5000);setInterval(checkUpdates,30*60*1000)}

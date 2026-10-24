@@ -1,6 +1,6 @@
 {
   "name": "prompt-picker",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Prompt Picker - bốc và quản lý prompt",
   "main": "src/main.js",
   "scripts": {
@@ -44,9 +44,9 @@
     "nsis": {
       "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": false,
       "shortcutName": "Prompt Picker",
       "uninstallDisplayName": "Prompt Picker",
       "installerIcon": "build/icon.ico",

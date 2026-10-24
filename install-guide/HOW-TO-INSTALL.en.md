@@ -23,7 +23,7 @@ Open the Setup exe. If Windows says "Windows protected your PC":
 
 ## 3. Install
 
-Follow the installer. When Prompt Picker is already installed, the setup replaces that copy. Prompts stay in `%APPDATA%\Prompt Picker\data`.
+The installer asks where to put Prompt Picker. The suggested folder is `C:\Prompt Picker` when that location can be created, otherwise a Prompt Picker folder in your user profile. The program files go in the folder you choose. A shortcut is added to the Desktop only. A Start Menu shortcut is not created, and an old Start Menu shortcut named Prompt Picker is removed. When Prompt Picker is already installed, the setup replaces that copy. Prompts stay in `%APPDATA%\Prompt Picker\data`.
 
 ![Install](en/03-installer.png)
 

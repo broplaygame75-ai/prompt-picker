@@ -23,7 +23,7 @@ Windows가 "Windows가 PC를 보호했습니다"라고 표시하는 이유는 �
 
 ## 3. 설치
 
-설치 프로그램의 단계를 따릅니다. 이미 Prompt Picker가 있으면 그 복사본 위에 설치합니다. 프롬프트는 `%APPDATA%\Prompt Picker\data`에 남습니다.
+설치 프로그램이 Prompt Picker를 둘 폴더를 묻습니다. 만들 수 있으면 기본 폴더는 `C:\Prompt Picker`이고, 그렇지 않으면 사용자 프로필 안의 Prompt Picker 폴더입니다. 프로그램 파일은 고른 폴더에 들어갑니다. 바탕 화면 바로 가기만 만들고 시작 메뉴 바로 가기는 만들지 않으며, 예전 Prompt Picker 시작 메뉴 바로 가기는 지웁니다. 이미 Prompt Picker가 있으면 그 복사본 위에 설치합니다. 프롬프트는 `%APPDATA%\Prompt Picker\data`에 남습니다.
 
 ![설치](ko/03-installer.png)
 

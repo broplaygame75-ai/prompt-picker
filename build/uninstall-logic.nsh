@@ -426,6 +426,10 @@ Var DeleteDataCheckbox
   RMDir /r "$LOCALAPPDATA\prompt-picker-updater"
   Delete "$DESKTOP\${PP_SHORTCUT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PP_SHORTCUT_NAME}.lnk"
+  Delete "$APPDATA\Microsoft\Windows\Start Menu\Programs\${PP_SHORTCUT_NAME}.lnk"
+  SetShellVarContext all
+  Delete "$SMPROGRAMS\${PP_SHORTCUT_NAME}.lnk"
+  SetShellVarContext current
 !macroend
 
 ; A folder we may record or reopen. Never a drive root or a shell folder.

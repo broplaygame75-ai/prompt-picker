@@ -23,7 +23,7 @@ Windows 会显示“Windows 已保护你的电脑”，因为这个应用没有�
 
 ## 3. 安装
 
-按安装程序的步骤操作。如果这台电脑已经装了 Prompt Picker，安装会覆盖那一份。提示词仍保存在 `%APPDATA%\Prompt Picker\data`。
+安装程序会询问 Prompt Picker 的安装文件夹。如果可以创建，默认是 `C:\Prompt Picker`，否则是用户目录下的 Prompt Picker 文件夹。程序文件都放在你选择的文件夹里。只会在桌面创建快捷方式，不会创建开始菜单快捷方式，并会删除旧的开始菜单快捷方式 Prompt Picker。如果这台电脑已经装了 Prompt Picker，安装会覆盖那一份。提示词仍保存在 `%APPDATA%\Prompt Picker\data`。
 
 ![安装](zh/03-installer.png)
 
