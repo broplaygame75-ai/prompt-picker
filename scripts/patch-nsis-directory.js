@@ -6,8 +6,11 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const assisted = path.join(root, 'node_modules', 'app-builder-lib', 'templates', 'nsis', 'assistedInstaller.nsh');
-const multi = path.join(root, 'node_modules', 'app-builder-lib', 'templates', 'nsis', 'multiUser.nsh');
+const nsisDir = path.join(root, 'node_modules', 'app-builder-lib', 'templates', 'nsis');
+const assisted = path.join(nsisDir, 'assistedInstaller.nsh');
+const multi = path.join(nsisDir, 'multiUser.nsh');
+const installUtil = path.join(nsisDir, 'include', 'installUtil.nsh');
+const installerNsi = path.join(nsisDir, 'installer.nsi');
 
 function patch(file, pairs) {
   let text = fs.readFileSync(file, 'utf8');
@@ -106,8 +109,35 @@ function assertPerUserHook(file) {
   }
 }
 
+// 0.1.13's uninstaller can sit on a page for the whole silent upgrade.
+// Overwrite the folder in place instead of ExecWait on that uninstaller.
+const skipOldFrom = `Function uninstallOldVersion
+  Var /GLOBAL uninstallerFileName`;
+
+const skipOldTo = `Function uninstallOldVersion
+  !ifmacrodef ppSkipOldUninstall
+    Pop $R0
+    StrCpy $R0 0
+    ClearErrors
+    Return
+  !endif
+  Var /GLOBAL uninstallerFileName`;
+
+// A stale per-machine registry value must not open a UAC dialog during
+// /currentuser setup. Nobody is there to click it, so the install waits forever.
+const noSilentUacFrom = `          \${if} $hasPerMachineInstallation == "1" # set in onInit by initMultiUser
+          \${andIf} \${Silent}
+            \${ifNot} \${UAC_IsAdmin}`;
+
+const noSilentUacTo = `          \${if} $hasPerMachineInstallation == "1" # set in onInit by initMultiUser
+          \${andIf} \${Silent}
+          \${andIfNot} \${isForCurrentUser}
+            \${ifNot} \${UAC_IsAdmin}`;
+
 const assistedChanged = patch(assisted, [[assistedFrom, assistedTo]]);
 const strChanged = dropUnusedStrContains(assisted);
 const modeChanged = patchPerUserMode(multi);
 assertPerUserHook(multi);
-console.log('nsis directory patch', assistedChanged || strChanged || modeChanged ? 'applied' : 'already applied');
+const skipChanged = patch(installUtil, [[skipOldFrom, skipOldTo]]);
+const uacChanged = patch(installerNsi, [[noSilentUacFrom, noSilentUacTo]]);
+console.log('nsis directory patch', assistedChanged || strChanged || modeChanged || skipChanged || uacChanged ? 'applied' : 'already applied');

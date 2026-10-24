@@ -16,6 +16,10 @@ Var ppDesktopShortcut
 Var ppDesktopCheckbox
 !endif
 
+; Shared by the installer and the uninstaller. A plugin must not be able to
+; reset this counter, so the wait loop keeps it on the stack.
+Var ppWaitCount
+
 ; The stock parameter reader stops at the first space, so "C:\Prompt Picker"
 ; became "C:\Prompt". Read the raw command line and keep everything after /D=.
 !macro ppReadDSwitch OUT
@@ -185,25 +189,49 @@ Var ppDesktopCheckbox
   !undef ppfe
 !macroend
 
+; Append one line the clean-machine gate can print if setup stops.
+!macro ppTrace MSG
+  !define ppt ${__COUNTER__}
+  ClearErrors
+  FileOpen $R4 "$TEMP\prompt-picker-setup.log" a
+  IfErrors pp_tr_end_${ppt}
+    FileWrite $R4 "${MSG}$\r$\n"
+    FileClose $R4
+  pp_tr_end_${ppt}:
+  !undef ppt
+!macroend
+
 ; Close every Prompt Picker.exe and wait until none remain. The image name
 ; is not the uninstaller. Called before a new copy is started, and at the
 ; start of uninstall so the page never sits beside a running app.
+; taskkill is capped: a stuck call must not hold setup until the gate kills it.
 !macro ppWaitAppExit
   !define ppwa ${__COUNTER__}
-  StrCpy $R1 0
+  StrCpy $ppWaitCount 0
   pp_wa_${ppwa}:
-    nsExec::Exec `"$SYSDIR\taskkill.exe" /f /im "${APP_EXECUTABLE_FILENAME}"`
+    Push $ppWaitCount
+    nsExec::Exec /TIMEOUT=8000 `"$SYSDIR\taskkill.exe" /f /im "${APP_EXECUTABLE_FILENAME}"`
     Pop $R0
+    Pop $ppWaitCount
     IntCmp $R0 0 0 pp_wa_done_${ppwa} pp_wa_done_${ppwa}
-    Sleep 400
-    IntOp $R1 $R1 + 1
-    IntCmp $R1 15 pp_wa_done_${ppwa} pp_wa_${ppwa} pp_wa_done_${ppwa}
+    IntOp $ppWaitCount $ppWaitCount + 1
+    IntCmp $ppWaitCount 8 pp_wa_done_${ppwa} 0 pp_wa_done_${ppwa}
+    Sleep 300
+    Goto pp_wa_${ppwa}
   pp_wa_done_${ppwa}:
   !undef ppwa
 !macroend
 
+; Present so the patched uninstallOldVersion returns without ExecWait.
+; The previous uninstaller (0.1.13) can sit on a window for the whole upgrade.
+; Setup overwrites the existing folder instead.
+!macro ppSkipOldUninstall
+!macroend
+
 !macro customCheckAppRunning
+  !insertmacro ppTrace "check-app"
   !insertmacro ppWaitAppExit
+  !insertmacro ppTrace "check-app-done"
 !macroend
 
 ; Second uninstall UI (double-click plus the NSIS temp copy, or in-app plus
@@ -286,23 +314,14 @@ Var ppDesktopCheckbox
   ${EndIf}
 !macroend
 
+; Silent setup must not sit on a UAC consent dialog. Interactive installs
+; still elevate from the directory page when the chosen folder is protected.
 !macro ppMaybeElevateSilent
   !insertmacro ppCanWriteInstDir $R9
   ${If} $R9 == "0"
-    ${IfNot} ${UAC_IsAdmin}
-      WriteRegStr HKCU "Software\Prompt Picker" "PendingInstallDir" "$INSTDIR"
-      !insertmacro UAC_RunElevated
-      ${If} $0 = 0
-      ${AndIf} $1 = 1
-        Quit
-      ${EndIf}
-      DeleteRegValue HKCU "Software\Prompt Picker" "PendingInstallDir"
-      MessageBox MB_ICONSTOP|MB_OK "Prompt Picker could not get permission to install in $INSTDIR." /SD IDOK
-      Quit
-    ${Else}
-      MessageBox MB_ICONSTOP|MB_OK "Prompt Picker cannot write to $INSTDIR." /SD IDOK
-      Quit
-    ${EndIf}
+    !insertmacro ppTrace "cannot-write"
+    MessageBox MB_ICONSTOP|MB_OK "Prompt Picker cannot write to $INSTDIR." /SD IDOK
+    Quit
   ${EndIf}
 !macroend
 
@@ -453,6 +472,7 @@ Var ppDesktopCheckbox
   FileWrite $R4 "$INSTDIR$\r$\n"
   FileClose $R4
   pp_init_logged:
+  !insertmacro ppTrace "init $INSTDIR"
 !macroend
 
 ; Folder page, then the saved desktop-shortcut choice. Start Menu stays off.
@@ -465,6 +485,7 @@ Var ppDesktopCheckbox
 ; Desktop shortcut only, with no AppUserModelID. A Start Menu link that carries
 ; that id opens with "Unspecified error" even when the exe is on disk.
 !macro customInstall
+  !insertmacro ppTrace "files-ready"
   StrCpy $appExe "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
   SetShellVarContext current
   Delete "$SMPROGRAMS\${SHORTCUT_NAME}.lnk"
@@ -511,6 +532,7 @@ Var ppDesktopCheckbox
   ; The old process must be gone before --force-run starts the new one.
   ; A late taskkill was closing 0.1.13 with no message.
   !insertmacro ppWaitAppExit
+  !insertmacro ppTrace "install-done"
 !macroend
 
 !ifdef BUILD_UNINSTALLER

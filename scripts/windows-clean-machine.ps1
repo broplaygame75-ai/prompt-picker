@@ -41,6 +41,19 @@ function Show-CrashLog {
   }
 }
 
+function Show-SetupTrace {
+  foreach ($name in @('prompt-picker-setup.log', 'prompt-picker-chosen-dir.txt')) {
+    $log = Join-Path $env:TEMP $name
+    if (Test-Path -LiteralPath $log) {
+      Write-Host "--- $name ---"
+      Get-Content -LiteralPath $log -Tail 80
+    }
+  }
+  Get-Process -ErrorAction SilentlyContinue | Where-Object {
+    $_.ProcessName -match 'Prompt|Setup|Uninstall|nsis|taskkill|makensis'
+  } | ForEach-Object { Write-Host "proc $($_.Id) $($_.ProcessName)" }
+}
+
 function Stop-PromptPicker {
   $roots = @(
     'C:\Prompt Picker',
@@ -88,9 +101,11 @@ function Remove-Tree([string]$Dir) {
 function Remove-PromptPickerRegistry {
   foreach ($key in @(
     'HKCU:\Software\Prompt Picker',
-    'HKCU:\Software\05ae8bdf-b478-52b5-acc4-ac809166ef4d'
+    'HKCU:\Software\05ae8bdf-b478-52b5-acc4-ac809166ef4d',
+    'HKLM:\Software\Prompt Picker',
+    'HKLM:\Software\05ae8bdf-b478-52b5-acc4-ac809166ef4d'
   )) {
-    if (Test-Path $key) { Remove-Item $key -Recurse -Force }
+    if (Test-Path $key) { Remove-Item $key -Recurse -Force -ErrorAction SilentlyContinue }
   }
   $uninstall = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
   if (Test-Path $uninstall) {
@@ -225,6 +240,7 @@ function Install-Silent([string]$Path, [string]$Directory) {
     $psi.WorkingDirectory = $env:TEMP
     $p = [Diagnostics.Process]::Start($psi)
     if (-not $p.WaitForExit(300000)) {
+      Show-SetupTrace
       try { $p.Kill() } catch {}
       throw "installer timed out: $Path"
     }
@@ -715,6 +731,7 @@ try {
   Write-Host 'clean-machine ok'
 } catch {
   Write-Host "CLEAN MACHINE FAILED: $($_.Exception.Message)"
+  Show-SetupTrace
   Show-CrashLog
   exit 1
 }
