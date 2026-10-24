@@ -68,6 +68,7 @@ assert.ok(/publish:[\s\S]*needs:\s*\[clean-machine\]/.test(wf));
 const clean = fs.readFileSync(path.join(__dirname, 'windows-clean-machine.ps1'), 'utf8');
 assert.ok(clean.includes('/S _?=$installDir'), 'silent uninstall must wait on the NSIS process');
 assert.ok(clean.includes('function Invoke-Uninstall'));
+assert.ok(clean.includes('for ($try = 1; $try -le 3; $try++)'));
 assert.ok(clean.includes('uninstall then reinstall'));
 assert.ok(clean.includes('Assert-ShortcutsGone'));
 

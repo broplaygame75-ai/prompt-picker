@@ -169,16 +169,38 @@ function Reset-Machine {
   Remove-PromptPickerRegistry
 }
 
+function Show-CrashEvents {
+  try {
+    $start = (Get-Date).AddMinutes(-10)
+    Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000; StartTime=$start} -ErrorAction SilentlyContinue |
+      Select-Object -First 4 |
+      ForEach-Object { Write-Host $_.Message }
+  } catch {
+    Write-Host "no application error events: $($_.Exception.Message)"
+  }
+}
+
 function Install-Silent([string]$Path) {
   Stop-PromptPicker
   if (Get-Command Unblock-File -ErrorAction SilentlyContinue) { Unblock-File -LiteralPath $Path }
-  Write-Host "install $Path"
-  $p = Start-Process -FilePath $Path -ArgumentList '/S','/currentuser' -PassThru
-  if (-not $p.WaitForExit(300000)) {
-    try { $p.Kill() } catch {}
-    throw "installer timed out: $Path"
+  for ($try = 1; $try -le 3; $try++) {
+    Write-Host "install $Path (try $try)"
+    $p = Start-Process -FilePath $Path -ArgumentList '/S','/currentuser' -PassThru
+    if (-not $p.WaitForExit(300000)) {
+      try { $p.Kill() } catch {}
+      throw "installer timed out: $Path"
+    }
+    if ($p.ExitCode -eq 0) { return }
+    $hex = '0x{0:X8}' -f ($p.ExitCode -band 0xFFFFFFFF)
+    Write-Host "installer exit $($p.ExitCode) ($hex)"
+    Show-CrashEvents
+    # NSIS reports setup failures as small positive codes. A negative code
+    # is the process crashing (0xC0000005 on a runner) before setup finishes.
+    $crashed = $p.ExitCode -lt 0
+    if (-not $crashed -or $try -eq 3) { throw "installer exit $($p.ExitCode) ($hex): $Path" }
+    Stop-PromptPicker
+    Start-Sleep -Seconds 3
   }
-  if ($p.ExitCode -ne 0) { throw "installer exit $($p.ExitCode): $Path" }
 }
 
 function Resolve-AppExe {
